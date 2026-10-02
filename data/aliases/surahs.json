@@ -1,0 +1,979 @@
+{
+  "note": "name and ayahCount come from the Quranpedia mushaf-1 dump. bareName is name without the leading «سورة ». spellingVariants and alternateNames are editorial (scripts/lib/), pending human review; they are used only to resolve a cited surah, never shown as source text.",
+  "source": "Quranpedia.net (https://quranpedia.net), dump mushafs-1",
+  "surahs": [
+    {
+      "number": 1,
+      "name": "سورة الفاتحة",
+      "bareName": "الفاتحة",
+      "ayahCount": 7,
+      "spellingVariants": [],
+      "alternateNames": [
+        "أم الكتاب",
+        "أم القرآن",
+        "السبع المثاني",
+        "الحمد"
+      ]
+    },
+    {
+      "number": 2,
+      "name": "سورة البقرة",
+      "bareName": "البقرة",
+      "ayahCount": 286,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 3,
+      "name": "سورة آل عمران",
+      "bareName": "آل عمران",
+      "ayahCount": 200,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 4,
+      "name": "سورة النساء",
+      "bareName": "النساء",
+      "ayahCount": 176,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 5,
+      "name": "سورة المائدة",
+      "bareName": "المائدة",
+      "ayahCount": 120,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 6,
+      "name": "سورة الأنعام",
+      "bareName": "الأنعام",
+      "ayahCount": 165,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 7,
+      "name": "سورة الأعراف",
+      "bareName": "الأعراف",
+      "ayahCount": 206,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 8,
+      "name": "سورة الأنفال",
+      "bareName": "الأنفال",
+      "ayahCount": 75,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 9,
+      "name": "سورة التوبة",
+      "bareName": "التوبة",
+      "ayahCount": 129,
+      "spellingVariants": [],
+      "alternateNames": [
+        "براءة"
+      ]
+    },
+    {
+      "number": 10,
+      "name": "سورة يونس",
+      "bareName": "يونس",
+      "ayahCount": 109,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 11,
+      "name": "سورة هود",
+      "bareName": "هود",
+      "ayahCount": 123,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 12,
+      "name": "سورة يوسف",
+      "bareName": "يوسف",
+      "ayahCount": 111,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 13,
+      "name": "سورة الرعد",
+      "bareName": "الرعد",
+      "ayahCount": 43,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 14,
+      "name": "سورة إبراهيم",
+      "bareName": "إبراهيم",
+      "ayahCount": 52,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 15,
+      "name": "سورة الحجر",
+      "bareName": "الحجر",
+      "ayahCount": 99,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 16,
+      "name": "سورة النحل",
+      "bareName": "النحل",
+      "ayahCount": 128,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 17,
+      "name": "سورة الإسراء",
+      "bareName": "الإسراء",
+      "ayahCount": 111,
+      "spellingVariants": [],
+      "alternateNames": [
+        "بني إسرائيل",
+        "سبحان"
+      ]
+    },
+    {
+      "number": 18,
+      "name": "سورة الكهف",
+      "bareName": "الكهف",
+      "ayahCount": 110,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 19,
+      "name": "سورة مريم",
+      "bareName": "مريم",
+      "ayahCount": 98,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 20,
+      "name": "سورة طه",
+      "bareName": "طه",
+      "ayahCount": 135,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 21,
+      "name": "سورة الأنبياء",
+      "bareName": "الأنبياء",
+      "ayahCount": 112,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 22,
+      "name": "سورة الحج",
+      "bareName": "الحج",
+      "ayahCount": 78,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 23,
+      "name": "سورة المؤمنون",
+      "bareName": "المؤمنون",
+      "ayahCount": 118,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 24,
+      "name": "سورة النور",
+      "bareName": "النور",
+      "ayahCount": 64,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 25,
+      "name": "سورة الفرقان",
+      "bareName": "الفرقان",
+      "ayahCount": 77,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 26,
+      "name": "سورة الشعراء",
+      "bareName": "الشعراء",
+      "ayahCount": 227,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 27,
+      "name": "سورة النمل",
+      "bareName": "النمل",
+      "ayahCount": 93,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 28,
+      "name": "سورة القصص",
+      "bareName": "القصص",
+      "ayahCount": 88,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 29,
+      "name": "سورة العنكبوت",
+      "bareName": "العنكبوت",
+      "ayahCount": 69,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 30,
+      "name": "سورة الروم",
+      "bareName": "الروم",
+      "ayahCount": 60,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 31,
+      "name": "سورة لقمان",
+      "bareName": "لقمان",
+      "ayahCount": 34,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 32,
+      "name": "سورة السجدة",
+      "bareName": "السجدة",
+      "ayahCount": 30,
+      "spellingVariants": [],
+      "alternateNames": [
+        "الم السجدة",
+        "الم تنزيل"
+      ]
+    },
+    {
+      "number": 33,
+      "name": "سورة الأحزاب",
+      "bareName": "الأحزاب",
+      "ayahCount": 73,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 34,
+      "name": "سورة سبأ",
+      "bareName": "سبأ",
+      "ayahCount": 54,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 35,
+      "name": "سورة فاطر",
+      "bareName": "فاطر",
+      "ayahCount": 45,
+      "spellingVariants": [],
+      "alternateNames": [
+        "الملائكة"
+      ]
+    },
+    {
+      "number": 36,
+      "name": "سورة يس",
+      "bareName": "يس",
+      "ayahCount": 83,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 37,
+      "name": "سورة الصافات",
+      "bareName": "الصافات",
+      "ayahCount": 182,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 38,
+      "name": "سورة ص",
+      "bareName": "ص",
+      "ayahCount": 88,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 39,
+      "name": "سورة الزمر",
+      "bareName": "الزمر",
+      "ayahCount": 75,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 40,
+      "name": "سورة غافر",
+      "bareName": "غافر",
+      "ayahCount": 85,
+      "spellingVariants": [],
+      "alternateNames": [
+        "المؤمن"
+      ]
+    },
+    {
+      "number": 41,
+      "name": "سورة فصلت",
+      "bareName": "فصلت",
+      "ayahCount": 54,
+      "spellingVariants": [],
+      "alternateNames": [
+        "حم السجدة"
+      ]
+    },
+    {
+      "number": 42,
+      "name": "سورة الشورى",
+      "bareName": "الشورى",
+      "ayahCount": 53,
+      "spellingVariants": [],
+      "alternateNames": [
+        "حم عسق"
+      ]
+    },
+    {
+      "number": 43,
+      "name": "سورة الزخرف",
+      "bareName": "الزخرف",
+      "ayahCount": 89,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 44,
+      "name": "سورة الدخان",
+      "bareName": "الدخان",
+      "ayahCount": 59,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 45,
+      "name": "سورة الجاثية",
+      "bareName": "الجاثية",
+      "ayahCount": 37,
+      "spellingVariants": [],
+      "alternateNames": [
+        "الشريعة"
+      ]
+    },
+    {
+      "number": 46,
+      "name": "سورة الأحقاف",
+      "bareName": "الأحقاف",
+      "ayahCount": 35,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 47,
+      "name": "سورة محمد",
+      "bareName": "محمد",
+      "ayahCount": 38,
+      "spellingVariants": [],
+      "alternateNames": [
+        "القتال"
+      ]
+    },
+    {
+      "number": 48,
+      "name": "سورة الفتح",
+      "bareName": "الفتح",
+      "ayahCount": 29,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 49,
+      "name": "سورة الحجرات",
+      "bareName": "الحجرات",
+      "ayahCount": 18,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 50,
+      "name": "سورة ق",
+      "bareName": "ق",
+      "ayahCount": 45,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 51,
+      "name": "سورة الذاريات",
+      "bareName": "الذاريات",
+      "ayahCount": 60,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 52,
+      "name": "سورة الطور",
+      "bareName": "الطور",
+      "ayahCount": 49,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 53,
+      "name": "سورة النجم",
+      "bareName": "النجم",
+      "ayahCount": 62,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 54,
+      "name": "سورة القمر",
+      "bareName": "القمر",
+      "ayahCount": 55,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 55,
+      "name": "سورة الرحمن",
+      "bareName": "الرحمن",
+      "ayahCount": 78,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 56,
+      "name": "سورة الواقعة",
+      "bareName": "الواقعة",
+      "ayahCount": 96,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 57,
+      "name": "سورة الحديد",
+      "bareName": "الحديد",
+      "ayahCount": 29,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 58,
+      "name": "سورة المجادلة",
+      "bareName": "المجادلة",
+      "ayahCount": 22,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 59,
+      "name": "سورة الحشر",
+      "bareName": "الحشر",
+      "ayahCount": 24,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 60,
+      "name": "سورة الممتحنة",
+      "bareName": "الممتحنة",
+      "ayahCount": 13,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 61,
+      "name": "سورة الصف",
+      "bareName": "الصف",
+      "ayahCount": 14,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 62,
+      "name": "سورة الجمعة",
+      "bareName": "الجمعة",
+      "ayahCount": 11,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 63,
+      "name": "سورة المنافقون",
+      "bareName": "المنافقون",
+      "ayahCount": 11,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 64,
+      "name": "سورة التغابن",
+      "bareName": "التغابن",
+      "ayahCount": 18,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 65,
+      "name": "سورة الطلاق",
+      "bareName": "الطلاق",
+      "ayahCount": 12,
+      "spellingVariants": [],
+      "alternateNames": [
+        "النساء الصغرى"
+      ]
+    },
+    {
+      "number": 66,
+      "name": "سورة التحريم",
+      "bareName": "التحريم",
+      "ayahCount": 12,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 67,
+      "name": "سورة الملك",
+      "bareName": "الملك",
+      "ayahCount": 30,
+      "spellingVariants": [],
+      "alternateNames": [
+        "تبارك"
+      ]
+    },
+    {
+      "number": 68,
+      "name": "سورة القلم",
+      "bareName": "القلم",
+      "ayahCount": 52,
+      "spellingVariants": [],
+      "alternateNames": [
+        "ن"
+      ]
+    },
+    {
+      "number": 69,
+      "name": "سورة الحاقة",
+      "bareName": "الحاقة",
+      "ayahCount": 52,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 70,
+      "name": "سورة المعارج",
+      "bareName": "المعارج",
+      "ayahCount": 44,
+      "spellingVariants": [],
+      "alternateNames": [
+        "سأل سائل"
+      ]
+    },
+    {
+      "number": 71,
+      "name": "سورة نوح",
+      "bareName": "نوح",
+      "ayahCount": 28,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 72,
+      "name": "سورة الجن",
+      "bareName": "الجن",
+      "ayahCount": 28,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 73,
+      "name": "سورة المزمل",
+      "bareName": "المزمل",
+      "ayahCount": 20,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 74,
+      "name": "سورة المدثر",
+      "bareName": "المدثر",
+      "ayahCount": 56,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 75,
+      "name": "سورة القيامة",
+      "bareName": "القيامة",
+      "ayahCount": 40,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 76,
+      "name": "سورة الإنسان",
+      "bareName": "الإنسان",
+      "ayahCount": 31,
+      "spellingVariants": [],
+      "alternateNames": [
+        "الدهر",
+        "هل أتى"
+      ]
+    },
+    {
+      "number": 77,
+      "name": "سورة المرسلات",
+      "bareName": "المرسلات",
+      "ayahCount": 50,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 78,
+      "name": "سورة النبأ",
+      "bareName": "النبأ",
+      "ayahCount": 40,
+      "spellingVariants": [],
+      "alternateNames": [
+        "عم",
+        "عم يتساءلون"
+      ]
+    },
+    {
+      "number": 79,
+      "name": "سورة النازعات",
+      "bareName": "النازعات",
+      "ayahCount": 46,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 80,
+      "name": "سورة عبس",
+      "bareName": "عبس",
+      "ayahCount": 42,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 81,
+      "name": "سورة التكوير",
+      "bareName": "التكوير",
+      "ayahCount": 29,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 82,
+      "name": "سورة الإنفطار",
+      "bareName": "الإنفطار",
+      "ayahCount": 19,
+      "spellingVariants": [
+        "الانفطار"
+      ],
+      "alternateNames": []
+    },
+    {
+      "number": 83,
+      "name": "سورة المطففين",
+      "bareName": "المطففين",
+      "ayahCount": 36,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 84,
+      "name": "سورة الإنشقاق",
+      "bareName": "الإنشقاق",
+      "ayahCount": 25,
+      "spellingVariants": [
+        "الانشقاق"
+      ],
+      "alternateNames": []
+    },
+    {
+      "number": 85,
+      "name": "سورة البروج",
+      "bareName": "البروج",
+      "ayahCount": 22,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 86,
+      "name": "سورة الطارق",
+      "bareName": "الطارق",
+      "ayahCount": 17,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 87,
+      "name": "سورة الأعلى",
+      "bareName": "الأعلى",
+      "ayahCount": 19,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 88,
+      "name": "سورة الغاشية",
+      "bareName": "الغاشية",
+      "ayahCount": 26,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 89,
+      "name": "سورة الفجر",
+      "bareName": "الفجر",
+      "ayahCount": 30,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 90,
+      "name": "سورة البلد",
+      "bareName": "البلد",
+      "ayahCount": 20,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 91,
+      "name": "سورة الشمس",
+      "bareName": "الشمس",
+      "ayahCount": 15,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 92,
+      "name": "سورة الليل",
+      "bareName": "الليل",
+      "ayahCount": 21,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 93,
+      "name": "سورة الضحى",
+      "bareName": "الضحى",
+      "ayahCount": 11,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 94,
+      "name": "سورة الشرح",
+      "bareName": "الشرح",
+      "ayahCount": 8,
+      "spellingVariants": [],
+      "alternateNames": [
+        "الانشراح",
+        "ألم نشرح"
+      ]
+    },
+    {
+      "number": 95,
+      "name": "سورة التين",
+      "bareName": "التين",
+      "ayahCount": 8,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 96,
+      "name": "سورة العلق",
+      "bareName": "العلق",
+      "ayahCount": 19,
+      "spellingVariants": [],
+      "alternateNames": [
+        "اقرأ"
+      ]
+    },
+    {
+      "number": 97,
+      "name": "سورة القدر",
+      "bareName": "القدر",
+      "ayahCount": 5,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 98,
+      "name": "سورة البينة",
+      "bareName": "البينة",
+      "ayahCount": 8,
+      "spellingVariants": [],
+      "alternateNames": [
+        "لم يكن"
+      ]
+    },
+    {
+      "number": 99,
+      "name": "سورة الزلزلة",
+      "bareName": "الزلزلة",
+      "ayahCount": 8,
+      "spellingVariants": [],
+      "alternateNames": [
+        "الزلزال"
+      ]
+    },
+    {
+      "number": 100,
+      "name": "سورة العاديات",
+      "bareName": "العاديات",
+      "ayahCount": 11,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 101,
+      "name": "سورة القارعة",
+      "bareName": "القارعة",
+      "ayahCount": 11,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 102,
+      "name": "سورة التكاثر",
+      "bareName": "التكاثر",
+      "ayahCount": 8,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 103,
+      "name": "سورة العصر",
+      "bareName": "العصر",
+      "ayahCount": 3,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 104,
+      "name": "سورة الهمزة",
+      "bareName": "الهمزة",
+      "ayahCount": 9,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 105,
+      "name": "سورة الفيل",
+      "bareName": "الفيل",
+      "ayahCount": 5,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 106,
+      "name": "سورة قريش",
+      "bareName": "قريش",
+      "ayahCount": 4,
+      "spellingVariants": [],
+      "alternateNames": [
+        "لإيلاف"
+      ]
+    },
+    {
+      "number": 107,
+      "name": "سورة الماعون",
+      "bareName": "الماعون",
+      "ayahCount": 7,
+      "spellingVariants": [],
+      "alternateNames": [
+        "أرأيت"
+      ]
+    },
+    {
+      "number": 108,
+      "name": "سورة الكوثر",
+      "bareName": "الكوثر",
+      "ayahCount": 3,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 109,
+      "name": "سورة الكافرون",
+      "bareName": "الكافرون",
+      "ayahCount": 6,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 110,
+      "name": "سورة النصر",
+      "bareName": "النصر",
+      "ayahCount": 3,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 111,
+      "name": "سورة المسد",
+      "bareName": "المسد",
+      "ayahCount": 5,
+      "spellingVariants": [],
+      "alternateNames": [
+        "تبت",
+        "اللهب"
+      ]
+    },
+    {
+      "number": 112,
+      "name": "سورة الإخلاص",
+      "bareName": "الإخلاص",
+      "ayahCount": 4,
+      "spellingVariants": [],
+      "alternateNames": [
+        "التوحيد"
+      ]
+    },
+    {
+      "number": 113,
+      "name": "سورة الفلق",
+      "bareName": "الفلق",
+      "ayahCount": 5,
+      "spellingVariants": [],
+      "alternateNames": []
+    },
+    {
+      "number": 114,
+      "name": "سورة الناس",
+      "bareName": "الناس",
+      "ayahCount": 6,
+      "spellingVariants": [],
+      "alternateNames": []
+    }
+  ]
+}

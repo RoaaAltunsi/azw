@@ -1,0 +1,168 @@
+{
+  "manifestVersion": 1,
+  "corpusVersion": "p0-1ad1269a5e42",
+  "generatedAt": "2026-10-02T17:30:01.418Z",
+  "coverage": [
+    "quran",
+    "bukhari",
+    "muslim"
+  ],
+  "reviewFile": "data/review/reviewed.json",
+  "sources": [
+    {
+      "collection": "quran",
+      "kind": "quran",
+      "file": {
+        "path": "data/corpus/quran.json",
+        "bytes": 5684530,
+        "sha256": "57ec846272e82169975ed6a1aeeec16bddb3e8fb7244f38131e2f5460b9bdf9f"
+      },
+      "counts": {
+        "surahs": 114,
+        "records": 6236
+      },
+      "reviewStatus": {
+        "collectionApproved": true,
+        "reviewed": 6236,
+        "pending": 0
+      },
+      "source": {
+        "name": "Quranpedia.net — mushaf 1 (Hafs, per King Fahd Complex edition)",
+        "url": "https://quranpedia.net",
+        "downloadUrl": "https://api.quranpedia.net/dumps/mushafs-1.json.gz",
+        "versions": {
+          "dumpManifest": "2026-10-02",
+          "fileLicenseVersion": "2026-09-30",
+          "licenseDocument": "2026-10-01"
+        },
+        "builtAt": "2026-10-02T03:31:37+00:00",
+        "license": "Quranpedia.net Data License 2026-10-01 (data/raw/quranpedia/LICENSE.md)",
+        "attribution": "When republishing the data: credit Quranpedia.net with a link to https://quranpedia.net and state the dump version.",
+        "numberingScheme": "id = quran:<surah>:<ayah>; Hafs (Kufan) ayah numbering, 6236 ayat.",
+        "rawFiles": [
+          {
+            "path": "data/raw/quranpedia/mushafs-1.json",
+            "bytes": 2803125,
+            "sha256": "242df6d3636981d22fb3661a7ed4c58d5ec7c726c27ef9085328696ecd780f54"
+          },
+          {
+            "path": "data/raw/quranpedia/manifest.json",
+            "bytes": 104416,
+            "sha256": "28caa52af911825cbf287bf7eca50f2ad68625e7ac04ca13b6a4f39304e5cb2f"
+          },
+          {
+            "path": "data/raw/quranpedia/LICENSE.md",
+            "bytes": 4227,
+            "sha256": "784d33f90a3159d685d9a66e6460389e7d4595f0b7e2f2be98bf0eca041fd75b"
+          }
+        ],
+        "upstreamChecksum": {
+          "file": "mushafs-1.json.gz",
+          "sha256": "abbd7ada76a50fd02fd9b49043aa8a0428d30408c5065d5d4fed39bb8f9af368",
+          "bytes": 403040,
+          "covers": "the compressed .gz published by Quranpedia, not the decompressed local JSON",
+          "localGz": {
+            "path": "data/raw/quranpedia/mushafs-1.json.gz",
+            "bytes": 403040,
+            "sha256": "b857c58206d219d1af333fc3eb8359c30e8b07c7386f88692efcb0744dd98fe8",
+            "matchesManifestSha256": false,
+            "decompressedSha256": "242df6d3636981d22fb3661a7ed4c58d5ec7c726c27ef9085328696ecd780f54",
+            "decompressedMatchesLocalJson": true
+          }
+        }
+      }
+    },
+    {
+      "collection": "bukhari",
+      "kind": "hadith",
+      "file": {
+        "path": "data/corpus/bukhari.json",
+        "bytes": 13713075,
+        "sha256": "4c331ebe50c8407d4437db93d8af85499360a36febbecc05fb3d24a5b2f18a82"
+      },
+      "counts": {
+        "rawEntries": 7589,
+        "records": 7580,
+        "skippedEmpty": 9,
+        "nullCitationNumber": 0,
+        "distinctCitationNumbers": 7554,
+        "withMatnText": 1016
+      },
+      "reviewStatus": {
+        "collectionApproved": true,
+        "reviewed": 6941,
+        "pending": 639
+      },
+      "source": {
+        "name": "fawazahmed0/hadith-api — ara-bukhari",
+        "adapter": "fawazahmed0/hadith-api",
+        "url": "https://github.com/fawazahmed0/hadith-api",
+        "downloadUrl": "https://raw.githubusercontent.com/fawazahmed0/hadith-api/df57907be35291c91ad6a6691180e22ca9920784/editions/ara-bukhari.min.json",
+        "commit": "df57907be35291c91ad6a6691180e22ca9920784",
+        "license": "The Unlicense (public-domain dedication)",
+        "licenseUrl": "https://github.com/fawazahmed0/hadith-api/blob/df57907be35291c91ad6a6691180e22ca9920784/LICENSE",
+        "attribution": "None required by the license; the source is credited in docs/SOURCES.md.",
+        "numberingScheme": "id = bukhari:<hadithnumber>. citation.number = integer part of hadithnumber (1–7563). The source splits a few hadith into decimal entries (e.g. 402.2); for those, citation.subNumber keeps the full source value.",
+        "gradePolicy": "AGENTS.md §6: Sahihayn records carry grade {text: \"صحيح\", by: <collection name>}; withheld when citation.number is null.",
+        "rawFiles": [
+          {
+            "path": "data/raw/hadith-api/ara-bukhari.min.json",
+            "bytes": 9409647,
+            "sha256": "f887d8724f75fb6e1d5d29342a173af5346ad9b933173c85e6e3cb570063ea33"
+          },
+          {
+            "path": "data/raw/hadith-api/COMMIT.txt",
+            "bytes": 40,
+            "sha256": "a526f652917783c9e4cf15b9b608eed66eb73175aa3f63df20306a6c5ebd7c45"
+          }
+        ]
+      }
+    },
+    {
+      "collection": "muslim",
+      "kind": "hadith",
+      "file": {
+        "path": "data/corpus/muslim.json",
+        "bytes": 12431543,
+        "sha256": "5b79bf1eecd1ea76689c58a0caca0094ef0c6658a168c7a8519f049e659cb692"
+      },
+      "counts": {
+        "rawEntries": 7563,
+        "records": 7360,
+        "skippedEmpty": 203,
+        "nullCitationNumber": 148,
+        "distinctCitationNumbers": 2962,
+        "withMatnText": 1110
+      },
+      "reviewStatus": {
+        "collectionApproved": true,
+        "reviewed": 7169,
+        "pending": 191
+      },
+      "source": {
+        "name": "fawazahmed0/hadith-api — ara-muslim",
+        "adapter": "fawazahmed0/hadith-api",
+        "url": "https://github.com/fawazahmed0/hadith-api",
+        "downloadUrl": "https://raw.githubusercontent.com/fawazahmed0/hadith-api/df57907be35291c91ad6a6691180e22ca9920784/editions/ara-muslim.min.json",
+        "commit": "df57907be35291c91ad6a6691180e22ca9920784",
+        "license": "The Unlicense (public-domain dedication)",
+        "licenseUrl": "https://github.com/fawazahmed0/hadith-api/blob/df57907be35291c91ad6a6691180e22ca9920784/LICENSE",
+        "attribution": "None required by the license; the source is credited in docs/SOURCES.md.",
+        "numberingScheme": "id = muslim:<hadithnumber> (source running number 1–7563, NOT a citation number). citation.number = integer part of arabicnumber (Fuad Abd al-Baqi); citation.subNumber = full arabicnumber as in the source (e.g. \"8.01\"). Entries without arabicnumber have citation.number = null and stay pending.",
+        "gradePolicy": "AGENTS.md §6: Sahihayn records carry grade {text: \"صحيح\", by: <collection name>}; withheld when citation.number is null.",
+        "rawFiles": [
+          {
+            "path": "data/raw/hadith-api/ara-muslim.min.json",
+            "bytes": 8329204,
+            "sha256": "2cb296f3455ff8a3da9f6a0ca3de75da675788b2fb446ad316df297838e48217"
+          },
+          {
+            "path": "data/raw/hadith-api/COMMIT.txt",
+            "bytes": 40,
+            "sha256": "a526f652917783c9e4cf15b9b608eed66eb73175aa3f63df20306a6c5ebd7c45"
+          }
+        ]
+      }
+    }
+  ]
+}
