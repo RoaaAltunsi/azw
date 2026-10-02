@@ -1,0 +1,11 @@
+node_modules/
+.env*
+!.env.example
+
+/docs
+
+# Private build prompt pack: local working notes, not part of the repo.
+Azw_Build_Prompts.md
+
+# Dorar API responses: cached for verification only, all rights reserved by dorar.net — never committed.
+data/raw/dorar-cache/
