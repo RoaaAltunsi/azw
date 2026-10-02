@@ -20,7 +20,7 @@ import {
   type DorarBookText,
   type DorarResult,
 } from "./lib/dorar.js";
-import { CorpusFileSchema, type SourceRecord } from "./lib/schema.js";
+import { CorpusFileSchema, ReviewedFileSchema, type SourceRecord } from "./lib/schema.js";
 import { p, readJson } from "./lib/util.js";
 
 const args = process.argv.slice(2);
@@ -284,13 +284,19 @@ for (const collection of Object.keys(DORAR_BOOKS)) {
 }
 
 const flagged = summary.flatMap((s) => s.results).filter((c) => !numberFound(c) || !c.bookText || wordDiffs(c) > 0);
+// Approval state is read from data/review/reviewed.json, never assumed.
+const approved = ReviewedFileSchema.parse(readJson(p("data/review/reviewed.json"))).collections.filter((a) => a.collection in DORAR_BOOKS);
+const approvalLine =
+  approved.length === 0
+    ? "Sahih al-Bukhari and Sahih Muslim are pending. Nothing here is approved."
+    : `Recorded collection approvals: ${approved.map((a) => `${a.collection} (${a.approvedAt})`).join(", ")}; records outside them stay pending.`;
 const ranAt = new Date().toISOString().slice(0, 10);
 
 const md = `# Azw — hadith review sample
 
 For: the project owner. Corpus \`${report.corpusVersion}\`, prepared ${ranAt}.
 
-**Sahih al-Bukhari and Sahih Muslim are pending. Nothing here is approved, and this sheet does not approve anything.** It gives you a sample to read. No hadith is graded here; the tool does not judge authenticity.
+**${approvalLine} This sheet does not approve anything.** It gives you a sample to read. No hadith is graded here; the tool does not judge authenticity.
 
 ## How to read this sheet
 
@@ -333,7 +339,7 @@ Empty entries in the source file were never imported and are listed in \`docs/SO
 
 - It covers ${summary.reduce((n, s) => n + s.results.length, 0)} records out of ${summary.reduce((n, s) => n + s.eligible, 0)} eligible. It cannot show that the other records are correct.
 - The Dorar comparison was done by a script. Read the texts yourself before deciding.
-- No approval has been recorded. To approve a book, tell me so explicitly.
+- ${approved.length === 0 ? "No approval has been recorded. To approve a book, tell me so explicitly." : "Approvals are recorded only in `data/review/reviewed.json`; this sheet neither adds nor removes one."}
 `;
 
 writeFileSync(p("docs/HADITH_REVIEW_SAMPLE.md"), md);

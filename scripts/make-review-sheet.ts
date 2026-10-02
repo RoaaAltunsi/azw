@@ -43,6 +43,10 @@ const dorar = readJson(p("data/review/dorar-verification.json")) as {
 const reviewedTotal = manifest.sources.reduce((n, s) => n + s.reviewStatus.reviewed, 0);
 const approvals = ReviewedFileSchema.parse(readJson(p("data/review/reviewed.json"))).collections;
 const quranApproval = approvals.find((a) => a.collection === "quran");
+const hadithApprovals = approvals.filter((a) => a.collection === "bukhari" || a.collection === "muslim");
+const pendingOf = (c: string): number => manifest.sources.find((s) => s.collection === c)!.reviewStatus.pending;
+const citedNumbers = new Set(muslim.map((r) => r.citation.number));
+const missingMuslimNumbers = Array.from({ length: 3033 }, (_, i) => String(i + 1)).filter((n) => !citedNumbers.has(n)).length;
 const statusLine =
   approvals.length === 0
     ? `**Review status: nothing has been reviewed or approved by a person.** All ${quran.length + bukhari.length + muslim.length} records are marked pending.`
@@ -76,8 +80,8 @@ function hadithExample(r: SourceRecord, why: string): string {
 
 // Text around the first damaged character, so the damage can be seen without the whole hadith.
 function damageSnippet(r: SourceRecord): string {
-  const i = r.exactText.search(/[￼�]/);
-  return r.exactText.slice(Math.max(0, i - 45), i + 45).replace(/‏/g, "");
+  const i = r.exactText.search(/[\uFFFC\uFFFD]/);
+  return r.exactText.slice(Math.max(0, i - 45), i + 45).replace(/\u200F/g, "");
 }
 
 const QURAN_EXAMPLES: Array<[string, string]> = [
@@ -174,7 +178,7 @@ Details and full lists: \`docs/SOURCES.md\`, \`data/corpus/build-report.json\`.
 - ${m.nullCitationNumber.length} records have no citation number in the source. They cannot be cited.
 - ${m.sharedTextGroups.flat().length} records share their text with another number (${m.sharedTextGroups.length} groups).
 - ${m.corruptText.length} records have a damaged character.
-- 71 of the 3033 citation numbers do not appear in the corpus.
+- ${missingMuslimNumbers} of the 3033 citation numbers do not appear in the corpus.
 
 ## 4. Examples to inspect
 
@@ -203,7 +207,7 @@ All of these are in the corpus unmodified and pending. Full lists are in \`data/
 
 | Kind | Bukhari | Muslim | Example |
 |---|---|---|---|
-| Damaged character (the source lost a letter, shown as �) | ${b.corruptText.length} | ${m.corruptText.length} | \`bukhari:${b.corruptText[0]}\`: …${damageSnippet(get(`bukhari:${b.corruptText[0]}`))}… |
+| Damaged character (the source lost a letter, shown as \uFFFD) | ${b.corruptText.length} | ${m.corruptText.length} | \`bukhari:${b.corruptText[0]}\`: …${damageSnippet(get(`bukhari:${b.corruptText[0]}`))}… |
 | Same text under several numbers | ${b.sharedTextGroups.flat().length} records | ${m.sharedTextGroups.flat().length} records | ${firstShared(b)}; ${firstShared(m)} |
 | Decimal (split) number | ${b.splitEntries.length} | 0 | \`bukhari:${b.splitEntries[0]}\`, cited as no. ${get(`bukhari:${b.splitEntries[0]}`).citation.number} |
 | No citation number | 0 | ${m.nullCitationNumber.length} | \`muslim:${m.nullCitationNumber[0]}\` (from the introduction) |
@@ -227,15 +231,19 @@ ${
 | 2 | Quran checksum mismatch | Email Quranpedia (quranpedia.help@gmail.com) and continue meanwhile; the content matches what they serve. | If they confirm a stale manifest, nothing changes. If the file changed, re-download and rebuild. |
 | 3 | Mushaf spellings in search (رحمت، مسئولا، الملإ …) | Use a small reviewed list of these word forms for search only. | Correct quotes typed in everyday spelling are found. Without it they show as «مختلف» or not found. The displayed text is never changed. |
 | 4 | The ۞ and ۩ signs in displayed ayat | Keep them in the stored text; hide them only when showing a quote. | The stored text stays identical to the source; the writer sees a clean ayah. |
-| 5 | Approve Bukhari and Muslim? | Not yet. Read the examples, and decide 6–9 first. | Until approved, no hadith can get the match status. |
-| 6 | Records sharing one text under several numbers | Keep them out of any approval for now; later show them with a number range. | About 730 records cannot give a match status. Approving them as they are risks citing the wrong number. |
-| 7 | Damaged records (32) | Leave them out of approval. Do not repair the text by hand. | 32 hadith stay unverifiable until a clean source is found. |
+${
+  hadithApprovals.length > 0
+    ? `| 5 | Approve Bukhari and Muslim? | **Decided: approved by the owner** for text matching — ${hadithApprovals.map((a) => `${a.collection} (${a.approvedAt})`).join(", ")} — on the sample checks. | Records with no reported issue are marked reviewed. Still pending: ${pendingOf("bukhari")} Bukhari and ${pendingOf("muslim")} Muslim records (decisions 6–9 and the held records in \`data/review/held-records.json\`). |`
+    : "| 5 | Approve Bukhari and Muslim? | Not yet. Read the examples, and decide 6–9 first. | Until approved, no hadith can get the match status. |"
+}
+| 6 | Records sharing one text under several numbers | Keep them out of any approval for now; later show them with a number range. | ${b.sharedTextGroups.flat().length + m.sharedTextGroups.flat().length} records cannot give a match status. Approving them as they are risks citing the wrong number. |
+| 7 | Damaged records (${b.corruptText.length + m.corruptText.length}) | Leave them out of approval. Do not repair the text by hand. | ${b.corruptText.length + m.corruptText.length} hadith stay unverifiable until a clean source is found. |
 | 8 | Bukhari decimal entries cited by the whole number (402.2 → 402) | Accept. | The reader sees a real hadith number. This differs from your instruction to use \`hadithnumber\` as is; say so if you want the decimal shown. |
 | 9 | Muslim records without a number: no grade, never approved | Accept. | ${m.nullCitationNumber.length} records stay in the data but can never produce a match status. |
 | 10 | The rule that separates the matn | Accept after reading the two examples with a separated matn above. | ${b.withMatnText + m.withMatnText} records get a matn. The rest are matched on the full text including the chain of narrators. |
 | 11 | Alternate surah names (براءة، الدهر، الانشراح …) | Read the list in \`data/aliases/surahs.json\` and strike any you do not accept. | They only help recognise a surah a writer names; they are never shown as source text. |
 
-To approve anything, tell me which collection or which records. I will then record your name and the date in \`data/review/reviewed.json\`. Until then everything stays pending.
+To approve anything, tell me which collection or which records. I will then record your name and the date in \`data/review/reviewed.json\`. Whatever is not approved there stays pending.
 `;
 
 writeFileSync(p("docs/REVIEW_SHEET.md"), md);
