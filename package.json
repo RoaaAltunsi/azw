@@ -9,6 +9,7 @@
     "verify:corpus": "tsx scripts/verify-corpus.ts",
     "verify:raw": "tsx scripts/verify-raw.ts",
     "verify:dorar": "tsx scripts/verify-hadith-dorar.ts",
+    "check:cases": "tsx scripts/check-cases.ts",
     "probe:quran-spelling": "tsx scripts/probe-quran-spelling.ts",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test \"scripts/**/*.test.ts\""
