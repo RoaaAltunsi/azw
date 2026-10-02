@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "p0-1ad1269a5e42",
+  "corpusVersion": "p0-a6d2d36b84e8",
   "quran": {
     "surahCount": 114,
     "ayahCount": 6236,
@@ -1260,7 +1260,8 @@
       ]
     ],
     "heldAfterSampleCheck": [
-      "bukhari:2075"
+      "bukhari:2075",
+      "bukhari:2819"
     ],
     "withMatnText": 1016,
     "matnRules": {

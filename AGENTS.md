@@ -88,7 +88,7 @@ It never proves authenticity.
   are not in the corpus. A quote from one of them ends NOT_FOUND although it is in Sahih Muslim;
   NOT_FOUND wording must therefore never imply the text is absent from the book.
 - **Records that stay pending.** Both hadith collections were approved by the owner on 2026-10-02 on
-  sample checks (6941 Bukhari and 7169 Muslim records reviewed). A collection approval never covers:
+  sample checks (6940 Bukhari and 7169 Muslim records reviewed). A collection approval never covers:
   records with damaged text (U+FFFD/U+FFFC), split entries, records whose text the source repeats
   under several numbers, records without a citation number, and the records in
   `data/review/held-records.json`. These remain `pending` and can never produce MATCH.

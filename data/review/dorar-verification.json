@@ -1,6 +1,6 @@
 {
-  "ranAt": "2026-10-02T16:43:20.589Z",
-  "corpusVersion": "p0-57dc9320685a",
+  "ranAt": "2026-10-02T18:12:46.903Z",
+  "corpusVersion": "p0-a6d2d36b84e8",
   "seed": 20261002,
   "perCollection": 30,
   "similarityThreshold": 0.8,
@@ -464,7 +464,8 @@
           ],
           "verdict": "CONFIRMED",
           "dorarGrade": "[معلق]",
-          "note": "Dorar lists the same matn under صحيح البخاري no. 2819."
+          "gradeDiffers": true,
+          "note": "Dorar lists the same matn under صحيح البخاري no. 2819. Its grade line there reads «[معلق]»; our record carries «صحيح» — needs review."
         },
         {
           "id": "bukhari:4478",

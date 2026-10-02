@@ -1,7 +1,7 @@
 {
   "manifestVersion": 1,
-  "corpusVersion": "p0-1ad1269a5e42",
-  "generatedAt": "2026-10-02T17:30:01.418Z",
+  "corpusVersion": "p0-a6d2d36b84e8",
+  "generatedAt": "2026-10-02T18:14:09.706Z",
   "coverage": [
     "quran",
     "bukhari",
@@ -77,8 +77,8 @@
       "kind": "hadith",
       "file": {
         "path": "data/corpus/bukhari.json",
-        "bytes": 13713075,
-        "sha256": "4c331ebe50c8407d4437db93d8af85499360a36febbecc05fb3d24a5b2f18a82"
+        "bytes": 13713074,
+        "sha256": "e3091383f5327f1948546fc15c0c14fa134a7826270760c8ecb451d25085cca4"
       },
       "counts": {
         "rawEntries": 7589,
@@ -90,8 +90,8 @@
       },
       "reviewStatus": {
         "collectionApproved": true,
-        "reviewed": 6941,
-        "pending": 639
+        "reviewed": 6940,
+        "pending": 640
       },
       "source": {
         "name": "fawazahmed0/hadith-api — ara-bukhari",

@@ -2,6 +2,12 @@
   "note": "Records kept outside any collection-level approval because a sample check left a question open. scripts/build-corpus.ts never marks these reviewed through a collection approval; each needs its own decision by the project owner. The source text is not changed. Evidence: docs/HADITH_FLAGGED_INVESTIGATION.md.",
   "records": [
     {
+      "id": "bukhari:2819",
+      "heldAt": "2026-10-02",
+      "category": "grade not confirmed",
+      "reason": "Our text opens with «وقال الليث حدثني» and the record carries the collection grade «صحيح». Dorar confirms the number and the matn under صحيح البخاري 2819, but its grade line for that entry reads «[معلق]», not «[صحيح]» (data/review/dorar-verification.json). Whether the collection grade may be shown for this record is the owner's decision — docs/DECISIONS.md D-5."
+    },
+    {
       "id": "bukhari:2075",
       "heldAt": "2026-10-02",
       "category": "real wording difference",

@@ -39,7 +39,7 @@ const OFFLINE = args.includes("--offline");
 // --- Comparison-only text folding (not the project's normalization) --------------------------
 function fold(text: string): string[] {
   return text
-    .replace(/[ً-ْٰـ‎‏]/g, "")
+    .replace(/[ً-ْٰـ\u200E\u200F]/g, "")
     .replace(/[أإآٱ]/g, "ا")
     .replace(/ى/g, "ي")
     .replace(/ة/g, "ه")
@@ -48,7 +48,7 @@ function fold(text: string): string[] {
     .filter(Boolean);
 }
 const queryWords = (text: string): string[] =>
-  text.replace(/[ً-ْٰـ‎‏]/g, "").replace(/[^ء-ي\s]/g, " ").split(/\s+/).filter(Boolean);
+  text.replace(/[ً-ْٰـ\u200E\u200F]/g, "").replace(/[^ء-ي\s]/g, " ").split(/\s+/).filter(Boolean);
 
 // Share of our matn's words found, in order, in the Dorar text (longest common subsequence).
 function containment(ours: string[], theirs: string[]): number {
@@ -162,6 +162,8 @@ interface Finding {
   dorarNumbersForMatchingText: string[];
   /** Dorar's own grade line for the confirmed result, quoted for reference only. */
   dorarGrade?: string;
+  /** Set when Dorar's grade line for the confirmed result is not the grade our record carries. */
+  gradeDiffers?: true;
   note: string;
 }
 
@@ -208,7 +210,16 @@ async function verifyRecord(record: SourceRecord, collection: string): Promise<F
 
   const confirmed = sameNumber.find((c) => c.similarity >= SIMILARITY_THRESHOLD);
   if (confirmed) {
-    return { ...common, verdict: "CONFIRMED", dorarGrade: confirmed.grade, note: `Dorar lists the same matn under ${cfg.dorarSource} no. ${number}.` };
+    // The verdict covers number and matn only. A Dorar grade line that is not our record's grade
+    // (e.g. «[معلق]» against «صحيح») is reported for the owner; this script decides nothing about it.
+    const gradeDiffers = record.grade !== undefined && confirmed.grade.replace(/[[\]\s]/g, "") !== record.grade.text;
+    return {
+      ...common,
+      verdict: "CONFIRMED",
+      dorarGrade: confirmed.grade,
+      ...(gradeDiffers ? { gradeDiffers } : {}),
+      note: `Dorar lists the same matn under ${cfg.dorarSource} no. ${number}.${gradeDiffers ? ` Its grade line there reads «${confirmed.grade}»; our record carries «${record.grade!.text}» — needs review.` : ""}`,
+    };
   }
   if (matching.length > 0) {
     return { ...common, verdict: "NUMBER_DIFFERS", note: `Dorar shows this matn in ${cfg.dorarSource} under no. ${common.dorarNumbersForMatchingText.join(", ")}, not ${number}. May be a repeated narration or a numbering difference — needs review.` };
@@ -268,9 +279,14 @@ for (const [collection, r] of Object.entries(report)) {
   for (const f of flagged) {
     md.push(`- \`${f.id}\` (citation no. ${f.citationNumber}${f.subNumber ? `, source ${f.subNumber}` : ""}) — **${f.verdict}** — ${f.note} Best similarity: ${f.bestSimilarity ?? "n/a"}; same-collection results seen: ${f.sameCollectionResults}.`);
   }
+  const gradeFlags = r.findings.filter((f) => f.gradeDiffers);
+  md.push("", `**${collection} — confirmed, but Dorar's grade line is not our record's grade (${gradeFlags.length}):**${gradeFlags.length ? "" : " none"}`);
+  for (const f of gradeFlags) md.push(`- \`${f.id}\` (citation no. ${f.citationNumber}) — Dorar: «${f.dorarGrade}». Needs the owner's review.`);
 }
 const wroteDocs = replaceAutoBlock("docs/SOURCES.md", "DORAR", md.join("\n"));
 
 console.log("");
-for (const [c, r] of Object.entries(report)) console.log(`${c}: ${VERDICTS.map((v) => `${v}=${count(r.findings, v)}`).join(" ")}`);
+for (const [c, r] of Object.entries(report)) {
+  console.log(`${c}: ${VERDICTS.map((v) => `${v}=${count(r.findings, v)}`).join(" ")} grade-differs=${r.findings.filter((f) => f.gradeDiffers).length}`);
+}
 console.log(`network requests: ${networkRequests}; wrote data/review/dorar-verification.json${wroteDocs ? " and docs/SOURCES.md (AUTO:DORAR)" : ""}`);
