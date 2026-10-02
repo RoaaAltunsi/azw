@@ -1,0 +1,2 @@
+# Source and corpus data are checksummed (data/corpus/manifest.json): never convert line endings.
+data/** -text
