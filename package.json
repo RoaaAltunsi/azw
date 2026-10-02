@@ -10,7 +10,8 @@
     "verify:raw": "tsx scripts/verify-raw.ts",
     "verify:dorar": "tsx scripts/verify-hadith-dorar.ts",
     "probe:quran-spelling": "tsx scripts/probe-quran-spelling.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test \"scripts/**/*.test.ts\""
   },
   "devDependencies": {
     "@types/node": "^26.6.4",

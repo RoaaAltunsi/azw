@@ -25,7 +25,7 @@ export const siteSearchUrl = (query: string, bookId: string): string =>
   `https://dorar.net/hadith/search?q=${encodeURIComponent(query)}&s[]=${bookId}`;
 
 // --- Comparison-only text handling (not the project's normalization) -------------------------
-const MARKS = /[ً-ْٰـ‎‏]/g;
+const MARKS = /[ً-ْٰـ\u200E\u200F]/g;
 
 export function foldWord(word: string): string {
   return word.replace(MARKS, "").replace(/[أإآٱ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه");
@@ -34,7 +34,7 @@ export function foldWord(word: string): string {
 /** Words of a text with punctuation removed: `raw` keeps diacritics, `folded` is for comparing. */
 export function tokens(text: string): Array<{ raw: string; folded: string }> {
   return text
-    .replace(/[‎‏]/g, "")
+    .replace(/[\u200E\u200F]/g, "")
     .replace(/[^ء-ْٰ\s]/g, " ")
     .split(/\s+/)
     .map((raw) => ({ raw, folded: foldWord(raw).replace(/[^ء-ي]/g, "") }))
@@ -186,7 +186,7 @@ export function parseOsoul(page: string): DorarBookText[] {
   if (start < 0) return [];
   const entries: DorarBookText[] = [];
   for (const m of page.slice(start).matchAll(/<article[^>]*>\s*<h5[^>]*>([\s\S]*?)<\/h5>/g)) {
-    const html = m[1]!.replace(/[​-‍⁠]/g, "");
+    const html = m[1]!.replace(/[\u200B-\u200D\u2060]/g, "");
     const label = untag(/<span style="color:maroon">([\s\S]*?)<\/span>/.exec(html)?.[1] ?? "");
     const body = untag(html.replace(/<span style="color:maroon">[\s\S]*?<\/span>/, "")).replace(/^[:\s]+/, "");
     // Muslim: "26 - (2561) …", "(1453) …", "((154- (1221) …" — the hadith number is the one in

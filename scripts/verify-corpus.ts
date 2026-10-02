@@ -39,8 +39,10 @@ function commonChecks(collection: string, records: SourceRecord[]): void {
 
 const allIds = new Set<string>();
 const reviewedIds = new Set<string>();
+const allRecords: SourceRecord[] = [];
 const totals: Array<{ collection: string; records: number; reviewed: number; pending: number }> = [];
 const tally = (collection: string, records: SourceRecord[]): void => {
+  allRecords.push(...records);
   for (const r of records) {
     allIds.add(r.id);
     if (r.reviewStatus === "reviewed") reviewedIds.add(r.id);
@@ -68,7 +70,7 @@ const tally = (collection: string, records: SourceRecord[]): void => {
   check(records.length === EXPECTED_AYAT, `quran: ${EXPECTED_AYAT} ayat (found ${records.length})`);
   const gaps = [...bySurah].filter(([, ayat]) => !ayat.every((a, i) => a === i + 1)).map(([s]) => String(s));
   check(gaps.length === 0, "quran: ayah numbers run 1..n without gaps in every surah", sample(gaps));
-  const stray = records.filter((r) => r.exactText.includes("﻿")).map((r) => r.id);
+  const stray = records.filter((r) => r.exactText.includes("\uFEFF")).map((r) => r.id);
   check(stray.length === 0, "quran: no U+FEFF (BOM) left in exactText", sample(stray));
 
   const aliases = readJson(p("data/aliases/surahs.json")) as { surahs: Array<{ number: number; ayahCount: number }> };
@@ -147,13 +149,22 @@ for (const collection of ["bukhari", "muslim"]) {
 
   const manifest = readJson(p("data/corpus/manifest.json")) as {
     corpusVersion: string;
-    sources: Array<{ collection: string; file: { path: string; sha256: string }; counts: { records: number }; reviewStatus: { reviewed: number; pending: number } }>;
+    sources: Array<{
+      collection: string;
+      file: { path: string; sha256: string };
+      counts: { records: number };
+      reviewStatus: { reviewed: number; pending: number };
+      source: { rawFiles: Array<{ path: string; sha256: string }> };
+    }>;
   };
   for (const s of manifest.sources) {
     const t = totals.find((x) => x.collection === s.collection);
     const actual = sha256(readFileSync(p(s.file.path)));
     check(actual === s.file.sha256, `manifest: sha256 of ${s.file.path} matches`);
     check(t?.records === s.counts.records && t.reviewed === s.reviewStatus.reviewed && t.pending === s.reviewStatus.pending, `manifest: counts and review status for ${s.collection} match the corpus`);
+    // Raw files must be the bytes the corpus was built from (catches edits and line-ending conversion).
+    const changedRaw = s.source.rawFiles.filter((f) => sha256(readFileSync(p(f.path))) !== f.sha256).map((f) => f.path);
+    check(changedRaw.length === 0, `manifest: raw files of ${s.collection} have the recorded sha256`, sample(changedRaw));
   }
 
   const reviewed = ReviewedFileSchema.parse(readJson(p("data/review/reviewed.json")));
@@ -163,9 +174,35 @@ for (const collection of ["bukhari", "muslim"]) {
   const approvedIds = new Set(reviewed.records.map((r) => r.id));
   const heldBad = held.filter((id) => !allIds.has(id) || (reviewedIds.has(id) && !approvedIds.has(id)));
   check(heldBad.length === 0, `review: the ${held.length} held records exist and are not marked reviewed by a collection approval`, sample(heldBad));
+  // Re-derived from the corpus alone, independently of the build: a record may be "reviewed" only
+  // through its own approval, or through its collection's approval when nothing excludes it.
   const approved = new Set(reviewed.collections.map((c) => c.collection));
-  const unapproved = totals.filter((t) => t.reviewed > 0 && !approved.has(t.collection) && reviewed.records.length === 0);
-  check(unapproved.length === 0, "review: no record is marked reviewed without an entry in data/review/reviewed.json");
+  const heldIds = new Set(held);
+  const textCount = new Map<string, number>();
+  for (const r of allRecords) {
+    const key = `${r.collection}\n${r.exactText}`;
+    textCount.set(key, (textCount.get(key) ?? 0) + 1);
+  }
+  const excludedFromCollectionApproval = (r: SourceRecord): boolean =>
+    r.kind === "hadith" &&
+    (r.citation.number == null ||
+      /[￼�]/.test(r.exactText) ||
+      r.id.includes(".") ||
+      textCount.get(`${r.collection}\n${r.exactText}`)! > 1 ||
+      heldIds.has(r.id));
+  const wronglyReviewed = allRecords
+    .filter((r) => r.reviewStatus === "reviewed")
+    .filter((r) =>
+      r.kind === "hadith" && r.citation.number == null
+        ? true
+        : !approvedIds.has(r.id) && (!approved.has(r.collection) || excludedFromCollectionApproval(r)),
+    )
+    .map((r) => r.id);
+  check(
+    wronglyReviewed.length === 0,
+    "review: every reviewed record is approved in data/review/reviewed.json and not excluded (no number, damaged, split, shared text, held)",
+    sample(wronglyReviewed),
+  );
 
   console.log(`\ncorpus version ${manifest.corpusVersion}`);
   console.log("collection   records  reviewed  pending");

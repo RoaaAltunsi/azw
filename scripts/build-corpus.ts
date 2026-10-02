@@ -8,6 +8,7 @@ import { gunzipSync } from "node:zlib";
 import { z } from "zod";
 import { FawazHadithApiAdapter, type HadithSourceAdapter } from "./lib/hadith-adapter.js";
 import { extractMatn } from "./lib/matn.js";
+import { reviewStatus as reviewStatusFor, type ReviewFlags } from "./lib/review-status.js";
 import {
   CorpusFileSchema,
   HeldFileSchema,
@@ -25,7 +26,7 @@ const QURAN_MANIFEST = "data/raw/quranpedia/manifest.json";
 const QURAN_LICENSE = "data/raw/quranpedia/LICENSE.md";
 const REVIEWED = "data/review/reviewed.json";
 const HELD = "data/review/held-records.json";
-const CORRUPT_CHARS = /[￼�]/; // replacement characters = text damaged upstream
+const CORRUPT_CHARS = /[\uFFFC\uFFFD]/; // replacement characters = text damaged upstream
 
 // ---------------------------------------------------------------------------------------------
 // Review approvals (default: everything pending)
@@ -38,17 +39,10 @@ const approvedRecords = new Set(reviewed.records.map((r) => r.id));
 const heldRecords = new Set(HeldFileSchema.parse(readJson(p(HELD))).records.map((r) => r.id));
 
 // forcedPending: a collection-level approval never covers these (missing citation number,
-// damaged text, split entries, one text block repeated under several numbers). `neverApprovable` cannot be approved per record either.
-function reviewStatus(
-  id: string,
-  collection: string,
-  flags: { forcedPending: boolean; neverApprovable: boolean },
-): "reviewed" | "pending" {
-  if (flags.neverApprovable) return "pending";
-  if (approvedRecords.has(id)) return "reviewed";
-  if (approvedCollections.has(collection) && !flags.forcedPending) return "reviewed";
-  return "pending";
-}
+// damaged text, split entries, one text block repeated under several numbers, held records).
+// `neverApprovable` cannot be approved per record either.
+const reviewStatus = (id: string, collection: string, flags: ReviewFlags): "reviewed" | "pending" =>
+  reviewStatusFor(id, collection, { collections: approvedCollections, records: approvedRecords }, flags);
 
 function writeCorpus(collection: string, kind: string, records: SourceRecord[]): void {
   for (const r of records) SourceRecordSchema.parse(r);
@@ -114,9 +108,9 @@ function buildQuran() {
     for (const a of s.ayahs) {
       if (String(a.surah) !== String(s.id)) throw new Error(`quran ${s.id}:${a.number}: surah field mismatch`);
       // AGENTS.md §5: strip the leading BOM (U+FEFF). Nothing else in the text is touched.
-      const bom = /^﻿*/.exec(a.text)?.[0].length ?? 0;
+      const bom = /^\uFEFF*/.exec(a.text)?.[0].length ?? 0;
       const exactText = a.text.slice(bom);
-      if (exactText.includes("﻿")) throw new Error(`quran ${s.id}:${a.number}: non-leading U+FEFF`);
+      if (exactText.includes("\uFEFF")) throw new Error(`quran ${s.id}:${a.number}: non-leading U+FEFF`);
       if (exactText !== exactText.trim()) throw new Error(`quran ${s.id}:${a.number}: edge whitespace`);
       if (bom > 0) ayatWithBom++;
       bomCharsStripped += bom;
@@ -422,7 +416,7 @@ const lines: string[] = [
     `- Split (decimal) source entries (${h.findings.splitEntries.length}): ${h.findings.splitEntries.join(", ") || "none"}.`,
     `- Records containing U+FFFD/U+FFFC (text damaged upstream) (${h.findings.corruptText.length}): ${h.findings.corruptText.join(", ") || "none"}.`,
     `- Same text block repeated under several numbers: ${h.findings.sharedTextGroups.length} groups covering ${h.findings.sharedTextGroups.flat().length} records (e.g. ${h.findings.sharedTextGroups.slice(0, 5).map((g) => g.join(" = ")).join("; ")}). Full list: \`data/corpus/build-report.json\`.`,
-    `- Held outside a collection approval after the sample check (${h.findings.heldAfterSampleCheck.length}): ${h.findings.heldAfterSampleCheck.join(", ") || "none"} — see \`docs/HADITH_FLAGGED_INVESTIGATION.md\`.`,
+    `- Held outside a collection approval after the sample check (${h.findings.heldAfterSampleCheck.length}): ${h.findings.heldAfterSampleCheck.join(", ") || "none"} — reasons in \`data/review/held-records.json\`.`,
     `- Distinct citation numbers: ${h.findings.distinctCitationNumbers}. matnText stored for ${h.findings.withMatnText} records (${Object.entries(h.findings.matnRules).map(([k, v]) => `${k}: ${v}`).join(", ")}).`,
   ]),
 ];

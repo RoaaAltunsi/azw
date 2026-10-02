@@ -14,8 +14,8 @@
 // hadith itself and is listed for human review in docs/SOURCES.md.
 
 const HARAKAT_AND_TATWEEL = /[ً-ْٰـ]/g;
-const DIRECTION_MARKS = /[‎‏]/g;
-const EDGE_TRIM = /^[\s‎‏]+|[\s‎‏]+$/g;
+const DIRECTION_MARKS = /[\u200E\u200F]/g;
+const EDGE_TRIM = /^[\s\u200E\u200F]+|[\s\u200E\u200F]+$/g;
 
 const SALAWAT = "(?:صلى الله عليه وسلم)";
 const PROPHET = "(?:رسول الله|النبي)";
@@ -45,7 +45,7 @@ export function extractMatn(text: string): { matn: string; rule: string } | null
 
   const before = text.slice(0, first);
   const after = text.slice(second + 1);
-  if (/[^\s‎‏.]/.test(after)) return null;
+  if (/[^\s\u200E\u200F.]/.test(after)) return null;
   if (/[.{}]/.test(before)) return null;
 
   const tail = bare(before).replace(/[\s:،]+$/, "");
