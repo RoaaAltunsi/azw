@@ -1,0 +1,317 @@
+{
+  "preparedAt": "2026-10-02",
+  "corpusVersion": "p0-57dc9320685a",
+  "seed": 20261003,
+  "note": "Sample prepared for the owner's reading. Not an approval.",
+  "collections": [
+    {
+      "collection": "bukhari",
+      "eligible": 6942,
+      "records": [
+        {
+          "id": "bukhari:2075",
+          "displayedNumber": "2075",
+          "kind": "short saying",
+          "dorarLink": "https://dorar.net/h/UCq7ROSV?osoul=1",
+          "sameNumberOnDorar": true,
+          "dorarOtherNumbers": [],
+          "comparedWith": "أصول الحديث: [صحيح البخاري] (3/ 57)",
+          "wordsInCommon": 30,
+          "wordDifferences": 6,
+          "bookTextNote": null
+        },
+        {
+          "id": "bukhari:6183",
+          "displayedNumber": "6183",
+          "kind": "short saying",
+          "dorarLink": "https://dorar.net/h/k9KXlwe6?osoul=1",
+          "sameNumberOnDorar": true,
+          "dorarOtherNumbers": [],
+          "comparedWith": "أصول الحديث: [صحيح البخاري] (8/ 42)",
+          "wordsInCommon": 33,
+          "wordDifferences": 0,
+          "bookTextNote": null
+        },
+        {
+          "id": "bukhari:2830",
+          "displayedNumber": "2830",
+          "kind": "short saying",
+          "dorarLink": "https://dorar.net/h/jPVjcFgG?osoul=1",
+          "sameNumberOnDorar": true,
+          "dorarOtherNumbers": [],
+          "comparedWith": "أصول الحديث: [صحيح البخاري] (4/ 24)",
+          "wordsInCommon": 31,
+          "wordDifferences": 0,
+          "bookTextNote": null
+        },
+        {
+          "id": "bukhari:6136",
+          "displayedNumber": "6136",
+          "kind": "short saying",
+          "dorarLink": "https://dorar.net/h/IIV17Zae?osoul=1",
+          "sameNumberOnDorar": true,
+          "dorarOtherNumbers": [
+            "6018",
+            "6475"
+          ],
+          "comparedWith": "أصول الحديث: صحيح البخاري (8/ 32)",
+          "wordsInCommon": 53,
+          "wordDifferences": 0,
+          "bookTextNote": null
+        },
+        {
+          "id": "bukhari:3202",
+          "displayedNumber": "3202",
+          "kind": "short saying",
+          "dorarLink": "https://dorar.net/h/WQvGN5M1?osoul=1",
+          "sameNumberOnDorar": true,
+          "dorarOtherNumbers": [],
+          "comparedWith": "أصول الحديث: صحيح البخاري (4/ 108)",
+          "wordsInCommon": 49,
+          "wordDifferences": 0,
+          "bookTextNote": null
+        },
+        {
+          "id": "bukhari:6768",
+          "displayedNumber": "6768",
+          "kind": "short saying",
+          "dorarLink": "https://dorar.net/h/PJHLcQTA?osoul=1",
+          "sameNumberOnDorar": true,
+          "dorarOtherNumbers": [],
+          "comparedWith": "أصول الحديث: صحيح البخاري (8/ 156)",
+          "wordsInCommon": 35,
+          "wordDifferences": 0,
+          "bookTextNote": null
+        },
+        {
+          "id": "bukhari:2764",
+          "displayedNumber": "2764",
+          "kind": "long narrative",
+          "dorarLink": "https://dorar.net/h/cB5I6JCb?osoul=1",
+          "sameNumberOnDorar": true,
+          "dorarOtherNumbers": [],
+          "comparedWith": "أصول الحديث: صحيح البخاري (4/ 10)",
+          "wordsInCommon": 102,
+          "wordDifferences": 0,
+          "bookTextNote": null
+        },
+        {
+          "id": "bukhari:46",
+          "displayedNumber": "46",
+          "kind": "long narrative",
+          "dorarLink": "https://dorar.net/h/wHxLv3Vm?osoul=1",
+          "sameNumberOnDorar": true,
+          "dorarOtherNumbers": [
+            "2678"
+          ],
+          "comparedWith": "أصول الحديث: [صحيح البخاري] (1/ 18)",
+          "wordsInCommon": 130,
+          "wordDifferences": 0,
+          "bookTextNote": null
+        },
+        {
+          "id": "bukhari:7420",
+          "displayedNumber": "7420",
+          "kind": "long narrative",
+          "dorarLink": "https://dorar.net/h/OTMkz3YO?osoul=1",
+          "sameNumberOnDorar": true,
+          "dorarOtherNumbers": [],
+          "comparedWith": "أصول الحديث: صحيح البخاري (9/ 124)",
+          "wordsInCommon": 85,
+          "wordDifferences": 2,
+          "bookTextNote": null
+        },
+        {
+          "id": "bukhari:7310",
+          "displayedNumber": "7310",
+          "kind": "long narrative",
+          "dorarLink": "https://dorar.net/h/yd7bpD0o?osoul=1",
+          "sameNumberOnDorar": true,
+          "dorarOtherNumbers": [],
+          "comparedWith": "أصول الحديث: [صحيح البخاري] (9/ 101)",
+          "wordsInCommon": 98,
+          "wordDifferences": 0,
+          "bookTextNote": null
+        },
+        {
+          "id": "bukhari:371",
+          "displayedNumber": "371",
+          "kind": "long narrative",
+          "dorarLink": "https://dorar.net/h/ZFogUWiT?osoul=1",
+          "sameNumberOnDorar": true,
+          "dorarOtherNumbers": [],
+          "comparedWith": "أصول الحديث: صحيح البخاري (1/ 83)",
+          "wordsInCommon": 253,
+          "wordDifferences": 2,
+          "bookTextNote": null
+        },
+        {
+          "id": "bukhari:7452",
+          "displayedNumber": "7452",
+          "kind": "long narrative",
+          "dorarLink": "https://dorar.net/h/udpPT8zT?osoul=1",
+          "sameNumberOnDorar": true,
+          "dorarOtherNumbers": [
+            "4569"
+          ],
+          "comparedWith": "أصول الحديث: صحيح البخاري (9/ 135)",
+          "wordsInCommon": 96,
+          "wordDifferences": 2,
+          "bookTextNote": null
+        }
+      ]
+    },
+    {
+      "collection": "muslim",
+      "eligible": 7174,
+      "records": [
+        {
+          "id": "muslim:6534",
+          "displayedNumber": "2561",
+          "kind": "short saying",
+          "dorarLink": "https://dorar.net/h/HewPHRTk?osoul=1",
+          "sameNumberOnDorar": true,
+          "dorarOtherNumbers": [],
+          "comparedWith": "أصول الحديث: صحيح مسلم (4/ 1984 ت عبد الباقي)",
+          "wordsInCommon": 38,
+          "wordDifferences": 0,
+          "bookTextNote": null
+        },
+        {
+          "id": "muslim:6172",
+          "displayedNumber": "2383",
+          "kind": "short saying",
+          "dorarLink": "https://dorar.net/h/pFmtgGPG?osoul=1",
+          "sameNumberOnDorar": true,
+          "dorarOtherNumbers": [],
+          "comparedWith": "أصول الحديث: صحيح مسلم (4/ 1855 ت عبد الباقي)",
+          "wordsInCommon": 58,
+          "wordDifferences": 2,
+          "bookTextNote": null
+        },
+        {
+          "id": "muslim:2276",
+          "displayedNumber": "982",
+          "kind": "short saying",
+          "dorarLink": "https://dorar.net/h/4gNqMhf0?osoul=1",
+          "sameNumberOnDorar": true,
+          "dorarOtherNumbers": [],
+          "comparedWith": "أصول الحديث: صحيح مسلم (2/ 676 ت عبد الباقي)",
+          "wordsInCommon": 42,
+          "wordDifferences": 0,
+          "bookTextNote": null
+        },
+        {
+          "id": "muslim:2337",
+          "displayedNumber": "1011",
+          "kind": "short saying",
+          "dorarLink": "https://dorar.net/h/C3sW5HJl?osoul=1",
+          "sameNumberOnDorar": true,
+          "dorarOtherNumbers": [],
+          "comparedWith": "أصول الحديث: صحيح مسلم (2/ 700)",
+          "wordsInCommon": 67,
+          "wordDifferences": 0,
+          "bookTextNote": null
+        },
+        {
+          "id": "muslim:7314",
+          "displayedNumber": "2912",
+          "kind": "short saying",
+          "dorarLink": "https://dorar.net/h/dcECBTLK?osoul=1",
+          "sameNumberOnDorar": true,
+          "dorarOtherNumbers": [],
+          "comparedWith": null,
+          "wordsInCommon": null,
+          "wordDifferences": null,
+          "bookTextNote": "Dorar's «أصول الحديث» for this hadith has no صحيح مسلم entry"
+        },
+        {
+          "id": "muslim:3356",
+          "displayedNumber": "1384",
+          "kind": "short saying",
+          "dorarLink": "https://dorar.net/h/ZDr81gEh?osoul=1",
+          "sameNumberOnDorar": true,
+          "dorarOtherNumbers": [],
+          "comparedWith": "أصول الحديث: صحيح مسلم (2/ 1006 ت عبد الباقي)",
+          "wordsInCommon": 44,
+          "wordDifferences": 0,
+          "bookTextNote": null
+        },
+        {
+          "id": "muslim:3600",
+          "displayedNumber": "1453",
+          "kind": "long narrative",
+          "dorarLink": "https://dorar.net/h/wOwMOktW?osoul=1",
+          "sameNumberOnDorar": true,
+          "dorarOtherNumbers": [
+            "398"
+          ],
+          "comparedWith": "أصول الحديث: [صحيح مسلم] (2/ 1076 ت عبد الباقي)",
+          "wordsInCommon": 91,
+          "wordDifferences": 2,
+          "bookTextNote": null
+        },
+        {
+          "id": "muslim:3944",
+          "displayedNumber": "1547",
+          "kind": "long narrative",
+          "dorarLink": "https://dorar.net/h/KKVK36NX?osoul=1",
+          "sameNumberOnDorar": true,
+          "dorarOtherNumbers": [],
+          "comparedWith": "أصول الحديث: صحيح مسلم (3/ 1181 ت عبد الباقي)",
+          "wordsInCommon": 128,
+          "wordDifferences": 6,
+          "bookTextNote": null
+        },
+        {
+          "id": "muslim:1397",
+          "displayedNumber": "615",
+          "kind": "long narrative",
+          "dorarLink": "https://dorar.net/h/FqXXeywW?osoul=1",
+          "sameNumberOnDorar": true,
+          "dorarOtherNumbers": [],
+          "comparedWith": "أصول الحديث: صحيح مسلم (1/ 430)",
+          "wordsInCommon": 101,
+          "wordDifferences": 0,
+          "bookTextNote": null
+        },
+        {
+          "id": "muslim:4974",
+          "displayedNumber": "1929",
+          "kind": "long narrative",
+          "dorarLink": "https://dorar.net/h/ek2qlAcR?osoul=1",
+          "sameNumberOnDorar": true,
+          "dorarOtherNumbers": [],
+          "comparedWith": "أصول الحديث: صحيح مسلم (3/ 1529 ت عبد الباقي)",
+          "wordsInCommon": 94,
+          "wordDifferences": 0,
+          "bookTextNote": null
+        },
+        {
+          "id": "muslim:2957",
+          "displayedNumber": "1221",
+          "kind": "long narrative",
+          "dorarLink": "https://dorar.net/h/UAMyt1Pm?osoul=1",
+          "sameNumberOnDorar": true,
+          "dorarOtherNumbers": [],
+          "comparedWith": "أصول الحديث: [صحيح مسلم] (2/ 894 )",
+          "wordsInCommon": 172,
+          "wordDifferences": 6,
+          "bookTextNote": null
+        },
+        {
+          "id": "muslim:3755",
+          "displayedNumber": "1495",
+          "kind": "long narrative",
+          "dorarLink": "https://dorar.net/h/OYJJrj6P?osoul=1",
+          "sameNumberOnDorar": true,
+          "dorarOtherNumbers": [],
+          "comparedWith": "أصول الحديث: [صحيح مسلم] (2/ 1133 )",
+          "wordsInCommon": 177,
+          "wordDifferences": 4,
+          "bookTextNote": null
+        }
+      ]
+    }
+  ]
+}

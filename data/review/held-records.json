@@ -1,0 +1,41 @@
+{
+  "note": "Records kept outside any collection-level approval because a sample check left a question open. scripts/build-corpus.ts never marks these reviewed through a collection approval; each needs its own decision by the project owner. The source text is not changed. Evidence: docs/HADITH_FLAGGED_INVESTIGATION.md.",
+  "records": [
+    {
+      "id": "bukhari:2075",
+      "heldAt": "2026-10-02",
+      "category": "real wording difference",
+      "reason": "Our text ends with «خير له من أن يسأل الناس»; Dorar's book text and summary for صحيح البخاري 2075 both stop at «لأن يأخذ أحدكم أحبله». No second witness found."
+    },
+    {
+      "id": "muslim:6172",
+      "heldAt": "2026-10-02",
+      "category": "still unclear",
+      "reason": "Ours «لاتخذت»; Dorar's book text for صحيح مسلم 2383 has «لتخذت», while Dorar's own summary for the same number has «لاتخذت»."
+    },
+    {
+      "id": "muslim:7314",
+      "heldAt": "2026-10-02",
+      "category": "shortened reference page",
+      "reason": "Dorar's «أصول الحديث» for صحيح مسلم 2912 has no Muslim book-text entry (two Dorar pages checked), so the wording could not be compared with the book text."
+    },
+    {
+      "id": "muslim:3600",
+      "heldAt": "2026-10-02",
+      "category": "real wording difference",
+      "reason": "Ours «وكيف أرضعه»; Dorar's book text for صحيح مسلم 1453 has «وكيف أرضع؟», while Dorar's summary for the same number has «أرضعه»."
+    },
+    {
+      "id": "muslim:3944",
+      "heldAt": "2026-10-02",
+      "category": "real wording difference",
+      "reason": "Ours «أرضيه» and «وكانا قد شهدا بدرا»; Dorar's book text for صحيح مسلم 1547 has «أرضه» and «وكان قد شهد بدرا», while Dorar's summary for the same number agrees with ours."
+    },
+    {
+      "id": "muslim:2957",
+      "heldAt": "2026-10-02",
+      "category": "still unclear",
+      "reason": "After «فقدم عمر» ours has «رضى الله عنه»; Dorar's book text for صحيح مسلم 1221 has «رضي الله عليه وسلم», while Dorar's summary for the same number has «رضي الله عنه»."
+    }
+  ]
+}

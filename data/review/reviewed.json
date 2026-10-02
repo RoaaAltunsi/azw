@@ -1,0 +1,52 @@
+{
+  "note": "Human approvals only. Add a collection or a record id here only after explicit approval by the project owner; scripts/build-corpus.ts then marks those records reviewed.",
+  "collections": [
+    {
+      "collection": "quran",
+      "approvedBy": "Project owner",
+      "approvedAt": "2026-10-02",
+      "scope": "Quran collection approved for Azw's text matching. Does not cover search-spelling handling, display of the ۞/۩ signs, or surah alternate names — those decisions stay pending.",
+      "method": "The owner personally compared the 10 ayat listed in docs/REVIEW_SHEET.md with مصحف المدينة النبوية on 2026-10-02; all 10 matched.",
+      "comparedRecords": [
+        "quran:1:1",
+        "quran:2:26",
+        "quran:2:153",
+        "quran:2:255",
+        "quran:7:206",
+        "quran:17:36",
+        "quran:30:30",
+        "quran:38:17",
+        "quran:66:10",
+        "quran:112:1"
+      ],
+      "openIssues": [
+        "Quranpedia manifest sha256 for mushafs-1.json.gz does not match the served file; unresolved, cause not established (docs/SOURCES.md 3.1)."
+      ]
+    },
+    {
+      "collection": "bukhari",
+      "approvedBy": "Project owner",
+      "approvedAt": "2026-10-02",
+      "scope": "Sahih al-Bukhari collection approved for Azw's text matching. Covers only records with no reported issue. Does not cover records with damaged text, split (decimal) entries, records whose text block the source repeats under several numbers, or the records in data/review/held-records.json — those stay pending.",
+      "method": "Approved on the automated sample checks; the owner did not compare records with a printed edition by hand. Checks: raw file byte-identical to hadith-api commit df57907; 30 of 30 sampled records confirmed on Dorar by number and matn (docs/SOURCES.md section 4); 12 records compared word for word with Dorar's book text: 12 numbers agree, 8 no word difference, 3 spelling only, 1 real wording difference (bukhari:2075, held) — docs/HADITH_REVIEW_SAMPLE.md, docs/HADITH_FLAGGED_INVESTIGATION.md.",
+      "openIssues": [
+        "The approval rests on a sample (30 + 12 records); the other records were not compared with a second text.",
+        "The source repository does not state which printed edition the Arabic text was digitized from.",
+        "bukhari:2075 held: wording difference from Dorar's book text, unresolved."
+      ]
+    },
+    {
+      "collection": "muslim",
+      "approvedBy": "Project owner",
+      "approvedAt": "2026-10-02",
+      "scope": "Sahih Muslim collection approved for Azw's text matching. Covers only records with no reported issue. Does not cover records without a citation number, records with damaged text, records whose text block the source repeats under several numbers, or the records in data/review/held-records.json — those stay pending.",
+      "method": "Approved on the automated sample checks; the owner did not compare records with a printed edition by hand. Checks: raw file byte-identical to hadith-api commit df57907; 30 of 30 sampled records confirmed on Dorar by number and matn (docs/SOURCES.md section 4); 12 records compared with Dorar: 12 numbers agree, 6 no word difference from the book text, 1 spelling only, 5 unresolved and held — docs/HADITH_REVIEW_SAMPLE.md, docs/HADITH_FLAGGED_INVESTIGATION.md.",
+      "openIssues": [
+        "The approval rests on a sample (30 + 12 records); the other records were not compared with a second text.",
+        "5 of the 12 records compared word for word are unresolved (muslim:2957, muslim:3600, muslim:3944, muslim:6172, muslim:7314, all held). In 4 of them Dorar's summary agrees with our text and Dorar's book text does not; which matches the printed book is not established. The rate of such differences in the rest of the collection is unknown.",
+        "The source repository does not state which printed edition the Arabic text was digitized from."
+      ]
+    }
+  ],
+  "records": []
+}

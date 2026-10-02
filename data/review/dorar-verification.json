@@ -1,0 +1,998 @@
+{
+  "ranAt": "2026-10-02T16:43:20.589Z",
+  "corpusVersion": "p0-57dc9320685a",
+  "seed": 20261002,
+  "perCollection": 30,
+  "similarityThreshold": 0.8,
+  "collections": {
+    "bukhari": {
+      "eligible": 986,
+      "total": 7580,
+      "findings": [
+        {
+          "id": "bukhari:5026",
+          "citationNumber": "5026",
+          "queries": [
+            "لا حسد إلا في اثنتين رجل علمه الله"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "5026"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 5026."
+        },
+        {
+          "id": "bukhari:6577",
+          "citationNumber": "6577",
+          "queries": [
+            "أمامكم حوض كما بين جرباء وأذرح"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "6577"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 6577."
+        },
+        {
+          "id": "bukhari:73",
+          "citationNumber": "73",
+          "queries": [
+            "لا حسد إلا في اثنتين رجل آتاه الله"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "7141",
+            "7316",
+            "73",
+            "1409"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 73."
+        },
+        {
+          "id": "bukhari:7117",
+          "citationNumber": "7117",
+          "queries": [
+            "لا تقوم الساعة حتى يخرج رجل من قحطان"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "3517",
+            "7117"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 7117."
+        },
+        {
+          "id": "bukhari:6429",
+          "citationNumber": "6429",
+          "queries": [
+            "خير الناس قرني ثم الذين يلونهم ثم الذين"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "6429"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 6429."
+        },
+        {
+          "id": "bukhari:2972",
+          "citationNumber": "2972",
+          "queries": [
+            "لولا أن أشق على أمتي ما تخلفت عن"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "2972"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 2972."
+        },
+        {
+          "id": "bukhari:7079",
+          "citationNumber": "7079",
+          "queries": [
+            "لا ترتدوا بعدي كفارا يضرب بعضكم رقاب بعض"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "7079",
+            "6868",
+            "7077",
+            "6869",
+            "4405",
+            "121",
+            "7080",
+            "6166",
+            "6785",
+            "1739",
+            "4402",
+            "7078"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 7079."
+        },
+        {
+          "id": "bukhari:703",
+          "citationNumber": "703",
+          "queries": [
+            "إذا صلى أحدكم للناس فليخفف فإن منهم الضعيف"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "703"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 703."
+        },
+        {
+          "id": "bukhari:4991",
+          "citationNumber": "4991",
+          "queries": [
+            "أقرأني جبريل على حرف فراجعته فلم أزل أستزيده"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "4991",
+            "3219"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 4991."
+        },
+        {
+          "id": "bukhari:7053",
+          "citationNumber": "7053",
+          "queries": [
+            "من كره من أميره شيئا فليصبر فإنه من"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "7053"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 7053."
+        },
+        {
+          "id": "bukhari:5178",
+          "citationNumber": "5178",
+          "queries": [
+            "لو دعيت إلى كراع لأجبت ولو أهدي إلى"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "5178",
+            "2568"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 5178."
+        },
+        {
+          "id": "bukhari:2682",
+          "citationNumber": "2682",
+          "queries": [
+            "آية المنافق ثلاث إذا حدث كذب وإذا اؤتمن"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "2749",
+            "2682"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 2682."
+        },
+        {
+          "id": "bukhari:3841",
+          "citationNumber": "3841",
+          "queries": [
+            "أصدق كلمة قالها الشاعر كلمة لبيد ألا كل"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "6147",
+            "3841"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 3841."
+        },
+        {
+          "id": "bukhari:3433",
+          "citationNumber": "3433",
+          "queries": [
+            "فضل عائشة على النساء كفضل الثريد على سائر"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "3433"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 3433."
+        },
+        {
+          "id": "bukhari:80",
+          "citationNumber": "80",
+          "queries": [
+            "إن من أشراط الساعة أن يرفع العلم ويثبت"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "80",
+            "6808"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 80."
+        },
+        {
+          "id": "bukhari:1035",
+          "citationNumber": "1035",
+          "queries": [
+            "نصرت بالصبا وأهلكت عاد بالدبور"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "1035",
+            "3343",
+            "4105",
+            "3205"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 1035."
+        },
+        {
+          "id": "bukhari:6439",
+          "citationNumber": "6439",
+          "queries": [
+            "لو أن لابن آدم واديا من ذهب أحب"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "6439"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 6439."
+        },
+        {
+          "id": "bukhari:3244",
+          "citationNumber": "3244",
+          "queries": [
+            "قال الله أعددت لعبادي الصالحين ما لا عين"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 0.97,
+          "dorarNumbersForMatchingText": [
+            "3244",
+            "4780",
+            "4779"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 3244."
+        },
+        {
+          "id": "bukhari:4919",
+          "citationNumber": "4919",
+          "queries": [
+            "يكشف ربنا عن ساقه فيسجد له كل مؤمن"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 0.91,
+          "dorarNumbersForMatchingText": [
+            "4919"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 4919."
+        },
+        {
+          "id": "bukhari:2271",
+          "citationNumber": "2271",
+          "queries": [
+            "مثل المسلمين واليهود والنصارى كمثل رجل استأجر قوما"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 0.99,
+          "dorarNumbersForMatchingText": [
+            "2271"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 2271."
+        },
+        {
+          "id": "bukhari:2840",
+          "citationNumber": "2840",
+          "queries": [
+            "من صام يوما في سبيل الله بعد الله"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "2840"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 2840."
+        },
+        {
+          "id": "bukhari:3501",
+          "citationNumber": "3501",
+          "queries": [
+            "لا يزال هذا الأمر في قريش ما بقي"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "3501",
+            "7140"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 3501."
+        },
+        {
+          "id": "bukhari:6498",
+          "citationNumber": "6498",
+          "queries": [
+            "إنما الناس كالإبل المائة لا تكاد تجد فيها"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "6498"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 6498."
+        },
+        {
+          "id": "bukhari:2288",
+          "citationNumber": "2288",
+          "queries": [
+            "مطل الغني ظلم ومن أتبع على ملي فليتبع"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "2288",
+            "2287"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 2288."
+        },
+        {
+          "id": "bukhari:3770",
+          "citationNumber": "3770",
+          "queries": [
+            "فضل عائشة على النساء كفضل الثريد على الطعام"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "3770",
+            "5428",
+            "5419",
+            "3433",
+            "3411",
+            "3769",
+            "5418"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 3770."
+        },
+        {
+          "id": "bukhari:756",
+          "citationNumber": "756",
+          "queries": [
+            "لا صلاة لمن لم يقرأ بفاتحة الكتاب"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "756"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 756."
+        },
+        {
+          "id": "bukhari:3343",
+          "citationNumber": "3343",
+          "queries": [
+            "نصرت بالصبا وأهلكت عاد بالدبور"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "1035",
+            "3343",
+            "4105",
+            "3205"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 3343."
+        },
+        {
+          "id": "bukhari:2819",
+          "citationNumber": "2819",
+          "queries": [
+            "قال سليمان بن داود عليهما السلام لأطوفن الليلة"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 0.98,
+          "dorarNumbersForMatchingText": [
+            "2819",
+            "6639"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[معلق]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 2819."
+        },
+        {
+          "id": "bukhari:4478",
+          "citationNumber": "4478",
+          "queries": [
+            "الكمأة من المن وماؤها شفاء للعين"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "4478",
+            "5708",
+            "4639"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 4478."
+        },
+        {
+          "id": "bukhari:586",
+          "citationNumber": "586",
+          "queries": [
+            "لا صلاة بعد الصبح حتى ترتفع الشمس ولا"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "586"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح البخاري no. 586."
+        }
+      ]
+    },
+    "muslim": {
+      "eligible": 1076,
+      "total": 7360,
+      "findings": [
+        {
+          "id": "muslim:4875",
+          "citationNumber": "1881",
+          "subNumber": "1881.02",
+          "queries": [
+            "غدوة أو روحة في سبيل الله خير من"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "1881"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 1881."
+        },
+        {
+          "id": "muslim:6619",
+          "citationNumber": "2601",
+          "subNumber": "2601.02",
+          "queries": [
+            "اللهم إني أتخذ عندك عهدا لن تخلفنيه فإنما"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "2601"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 2601."
+        },
+        {
+          "id": "muslim:7211",
+          "citationNumber": "2866",
+          "subNumber": "2866.01",
+          "queries": [
+            "إن أحدكم إذا مات عرض عليه مقعده بالغداة"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "2866"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 2866."
+        },
+        {
+          "id": "muslim:6623",
+          "citationNumber": "2601",
+          "subNumber": "2601.06",
+          "queries": [
+            "اللهم فأيما عبد مؤمن سببته فاجعل ذلك له"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "2601"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 2601."
+        },
+        {
+          "id": "muslim:5377",
+          "citationNumber": "2062",
+          "subNumber": "2062.01",
+          "queries": [
+            "المؤمن يأكل في معى واحد والكافر يأكل في"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "2061",
+            "2062",
+            "2063"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 2062."
+        },
+        {
+          "id": "muslim:6682",
+          "citationNumber": "2622",
+          "subNumber": "2622",
+          "queries": [
+            "رب أشعث مدفوع بالأبواب لو أقسم على الله"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "2854",
+            "2622"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 2622."
+        },
+        {
+          "id": "muslim:850",
+          "citationNumber": "385",
+          "subNumber": "385",
+          "queries": [
+            "إذا قال المؤذن الله أكبر الله أكبر فقال"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "385"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 385."
+        },
+        {
+          "id": "muslim:6654",
+          "citationNumber": "2612",
+          "subNumber": "2612.04",
+          "queries": [
+            "إذا قاتل أحدكم أخاه فلا يلطمن الوجه"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "2612"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 2612."
+        },
+        {
+          "id": "muslim:1820",
+          "citationNumber": "777",
+          "subNumber": "777.01",
+          "queries": [
+            "اجعلوا من صلاتكم في بيوتكم ولا تتخذوها قبورا"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "777"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 777."
+        },
+        {
+          "id": "muslim:4468",
+          "citationNumber": "1710",
+          "subNumber": "1710.04",
+          "queries": [
+            "البئر جرحها جبار والمعدن جرحه جبار والعجماء جرحها"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "1710"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 1710."
+        },
+        {
+          "id": "muslim:6141",
+          "citationNumber": "2370",
+          "subNumber": "2370",
+          "queries": [
+            "اختتن إبراهيم النبي عليه السلام وهو ابن ثمانين"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "2370"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 2370."
+        },
+        {
+          "id": "muslim:6299",
+          "citationNumber": "2446",
+          "subNumber": "2446.01",
+          "queries": [
+            "فضل عائشة على النساء كفضل الثريد على سائر"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "2446",
+            "2431"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 2446."
+        },
+        {
+          "id": "muslim:283",
+          "citationNumber": "101",
+          "subNumber": "101",
+          "queries": [
+            "من حمل علينا السلاح فليس منا ومن غشنا"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "101"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 101."
+        },
+        {
+          "id": "muslim:6814",
+          "citationNumber": "2680",
+          "subNumber": "2680.01",
+          "queries": [
+            "لا يتمنين أحدكم الموت لضر نزل به فإن"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "2680"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 2680."
+        },
+        {
+          "id": "muslim:6973",
+          "citationNumber": "2752",
+          "subNumber": "2752.02",
+          "queries": [
+            "خلق الله مائة رحمة فوضع واحدة بين خلقه"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 0.85,
+          "dorarNumbersForMatchingText": [
+            "2752"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 2752."
+        },
+        {
+          "id": "muslim:2472",
+          "citationNumber": "1068",
+          "subNumber": "1068.03",
+          "queries": [
+            "يتيه قوم قبل المشرق محلقة رءوسهم"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 0.83,
+          "dorarNumbersForMatchingText": [
+            "1068"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 1068."
+        },
+        {
+          "id": "muslim:361",
+          "citationNumber": "141",
+          "subNumber": "141.01",
+          "queries": [
+            "من قتل دون ماله فهو شهيد"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "141"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 141."
+        },
+        {
+          "id": "muslim:2273",
+          "citationNumber": "982",
+          "subNumber": "982.01",
+          "queries": [
+            "ليس على المسلم في عبده ولا فرسه صدقة"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "982"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 982."
+        },
+        {
+          "id": "muslim:1779",
+          "citationNumber": "759",
+          "subNumber": "759.01",
+          "queries": [
+            "من قام رمضان إيمانا واحتسابا غفر له ما"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "759",
+            "760"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 759."
+        },
+        {
+          "id": "muslim:7130",
+          "citationNumber": "2822",
+          "subNumber": "2822",
+          "queries": [
+            "حفت الجنة بالمكاره وحفت النار بالشهوات"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "2822",
+            "٢٨٢٣"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 2822."
+        },
+        {
+          "id": "muslim:5755",
+          "citationNumber": "2210",
+          "subNumber": "2210.01",
+          "queries": [
+            "الحمى من فيح جهنم فابردوها بالماء"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "2209",
+            "2210",
+            "2212"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 2210."
+        },
+        {
+          "id": "muslim:5642",
+          "citationNumber": "2158",
+          "subNumber": "2158.01",
+          "queries": [
+            "من اطلع في بيت قوم بغير إذنهم فقد"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 0.92,
+          "dorarNumbersForMatchingText": [
+            "2158"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 2158."
+        },
+        {
+          "id": "muslim:1242",
+          "citationNumber": "557",
+          "subNumber": "557.02",
+          "queries": [
+            "إذا قرب العشاء وحضرت الصلاة فابدءوا به قبل"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 0.94,
+          "dorarNumbersForMatchingText": [
+            "557"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 557."
+        },
+        {
+          "id": "muslim:6131",
+          "citationNumber": "2365",
+          "subNumber": "2365.02",
+          "queries": [
+            "أنا أولى الناس بعيسى الأنبياء أبناء علات وليس"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "2365"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 2365."
+        },
+        {
+          "id": "muslim:1835",
+          "citationNumber": "786",
+          "subNumber": "786",
+          "queries": [
+            "إذا نعس أحدكم في الصلاة فليرقد حتى يذهب"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "786"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 786."
+        },
+        {
+          "id": "muslim:1417",
+          "citationNumber": "626",
+          "subNumber": "626.01",
+          "queries": [
+            "الذي تفوته صلاة العصر كأنما وتر أهله وماله"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "626"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 626."
+        },
+        {
+          "id": "muslim:2495",
+          "citationNumber": "1079",
+          "subNumber": "1079.01",
+          "queries": [
+            "إذا جاء رمضان فتحت أبواب الجنة وغلقت أبواب"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "1079"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 1079."
+        },
+        {
+          "id": "muslim:7471",
+          "citationNumber": "533",
+          "subNumber": "533.04",
+          "queries": [
+            "من بنى مسجدا لله بنى الله له في"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "533"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 533."
+        },
+        {
+          "id": "muslim:1491",
+          "citationNumber": "656",
+          "subNumber": "656.01",
+          "queries": [
+            "من صلى العشاء في جماعة فكأنما قام نصف"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "656"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 656."
+        },
+        {
+          "id": "muslim:6979",
+          "citationNumber": "2755",
+          "subNumber": "2755",
+          "queries": [
+            "لو يعلم المؤمن ما عند الله من العقوبة"
+          ],
+          "sameCollectionResults": 15,
+          "bestSimilarity": 1,
+          "dorarNumbersForMatchingText": [
+            "2755"
+          ],
+          "verdict": "CONFIRMED",
+          "dorarGrade": "[صحيح]",
+          "note": "Dorar lists the same matn under صحيح مسلم no. 2755."
+        }
+      ]
+    }
+  }
+}
