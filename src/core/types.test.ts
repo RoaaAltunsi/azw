@@ -1,12 +1,14 @@
 import { readFileSync } from "node:fs";
-import { expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 import {
+  ApiSourceRecordSchema,
   DiffOpSchema,
   ReviewItemSchema,
   ReviewResultSchema,
   SourceRecordSchema,
   type ReviewItem,
   type ReviewResult,
+  toApiRecord,
   type SourceRecord,
 } from "./types";
 
@@ -33,7 +35,7 @@ const item: ReviewItem = {
   reasonAr: "النص مطابق لنص المصدر.",
   evidence: [
     {
-      record,
+      record: toApiRecord(record),
       score: 1,
       diff: [{ op: "equal", draft: { start: 0, end: 9 }, source: { recordId: "quran:2:153", start: 0, end: 9 } }],
       ayahRange: [153, 153],
@@ -69,10 +71,10 @@ const invalid: Array<[string, unknown]> = [
   ["empty span", { ...item, span: { start: 3, end: 3, text: "" } }],
   ["no extractor", { ...item, extractedBy: [] }],
   ["MATCH without evidence", { ...item, evidence: [] }],
-  ["MATCH on a pending record", { ...item, evidence: [{ record: { ...record, reviewStatus: "pending" }, score: 1 }] }],
+  ["MATCH on a pending record", { ...item, evidence: [{ record: toApiRecord({ ...record, reviewStatus: "pending" }), score: 1 }] }],
   [
     "MATCH mixing reviewed and pending records",
-    { ...item, evidence: [{ record, score: 1 }, { record: { ...record, reviewStatus: "pending" }, score: 1 }] },
+    { ...item, evidence: [{ record: toApiRecord(record), score: 1 }, { record: toApiRecord({ ...record, reviewStatus: "pending" }), score: 1 }] },
   ],
 ];
 
@@ -119,9 +121,68 @@ test("SourceRecord rejects unknown fields and an invalid review status", () => {
   expect(SourceRecordSchema.safeParse({ ...record, reviewStatus: "approved" }).success).toBe(false);
 });
 
-test.each(["DIFFERS", "NOT_FOUND", "NEEDS_SPECIALIST", "ERROR"])("%s does not need reviewed evidence", (status) => {
+test("an ERROR item carries no evidence and no explanation", () => {
+  const error = { ...item, status: "ERROR", evidence: [] };
+  expect(ReviewItemSchema.safeParse(error).success).toBe(true);
+  expect(ReviewItemSchema.safeParse({ ...error, evidence: item.evidence }).success).toBe(false);
+  expect(ReviewItemSchema.safeParse({ ...error, explanation: { text: "شرح", generated: true } }).success).toBe(false);
+});
+
+describe("the API record", () => {
+  const full: SourceRecord = {
+    ...record,
+    searchVariants: [{ label: "uthmani", text: "نص" }],
+    matnText: "نص",
+    sourceUrl: "https://example.org/source",
+    grade: { text: "درجة", by: "المصدر", sourceRef: "المصدر، رقم 1" },
+  };
+
+  test("toApiRecord keeps the source fields and drops the retrieval keys", () => {
+    const api = toApiRecord(full);
+    expect(api).toEqual({
+      id: full.id,
+      kind: full.kind,
+      collection: full.collection,
+      exactText: full.exactText,
+      citation: full.citation,
+      sourceName: full.sourceName,
+      sourceUrl: full.sourceUrl,
+      edition: full.edition,
+      license: full.license,
+      reviewStatus: full.reviewStatus,
+      grade: full.grade,
+    });
+    expect(ApiSourceRecordSchema.safeParse(api).success).toBe(true);
+  });
+
+  test("a record without a grade or a URL gets none", () => {
+    expect(Object.keys(toApiRecord(record))).not.toContain("grade");
+    expect(Object.keys(toApiRecord({ ...record, reviewStatus: "pending" }))).toEqual(
+      ["id", "kind", "collection", "exactText", "citation", "sourceName", "edition", "license", "reviewStatus"],
+    );
+  });
+
+  test.each(["searchText", "searchVariants", "matnText"])("the API schema rejects a record that carries %s", (key) => {
+    expect(ApiSourceRecordSchema.safeParse({ ...toApiRecord(full), [key]: full[key as keyof SourceRecord] }).success).toBe(false);
+  });
+
+  test("a ReviewItem whose evidence holds a full SourceRecord is rejected", () => {
+    expect(ReviewItemSchema.safeParse({ ...item, evidence: [{ record, score: 1 }] }).success).toBe(false);
+  });
+
+  test("citedReference.parsed must be a parsed reference", () => {
+    const cited = (parsed: unknown): boolean => ReviewItemSchema.safeParse({ ...item, citedReference: { raw: "[البقرة: 153]", parsed } }).success;
+    expect(cited({ type: "quran", surah: 2, ayahStart: 153 })).toBe(true);
+    expect(cited({ type: "unknown" })).toBe(true);
+    expect(cited({ type: "quran", surah: 115 })).toBe(false);
+    expect(cited("البقرة 153")).toBe(false);
+    expect(ReviewItemSchema.safeParse({ ...item, citedReference: { raw: "[البقرة: 153]" } }).success).toBe(true);
+  });
+});
+
+test.each(["DIFFERS", "NOT_FOUND", "NEEDS_SPECIALIST"])("%s does not need reviewed evidence", (status) => {
   expect(ReviewItemSchema.safeParse({ ...item, status, evidence: [] }).success).toBe(true);
-  const pending = [{ record: { ...record, reviewStatus: "pending" }, score: 0.8 }];
+  const pending = [{ record: toApiRecord({ ...record, reviewStatus: "pending" }), score: 0.8 }];
   expect(ReviewItemSchema.safeParse({ ...item, status, evidence: pending }).success).toBe(true);
 });
 

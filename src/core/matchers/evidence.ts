@@ -1,7 +1,8 @@
 // From a candidate to the `evidence` entries of a ReviewItem: one entry per record, each with the
-// part of the word diff that concerns it.
+// part of the word diff that concerns it. The record is the API record: the retrieval keys
+// (searchText, searchVariants, matnText) stop here and reach no ReviewItem.
 import { wordDiff } from "../diff";
-import type { DiffOp, Evidence } from "../types";
+import { toApiRecord, type DiffOp, type Evidence } from "../types";
 import type { MatchCandidate } from "./matcher";
 
 // An op belongs to the record its source range is in. An "insert" has no source: it goes with the
@@ -15,7 +16,7 @@ export function evidenceOf(candidate: MatchCandidate): Evidence[] {
     byRecord.get(current)!.push(op);
   }
   return candidate.records.map((record) => ({
-    record,
+    record: toApiRecord(record),
     score: candidate.score,
     diff: byRecord.get(record.id)!,
     ...(candidate.ayahRange ? { ayahRange: candidate.ayahRange } : {}),

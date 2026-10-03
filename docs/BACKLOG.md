@@ -5,9 +5,8 @@ is built until it is moved into a prompt's scope.
 
 ## Moved out of scope during reviews
 
-- API (P6): `ReviewItem.evidence[].record` is a full `SourceRecord`, so the response would carry
-  `searchText` and `searchVariants`. They are retrieval keys, not source text. Decide in P6 whether
-  the API strips them, so that no client can display them as scripture (AGENTS.md §2 rules 1–2).
+- API (P6): `ReviewItem.evidence[].record` was a full `SourceRecord`. Done in P6: the API record
+  has no `searchText`, `searchVariants` or `matnText` (`docs/DECISIONS.md` D-17 item 2).
 - Corpus: read the 81 ayat where mushaf 2 and mushaf 1 differ in letters other than ا و ي ء
   (`data/corpus/build-report.json`, `quran.uthmaniVariant.otherLettersDiffer`). Not hand-checked.
 
@@ -40,8 +39,8 @@ is built until it is moved into a prompt's scope.
   - The passive «رُوِيَ» is read as «روى» («رُوِيَ مسلم»).
   - «رواه البخاري في حديث طويل», «في رواية أخرى» and «في الجامع الصحيح» are `unknown`, like a
     citation of another book of the author.
-- References (P3): `ReviewItem.citedReference.parsed` is still `unknown` in `src/core/types.ts`.
-  Decide in P6 whether the API schema uses `ParsedReferenceSchema` from `src/core/references`.
+- References (P3): `ReviewItem.citedReference.parsed` was `unknown`. Done in P6: it is
+  `ParsedReferenceSchema` (`docs/DECISIONS.md` D-17 item 1).
 
 - Corpus index (P4): a quote that mixes a mushaf spelling and an everyday spelling of two listed
   words («رحمت» as in the mushaf, «نعمة» in everyday spelling, in one ayah or over neighbouring
@@ -56,9 +55,10 @@ is built until it is moved into a prompt's scope.
   - Hit offsets are in layer text. For "default" they map to `exactText` through
     `normalizeWithMap` on the record with the layer's options. The "uthmani" and "everyday" texts
     are not a normalization of `exactText`, so there the matcher must align on words.
-- Corpus index (P4), deployment (P6/P14): `loadCorpus` reads `data/corpus` and `data/aliases` from
-  `process.cwd()`. The Next.js build must be told to ship those files with the API route
-  (`outputFileTracingIncludes`), and the first request pays about 0.8 s of load.
+- Corpus index (P4), deployment (P14): `loadCorpus` reads `data/corpus` and `data/aliases` from
+  `process.cwd()`. Done in P6: `outputFileTracingIncludes` in `next.config.ts`. Still to check on
+  the host (P14): that the files are there, and the first request's 0.8 s of load.
+  `data/corpus/build-report.json` ships too (the pattern is `*.json`); it is not read at runtime.
 - Corpus index (P4), memory: about 160 MB retained. The index keeps every `SourceRecord` whole, and
   the "everyday" layer repeats the text and bigrams of "default" for unlisted ayat. Reduce only if
   the host's memory limit requires it.
@@ -66,8 +66,10 @@ is built until it is moved into a prompt's scope.
   but not `node:fs` or other Node built-ins.
 
 - Matcher and status rules (P5), for the orchestrator (P6):
-  - A one-word quote such as «الله» is an exact hit in 2155 ayat, all returned (about 80 ms). The
-    extractor (P9) should not produce one-word quotes, or the orchestrator caps what is shown.
+  - A one-word quote such as «الله» is an exact hit in 2155 ayat (about 80 ms). Done in P6: the
+    orchestrator returns at most 5 occurrences per item. The matcher still builds every candidate
+    (340 ms for that one quote on the first request of a running server), and a draft may hold 40
+    items, so the extractor (P9) should not produce one-word quotes.
   - `ReviewItem` has no field for `layer` / `spelling`. A UI that wants to say "matched in another
     spelling" needs one (an API contract change).
   - `claimLevel: "D"` must be set by the extractor (P10) for a ruling on a personal case.
@@ -88,6 +90,25 @@ is built until it is moved into a prompt's scope.
 - References, hadith (P11): `REF_MISMATCH_COLLECTION`, `REF_MISMATCH_NUMBER` and
   `REF_NOT_AGREED_UPON` join `src/core/status/reason-codes.ts` with the hadith matcher;
   `scripts/lib/cases.ts` adds them to the core list until then.
+
+- Orchestrator and API (P6), for later prompts:
+  - `AGENTS.md` §6 still shows `evidence: Array<{ record: SourceRecord … }>`,
+    `citedReference.parsed?: unknown` and `coverage` as «e.g. ["quran", "bukhari", "muslim"]». The
+    code follows `docs/DECISIONS.md` D-17 (API record, typed `parsed`, searched coverage). The
+    snippet in `AGENTS.md` should be brought in line by the owner.
+  - A `ReviewItem` does not say which evidence entries belong to one occurrence. A client can tell
+    from `ayahRange` and the order, but a field (an occurrence index) would be clearer. An API
+    contract change, like `layer` / `spelling` above.
+  - A quote whose claimed kind has no registered matcher (a hadith, until P11) ends `NOT_FOUND`
+    with a sentence that names only what was searched. A result-level warning
+    («KIND_NOT_SEARCHED») would let the UI say so once for the whole draft.
+  - An item that ends `ERROR` leaves no trace beyond the `ERROR` count in the request log. A hook
+    in `ReviewDeps` that reports the class of the exception would help operations, as long as it
+    never carries a message.
+  - Rate limit: a shared store for production; per-instance memory is the demo's limit (D-17 item 10).
+  - Merge: a verse quoted inside a hadith quote is dropped as an overlapping span. P9 decides.
+  - `LlmPort` is declared in `src/core/review.ts`; P10 may move it to a file of its own and add a
+    timeout / abort signal (`deps.now` is there for the time budget).
 
 ## Ideas for after the challenge
 

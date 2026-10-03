@@ -543,3 +543,97 @@ The limits are unchanged: the non-negotiable rules of AGENTS.md §2. The agent d
 handles texts and references. It never grades a hadith, never interprets a verse, never issues a
 ruling, and never edits a source text. An approval it gives is recorded in
 `data/review/reviewed.json` under its own name, not the owner's.
+
+## D-17 — Orchestrator and API v1: choices the prompt did not settle (2026-10-03)
+
+Made while building `review()` and the two routes (`docs/ARCHITECTURE.md`, "Orchestrator" and
+"API v1"). Items 1–4 decide what a writer or a client is told about a source; the rest are
+engineering choices. None needed a source outside the repository: they follow from `AGENTS.md` §2
+and were tested on the corpus.
+
+1. **`citedReference.parsed` is typed by `ParsedReferenceSchema`** (the question left in
+   `docs/BACKLOG.md`).
+
+   | Option | For | Against |
+   |---|---|---|
+   | Keep `z.unknown()` | No contract to keep stable | Every client must guess the shape; anything could be sent under that key |
+   | Leave `parsed` out of the API | Smallest surface | A client cannot say why an item is `REF_NOT_CHECKED` (the reference was `unknown` or `partial`, D-11), nor show which surah and ayah the tool read |
+   | **`ParsedReferenceSchema`** (chosen) | One definition, validated at the boundary; `type: "unknown"` and `partial: true` are visible to the client | The parser's output shape is now part of API v1 |
+
+   It carries only what the writer wrote, read deterministically; nothing from a source. The schema
+   moved to `src/core/references/schema.ts`, which imports nothing from core, because
+   `src/core/references/index.ts` imports `types.ts` at runtime; `src/core/references` still
+   exports it.
+2. **The API record.** `evidence[].record` is `ApiSourceRecordSchema`: `SourceRecordSchema` without
+   `searchText`, `searchVariants`, `matnText`. `toApiRecord` builds it from a list of allowed
+   fields, so a field added to `SourceRecord` later does not leave the server until it is named
+   there. It is applied in `evidenceOf`, the only place evidence is made; the strict schema at the
+   route is the second gate. Tested: the route's responses (handler tests, and a request to a
+   running `next start`) and the generated `docs/API.md` contain none of the three keys.
+3. **Coverage is what is searched.** `ReviewResult.coverage` = the corpus collections whose kind
+   has a registered matcher (`searchedCoverage`), today `["quran"]`. The alternative, the manifest's
+   coverage, would tell a writer «لم نجد هذا النص في … صحيح البخاري، صحيح مسلم» for a text nothing
+   searched there: an unsupported statement about two books (§2 rules 1 and 3). Tested with a text
+   that the corpus holds in `bukhari:1`: `NOT_FOUND`, and the sentence names «القرآن الكريم» only.
+   `GET /health` reports the same list. Limit: a hadith quote is still given `NOT_FOUND` rather
+   than a status that says "not searched"; the sentence is true, and no new status was added
+   (§4 fixes the four).
+4. **Bounds.** `MAX_EVIDENCE_PER_ITEM = 5`, `MAX_ITEMS_PER_DRAFT = 40`. The evidence limit counts
+   occurrences, not records, so a quote over several ayat is never shown cut in the middle. The
+   reason sentence counts every occurrence. Items beyond the limit are not reviewed and the result
+   says so with the new warning `ITEM_LIMIT_REACHED`. Measured: «الله» (more than 2000 exact
+   occurrences) returns 5 evidence entries. The values are not tuned.
+5. **Merge rule.** Identical spans are merged (`extractedBy` names both; the kind of the first
+   extractor in `deps.extractors` wins). Overlapping spans: the earlier start wins, then the longer
+   span; the other is dropped. So a place of the draft belongs to one item, and
+   `item-<start>-<end>` is a unique, deterministic id. A verse quoted inside a hadith quote is
+   therefore not a separate item; P9 owns a finer rule.
+6. **The ERROR item** carries no evidence and no `citedReference`, even when the reference was
+   attached before the failure: nothing found for a failed item is shown. `ReviewItemSchema` now
+   also rejects an `ERROR` item with evidence or an explanation. Its sentence
+   (`item.error.INTERNAL_ERROR`) says the fault is the tool's and says nothing about the text.
+7. **Word diff after the decision.** §6 lists "word diff" before "status rules". `decide` does not
+   read a diff, and a one-word quote has thousands of candidates, so the diff is computed after the
+   decision, for the evidence that is returned. The alignment it is made from exists before the
+   decision; the result is the same.
+8. **`LLM_UNAVAILABLE_REGEX_ONLY` is on every result until P10**, also if a caller passes `llm`:
+   nothing calls the port yet, and the warning states what happened. `review` is already `async`,
+   so P10 does not change its signature. `deps.now` is declared and not read: a result holds no
+   time, so that the same draft gives the same result.
+9. **`deps.matchers` and `deps.limits`** are two optional fields the prompt did not list. The first
+   lets a test make one matcher throw and lets the coverage test register a matcher; the second
+   lets the bounds be tested on fixture records.
+10. **Rate limit: an in-memory token bucket**, keyed by the first address of `X-Forwarded-For`.
+    Its limits, accepted for the demo:
+    - It is per server instance. On a serverless host each instance has its own buckets and a cold
+      start empties them, so the real limit is `RATE_LIMIT_PER_MIN` × the number of instances.
+    - The key is only as good as the proxy that sets the header. Behind a proxy that appends to a
+      client-supplied `X-Forwarded-For` instead of replacing it, a client can pick its own key.
+      A request with no address shares the one key `unknown`.
+    - The address is held in memory as a map key until its bucket refills (at most 10,000 keys); it
+      is never logged or returned.
+    A shared store (Redis, the host's own rate limiting) replaces it for production
+    (`docs/BACKLOG.md`).
+11. **CORS.** An `Origin` equal to the request's own origin (or whose host is the `Host` /
+    `X-Forwarded-Host` header) is same-origin. Another origin is served only if `CORS_ALLOWLIST`
+    names it; otherwise 403 with no CORS header. `*` in the list is ignored. A request with no
+    `Origin` header is served: CORS protects browser users, it is not authentication, and a
+    non-browser client is held by the rate limit only.
+12. **Error responses.** `{ apiVersion, error: { code, message } }` with HTTP 400 (invalid, empty),
+    413 (too long), 403, 429, 500. The body is strict JSON `{ text }`; an unknown field is refused
+    rather than ignored. The length limit counts UTF-16 code units (`String.length`), which is what
+    a client's `text.length` gives. A body over `MAX_DRAFT_CHARS × 6 + 1024` bytes is refused
+    without being read to its end.
+13. **Logging.** The log entry type has no free-text field. For a 500 it holds a fixed word and the
+    class name of the error; only the corpus loader's message is logged as text, because it names
+    files and never a query (`docs/ARCHITECTURE.md`, "Corpus index").
+14. **`GET /health` answers 503** with `ok: false` when the corpus does not load, so that a
+    monitor needs no body parsing.
+15. **The temporary extractor** takes `«…»` only when «قال رسول الله» is at most 60 characters
+    before it in the same sentence. Other formulas («قال النبي», «عن النبي ﷺ أنه قال») are P9.
+
+Limits of this entry: the routes were tested through their handlers with Web `Request` objects, by
+`next build`, and with `curl` against `next start` on the build machine (health, a review, a refused
+origin and its preflight, an empty draft). No browser made a cross-origin request, and the files
+named by `outputFileTracingIncludes` were read in the build's trace files
+(`.next/server/app/api/v1/*/route.js.nft.json`), not on a deployed host.

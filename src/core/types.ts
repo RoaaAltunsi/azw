@@ -3,6 +3,8 @@
 import { z } from "zod";
 // Type only: src/core/references imports this file at runtime.
 import type { Reference } from "./references";
+// The schema file imports nothing from core, so this is not a cycle.
+import { ParsedReferenceSchema } from "./references/schema";
 
 // Open union: adding a kind means a new SourceAdapter plus a Matcher, and nothing else.
 export type ContentKind = "quran" | "hadith" | (string & {});
@@ -61,6 +63,31 @@ export const SourceRecordSchema = z.strictObject({
 });
 export type SourceRecord = z.infer<typeof SourceRecordSchema>;
 
+// A source record as it leaves the API. searchText, searchVariants and matnText are retrieval keys,
+// not source text: no client may receive them, so none can show them as scripture (AGENTS.md §2
+// rules 1–2). The object is strict: a record that still carries one of them fails validation.
+export const ApiSourceRecordSchema = SourceRecordSchema.omit({ searchText: true, searchVariants: true, matnText: true });
+export type ApiSourceRecord = z.infer<typeof ApiSourceRecordSchema>;
+
+// An allowlist, not a deletion: a field added to SourceRecord later stays inside the server until
+// it is named here and in ApiSourceRecordSchema. A grade is copied only when the record has one;
+// pending records have none (docs/DECISIONS.md D-5).
+export function toApiRecord(record: SourceRecord): ApiSourceRecord {
+  return {
+    id: record.id,
+    kind: record.kind,
+    collection: record.collection,
+    exactText: record.exactText,
+    citation: record.citation,
+    sourceName: record.sourceName,
+    ...(record.sourceUrl !== undefined ? { sourceUrl: record.sourceUrl } : {}),
+    edition: record.edition,
+    license: record.license,
+    reviewStatus: record.reviewStatus,
+    ...(record.grade !== undefined ? { grade: record.grade } : {}),
+  };
+}
+
 // Offsets into the user's draft: [start, end).
 const spanShape = {
   start: z.number().int().nonnegative(),
@@ -97,9 +124,12 @@ export const ClaimedKindSchema: z.ZodType<
 > = z.string().min(1);
 export type ClaimedKind = z.infer<typeof ClaimedKindSchema>;
 
+// The reference the draft cites for a quote, as src/core/references read it: what the writer
+// claims, not what the source says. `parsed.type` "unknown", or `partial: true`, means it was not
+// read in full (docs/DECISIONS.md D-11, D-17).
 export const CitedReferenceSchema = z.object({
   raw: z.string(),
-  parsed: z.unknown().optional(),
+  parsed: ParsedReferenceSchema.optional(),
   span: SpanSchema.optional(),
 });
 export type CitedReference = z.infer<typeof CitedReferenceSchema>;
@@ -114,7 +144,7 @@ export interface QuoteInput {
 }
 
 export const EvidenceSchema = z.object({
-  record: SourceRecordSchema,
+  record: ApiSourceRecordSchema,
   score: z.number(),
   diff: z.array(DiffOpSchema).optional(),
   ayahRange: z.tuple([z.number().int().positive(), z.number().int().positive()]).optional(),
@@ -132,7 +162,8 @@ export const ExtractedBySchema = z.enum(["regex", "llm", "manual"]);
 export type ExtractedBy = z.infer<typeof ExtractedBySchema>;
 
 // The status rules decide MATCH; this is only a backstop at the boundary (AGENTS.md §2.1, §2.3, §4):
-// a MATCH that does not rest on reviewed records is rejected, whoever produced it.
+// a MATCH that does not rest on reviewed records is rejected, whoever produced it, and so is an
+// ERROR item that carries evidence.
 export const ReviewItemSchema = z
   .object({
     id: z.string().min(1),
@@ -153,7 +184,11 @@ export const ReviewItemSchema = z
       item.status !== "MATCH" ||
       (item.evidence.length > 0 && item.evidence.every((e) => e.record.reviewStatus === "reviewed")),
     { path: ["status"], message: "MATCH requires evidence, and every evidence record must be reviewed" },
-  );
+  )
+  .refine((item) => item.status !== "ERROR" || (item.evidence.length === 0 && item.explanation === undefined), {
+    path: ["status"],
+    message: "an ERROR item carries no evidence and no explanation",
+  });
 export type ReviewItem = z.infer<typeof ReviewItemSchema>;
 
 export const API_VERSION = "1";
@@ -161,9 +196,51 @@ export const API_VERSION = "1";
 export const ReviewResultSchema = z.object({
   apiVersion: z.literal(API_VERSION),
   corpusVersion: z.string().min(1), // from data/corpus/manifest.json
-  coverage: z.array(z.string().min(1)), // e.g. ["quran", "bukhari", "muslim"]
+  // The collections that were searched for this result: those of the corpus whose kind has a
+  // registered matcher. A collection the corpus holds but nothing searches is not listed.
+  coverage: z.array(z.string().min(1)),
   items: z.array(ReviewItemSchema),
   summary: z.record(StatusSchema, z.number().int().nonnegative()),
   warnings: z.array(z.string()), // e.g. "LLM_UNAVAILABLE_REGEX_ONLY"
 });
 export type ReviewResult = z.infer<typeof ReviewResultSchema>;
+
+// ---------------------------------------------------------------------------------------------
+// API v1 (docs/API.md is generated from the schemas below and from ReviewResultSchema)
+// ---------------------------------------------------------------------------------------------
+
+// POST /api/v1/review. The length limit (MAX_DRAFT_CHARS) is configuration, checked by the route.
+export const ReviewRequestSchema = z.strictObject({
+  text: z.string(), // the draft; never stored, never logged
+});
+export type ReviewRequest = z.infer<typeof ReviewRequestSchema>;
+
+export const API_ERROR_CODES = [
+  "INVALID_REQUEST", // 400: the body is not JSON, or not { text: string }
+  "EMPTY_DRAFT", // 400
+  "DRAFT_TOO_LONG", // 413
+  "ORIGIN_NOT_ALLOWED", // 403
+  "RATE_LIMITED", // 429
+  "INTERNAL_ERROR", // 500
+] as const;
+
+// Every response that is not a ReviewResult. It never carries items, so it cannot be taken for a
+// result. `message` is a fixed Arabic sentence from src/i18n/ar.ts.
+export const ApiErrorSchema = z.strictObject({
+  apiVersion: z.literal(API_VERSION),
+  error: z.strictObject({
+    code: z.enum(API_ERROR_CODES),
+    message: z.string().min(1),
+  }),
+});
+export type ApiError = z.infer<typeof ApiErrorSchema>;
+export type ApiErrorCode = (typeof API_ERROR_CODES)[number];
+
+// GET /api/v1/health. `ok: false` (HTTP 503) = the corpus did not load; corpusVersion is then null.
+export const HealthSchema = z.strictObject({
+  ok: z.boolean(),
+  corpusVersion: z.string().min(1).nullable(),
+  coverage: z.array(z.string().min(1)), // as ReviewResult.coverage
+  llmConfigured: z.boolean(),
+});
+export type Health = z.infer<typeof HealthSchema>;

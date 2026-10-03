@@ -460,8 +460,8 @@ The retained figure includes the parsed files the benchmark script keeps; the re
 
 Code: `src/core/matchers/` (`matcher.ts`, `quran.ts`, `layer-words.ts`, `index.ts`). Tests:
 `src/core/matchers/quran.test.ts` (fixture records) and
-`src/server/quran-review.integration.test.ts` (real corpus; it sits beside the loader because
-`src/core` may not read files).
+`src/server/quran-review.integration.test.ts` (real corpus, through the orchestrator; it sits
+beside the loader because `src/core` may not read files).
 
 A matcher finds where a quote stands in the records of its kind and reports what it found. It
 decides no status.
@@ -501,7 +501,7 @@ interface MatchCandidate {
 | `matchAll(quote, index)` | Runs every registered matcher, whatever the claimed kind (a "hadith" may be a verse) |
 | `quranMatcher` | The Quran matcher |
 | `hasUthmaniSigns(text)` | Whether a span carries a sign that only Uthmani-script texts have. The one place this check lives (`uthmani-spelling.ts`) |
-| `evidenceOf(candidate)` | The `Evidence[]` of a `ReviewItem`: one entry per record, each with the part of the word diff that concerns it. An `insert` (no source) goes with the record of the op before it, or the first |
+| `evidenceOf(candidate)` | The `Evidence[]` of a `ReviewItem`: one entry per record (as an `ApiSourceRecord`, without the retrieval keys: see "API v1"), each with the part of the word diff that concerns it. An `insert` (no source) goes with the record of the op before it, or the first |
 
 The result type is `MatchCandidate`, because `Candidate` is the index's type.
 
@@ -713,9 +713,154 @@ The rules, in order. The first that applies decides.
 in `src/i18n/ar.ts` under `reason.<CODE>` and are filled with `format()`: `{ref}` is the citation of
 the first evidence candidate through `kindMeta.citationFormatter` (a quote over several records:
 «من … إلى …»; several occurrences: «… (وفي n من المواضع الأخرى)»), `{kind}` the label of the record's
-kind, `{coverage}` the covered collections (`ReviewResult.coverage`), each shown by its name
+kind, `{coverage}` the covered collections (`ReviewResult.coverage`: those that are searched, see "Orchestrator"), each shown by its name
 (`collection.<id>` in `src/i18n/ar.ts`: «القرآن الكريم», «صحيح البخاري», «صحيح مسلم»; a collection
 without a name is shown by its id), joined with «، ».
 
 The sentences themselves never contain «صحيح» (tested; the book titles in `{coverage}` are names), the `NOT_FOUND` sentence never judges the text, and
 the `WORDING_DIFF` sentence points to the source without repeating the altered words.
+
+## Orchestrator
+
+Code: `src/core/review.ts`, `src/core/extract/index.ts` (the temporary extractor). Tests:
+`src/core/review.test.ts` (fixture records), `src/core/extract/index.test.ts`, and
+`src/server/quran-review.integration.test.ts` (real corpus).
+
+`review(draft, deps)` returns a `Promise<ReviewResult>`. It does no I/O and reads no clock of its
+own: everything comes in through `deps`. The same draft with the same `deps` gives the same result,
+ids included; a result holds no time.
+
+| `deps` | |
+|---|---|
+| `index`, `aliases`, `corpusVersion`, `coverage` | From `loadCorpus`. `coverage` is what the corpus holds |
+| `extractors` | `Extractor[]`, in priority order. An extractor is a function `draft → ExtractedQuote[]`, each `{ span, claimedKind, claimLevel?, extractedBy }` |
+| `llm?` | `LlmPort` (`extractQuotes`, `explainDiff`). Declared for P10; nothing calls it yet |
+| `now` | The clock, for the time budget of LLM calls (P10). Not read yet |
+| `matchers?` | The matcher registry; defaults to `matchers` of `src/core/matchers`. A test passes its own |
+| `limits?` | Defaults to `REVIEW_LIMITS` |
+
+### Steps
+
+The order is that of `AGENTS.md` §6.
+
+1. **Extract.** Every extractor reads the draft. Until P10 no LLM takes part, so every result
+   carries the warning `LLM_UNAVAILABLE_REGEX_ONLY`.
+2. **Validate.** A span is kept only if it lies in the draft and `draft.slice(start, end)` is its
+   `text`. This holds for every extractor, not only the LLM.
+3. **Merge.** In draft order. The same span from two extractors is one quote whose `extractedBy`
+   names both (the kind of the first extractor in `deps.extractors` is kept). A span that overlaps
+   one already kept is dropped: the earlier start wins, then the longer span. Then the item limit
+   is applied.
+4. **References.** `parseReferences(draft, aliases)` once per draft.
+5. **Per item**: `attachReference` → `matchAll` (every registered matcher, whatever the claimed
+   kind) → `decide` → `reasonAr` → `evidenceOf` for the occurrences that are shown. The word diff
+   is a pure function of the alignment the matcher made, and `decide` does not read it, so it is
+   computed after the decision and only for the evidence that is returned.
+6. **Explanations**: P12.
+
+`citedReference` is the attached reference as it was read: `{ raw, span, parsed }`, with `parsed`
+typed by `ParsedReferenceSchema` (`docs/DECISIONS.md` D-17).
+
+**Item ids** are `item-<start>-<end>`: the position of the span in the draft. Step 3 leaves at most
+one item per place, so they are unique.
+
+**The temporary extractor** (`temporaryRegexExtractor`) reads two forms: `﴿…﴾` as `quran`, and
+`«…»` as `hadith` when «قال رسول الله» stands at most 60 characters before it in the same sentence
+with no other quotation mark between them. The span is the words inside the marks. P9 replaces it.
+
+### Coverage
+
+`ReviewResult.coverage`, and the `{coverage}` of the reason sentences, is
+`searchedCoverage(deps.coverage, index, registry)`: the collections of the corpus whose kind has a
+registered matcher. It is derived from `index.layers` and the registry and names no kind. Today
+the corpus holds `quran`, `bukhari` and `muslim` and only the Quran matcher is registered, so the
+coverage is `["quran"]`: a hadith quote that ends `NOT_FOUND` is told «لم نجد هذا النص في المصادر
+المغطاة (القرآن الكريم)», because nothing looked in the two hadith collections. Registering the
+hadith matcher (P11) widens it with no other change.
+
+### Bounds
+
+`REVIEW_LIMITS = { MAX_EVIDENCE_PER_ITEM: 5, MAX_ITEMS_PER_DRAFT: 40 }`.
+
+- **Evidence.** At most 5 occurrences per item, in the order of the decision. An occurrence that
+  runs over several records shows all of them, so the number of evidence entries can be higher.
+  `reasonAr` is built from the whole decision: «… (وفي n من المواضع الأخرى)» counts the occurrences
+  that are not shown too. «الله» alone is in more than 2000 ayat and returns 5.
+- **Items.** At most 40 per draft, the first in draft order. A draft with more carries the warning
+  `ITEM_LIMIT_REACHED`, so that a cut result never looks complete.
+
+### Errors
+
+An exception while one item is reviewed (step 5) gives that item `status: "ERROR"`,
+`reasonCode: "INTERNAL_ERROR"`, the sentence `item.error.INTERNAL_ERROR` of `src/i18n/ar.ts`,
+`contentLevel: "A"`, no evidence and no cited reference; the other items are not affected.
+`ReviewItemSchema` rejects an `ERROR` item that carries evidence or an explanation. An exception
+outside step 5 (an extractor, the reference parser) is thrown to the caller: the API answers 500.
+
+`summary` counts every status, zeros included.
+
+## API v1
+
+Code: `src/server/api-handlers.ts` (the handlers, as functions of a Web `Request`),
+`src/server/api-config.ts`, `src/server/rate-limit.ts`, and the two route files
+`src/app/api/v1/review/route.ts` and `src/app/api/v1/health/route.ts`, which only wire the handlers
+(Node runtime). Tests: `src/server/api-handlers.test.ts`. The contract (schemas, limits, error
+codes, one example from a real run) is `docs/API.md`, generated by `npm run docs:api` from the zod
+schemas; `scripts/lib/api-doc.test.ts` fails when the file is out of date.
+
+### POST /api/v1/review
+
+In this order; the first that applies answers.
+
+| Step | Outcome |
+|---|---|
+| Origin not allowed | 403 `ORIGIN_NOT_ALLOWED` |
+| Rate limit exceeded | 429 `RATE_LIMITED`, with `Retry-After` |
+| Body larger than `MAX_DRAFT_CHARS × 6 + 1024` bytes (it is not read to its end) | 413 `DRAFT_TOO_LONG` |
+| Body not JSON, or not exactly `{ text: string }` | 400 `INVALID_REQUEST` |
+| `text` empty or whitespace | 400 `EMPTY_DRAFT` |
+| `text.length > MAX_DRAFT_CHARS` | 413 `DRAFT_TOO_LONG` |
+| The corpus does not load, `review` throws, or the result fails `ReviewResultSchema` | 500 `INTERNAL_ERROR` |
+| Otherwise | 200, the validated `ReviewResult` |
+
+An error body is `{ apiVersion, error: { code, message } }` (`ApiErrorSchema`), with a fixed Arabic
+sentence from `src/i18n/ar.ts` (`api.error.<CODE>`). It never has `items`, so a failure cannot be
+taken for a result, and a result is never sent in part. Every response has `Cache-Control: no-store`.
+
+**What leaves the API.** `evidence[].record` is an `ApiSourceRecord`: a `SourceRecord` without
+`searchText`, `searchVariants` and `matnText`. `toApiRecord` (an allowlist of fields, in
+`src/core/types.ts`) is applied in `evidenceOf`, the one place evidence is made, and
+`ApiSourceRecordSchema` is strict, so a record that still carried one of them would fail the
+validation above and be answered with 500. `grade` is copied only when the record has one.
+
+**Settings** (`.env.example`), read on each request; a missing or malformed value falls back to
+the default: `MAX_DRAFT_CHARS` (12000, UTF-16 code units), `RATE_LIMIT_PER_MIN` (10),
+`CORS_ALLOWLIST` (empty).
+
+**Rate limit.** A token bucket per client in memory: `RATE_LIMIT_PER_MIN` tokens, refilled evenly
+over a minute. The client is the first address of `X-Forwarded-For` (else `X-Real-IP`). Limits:
+`docs/DECISIONS.md` D-17.
+
+**CORS.** No `Origin` header, or the API's own origin: served, no CORS header. An origin listed in
+`CORS_ALLOWLIST`: served with `Access-Control-Allow-Origin: <that origin>`; its preflight gets 204.
+Any other origin: 403 and no CORS header. `*` is not accepted in the list. This is the hook for
+the browser extension: its origin is added to the list, nothing else changes.
+
+**Logging.** One JSON line per request: `requestId`, `httpStatus`, `outcome`, `chars`, `loadMs`,
+`reviewMs`, `totalMs`, `items`, `summary`, `warnings`, and for a 500 a fixed `failure` word with
+the class of the error (or, for a corpus that did not load, the loader's message, which names
+files only). `LogEntry` has no field for the draft, a quote, a header or an address. A log sink
+that throws does not change the answer.
+
+### GET /api/v1/health
+
+`{ ok, corpusVersion, coverage, llmConfigured }`. `coverage` is the searched coverage, as in a
+result. `llmConfigured` is true when `LLM_PROVIDER`, `LLM_MODEL` and `LLM_API_KEY` are all set; it
+does not say that an LLM is used. When the corpus does not load: 503 with `ok: false`,
+`corpusVersion: null`, `coverage: []`. The first call loads the corpus (about 0.8 s).
+
+### Deployment
+
+`loadCorpus` reads `data/corpus` and `data/aliases` from `process.cwd()` with paths taken from the
+manifest, which the build cannot trace. `next.config.ts` lists `data/corpus/*.json` and
+`data/aliases/*.json` in `outputFileTracingIncludes` for both routes.

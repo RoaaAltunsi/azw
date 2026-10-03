@@ -39,10 +39,22 @@ export const ar = {
   "reason.INTERPRETIVE_CLAIM": "هذه العبارة تتضمن استنباطاً أو تفسيراً، والأداة لا تفسّر النصوص ولا تؤيد الاستنباط ولا تنفيه. يُرجى مراجعة مختص.",
   "reason.PERSONAL_RULING": "هذه العبارة تتضمن حكماً في حالة خاصة، والأداة لا تصدر الفتاوى. يُرجى الرجوع إلى جهة إفتاء مؤهلة.",
 
+  // The system state ERROR for one item (src/core/review.ts): a fault of the tool, never a statement
+  // about the text.
+  "item.error.INTERNAL_ERROR": "تعذّر إكمال التحقق من هذا النص بسبب خلل في الأداة، ولا يدل ذلك على شيء في النص نفسه. يُرجى إعادة المحاولة.",
+
   // Parts of {ref} and {coverage}.
   "reason.ref.range": "من {first} إلى {last}",
   "reason.ref.more": "{ref} (وفي {count} من المواضع الأخرى)",
   "list.separator": "، ",
+
+  // API v1 error messages (src/server/review-handler.ts), one per code of API_ERROR_CODES.
+  "api.error.INVALID_REQUEST": "صيغة الطلب غير صالحة. المطلوب نص المسودة في الحقل text.",
+  "api.error.EMPTY_DRAFT": "المسودة فارغة. يُرجى لصق النص المراد مراجعته.",
+  "api.error.DRAFT_TOO_LONG": "المسودة أطول من الحد المسموح به ({max} حرفاً). يُرجى تقسيمها ومراجعة كل جزء على حدة.",
+  "api.error.ORIGIN_NOT_ALLOWED": "هذا الموقع غير مصرّح له باستخدام الخدمة.",
+  "api.error.RATE_LIMITED": "عدد الطلبات كبير في وقت قصير. يُرجى الانتظار قليلاً ثم إعادة المحاولة.",
+  "api.error.INTERNAL_ERROR": "تعذّر إكمال التحقق، ولم تُراجَع المسودة. يُرجى إعادة المحاولة لاحقاً.",
 } as const;
 
 export type MessageKey = keyof typeof ar;
