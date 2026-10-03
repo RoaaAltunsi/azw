@@ -2,6 +2,7 @@
 // Label checks only: nothing here normalizes, searches or matches text. The only text comparison
 // is an exact substring test.
 import { z } from "zod";
+import { REASON_CODES as DECIDED_REASON_CODES } from "../../src/core/status/reason-codes.js";
 import type { SourceRecord } from "./schema.js";
 
 export const SPLITS = ["tune", "heldout"] as const;
@@ -35,21 +36,12 @@ export const CRITICAL_CATEGORIES: ReadonlySet<Category> = new Set(["WORDING_ERRO
 const EXPECTED_STATUSES = ["MATCH", "DIFFERS", "NOT_FOUND", "NEEDS_SPECIALIST"] as const;
 type ExpectedStatus = (typeof EXPECTED_STATUSES)[number];
 
-// Reason codes an expected item may carry, by status. src/core/status will own this list once it
-// exists. MATCH_REF_OK and the three NEEDS_SPECIALIST codes are provisional names (docs/EVALUATION.md).
+// Reason codes an expected item may carry, by status: the list of src/core/status, plus the
+// hadith matcher's reference codes, which the cases already use and P11 adds to that list.
+const HADITH_REFERENCE_CODES = ["REF_MISMATCH_COLLECTION", "REF_MISMATCH_NUMBER", "REF_NOT_AGREED_UPON"];
 export const REASON_CODES: Record<ExpectedStatus, readonly string[]> = {
-  MATCH: ["MATCH_REF_OK", "MATCH_NO_REFERENCE"],
-  DIFFERS: [
-    "WORDING_DIFF",
-    "REF_MISMATCH_AYAH",
-    "REF_MISMATCH_SURAH",
-    "REF_MISMATCH_COLLECTION",
-    "REF_MISMATCH_NUMBER",
-    "REF_NOT_AGREED_UPON",
-    "KIND_MISMATCH",
-  ],
-  NOT_FOUND: ["NO_RECORD_IN_COVERED_SOURCES"],
-  NEEDS_SPECIALIST: ["UNCLEAR_ATTRIBUTION", "INTERPRETIVE_CLAIM", "PERSONAL_RULING"],
+  ...DECIDED_REASON_CODES,
+  DIFFERS: [...DECIDED_REASON_CODES.DIFFERS, ...HADITH_REFERENCE_CODES],
 };
 
 export const ExpectedItemSchema = z.strictObject({

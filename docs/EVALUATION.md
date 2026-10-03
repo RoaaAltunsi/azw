@@ -105,8 +105,8 @@ Codes named in the build plan: `MATCH_NO_REFERENCE`, `WORDING_DIFF`, `REF_MISMAT
 `REF_MISMATCH_SURAH`, `REF_MISMATCH_COLLECTION`, `REF_MISMATCH_NUMBER`, `REF_NOT_AGREED_UPON`,
 `KIND_MISMATCH`, `NO_RECORD_IN_COVERED_SOURCES`.
 
-Provisional codes, named here because the plan gives none for these outcomes. They may be renamed
-when `src/core/status` is written; the status is the label that counts.
+Codes settled when `src/core/status` was written (P5); the list lives in
+`src/core/status/reason-codes.ts`. The four names that were provisional here were kept.
 
 | Code | Status | Used for |
 |---|---|---|
@@ -114,6 +114,14 @@ when `src/core/status` is written; the status is the label that counts.
 | `UNCLEAR_ATTRIBUTION` | `NEEDS_SPECIALIST` | «في الأثر», «قال بعض السلف» |
 | `INTERPRETIVE_CLAIM` | `NEEDS_SPECIALIST` | A meaning or ruling derived from a text (level C) |
 | `PERSONAL_RULING` | `NEEDS_SPECIALIST` | A ruling for a personal case (level D) |
+| `REF_NOT_CHECKED` | `NEEDS_SPECIALIST` | Text matches, but the cited reference was not read in full (`docs/DECISIONS.md` D-11) |
+| `LOW_CONFIDENCE_MATCH` | `NEEDS_SPECIALIST` | Best candidate between `T_LOW` and `T_HIGH` |
+| `AMBIGUOUS_CANDIDATES` | `NEEDS_SPECIALIST` | Two or more close candidates with different texts |
+| `SOURCE_NOT_REVIEWED` | `NEEDS_SPECIALIST` | The text was found only in records that are still pending |
+
+No case uses the last four yet. `scripts/lib/cases.ts` takes its list from `src/core/status` and
+adds `REF_MISMATCH_COLLECTION`, `REF_MISMATCH_NUMBER` and `REF_NOT_AGREED_UPON`, which belong to
+the hadith matcher (P11) and are not in `src/core/status` yet.
 
 `REF_MISMATCH_NUMBER` is accepted by the checker but no case uses it yet.
 

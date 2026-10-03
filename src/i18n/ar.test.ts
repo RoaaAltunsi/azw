@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { STATUSES } from "@/core/types";
-import { ar, t } from "./ar";
+import { ar, format, t } from "./ar";
 
 // Exact labels from AGENTS.md §4. A rename must fail here.
 const labels = {
@@ -23,4 +23,11 @@ test("name, tagline and generated-text label", () => {
 
 test("no empty strings", () => {
   for (const value of Object.values(ar)) expect(value.trim()).not.toBe("");
+});
+
+test("format fills every placeholder and refuses a missing value", () => {
+  expect(format("reason.ref.range", { first: "أ", last: "ب" })).toBe("من أ إلى ب");
+  expect(format("reason.ref.more", { ref: "أ", count: 2 })).toBe("أ (وفي 2 من المواضع الأخرى)");
+  expect(format("app.name", {})).toBe(t("app.name"));
+  expect(() => format("reason.ref.range", { first: "أ" })).toThrow(/needs a value for \{last\}/);
 });

@@ -176,3 +176,128 @@ Made while building the search layer (`docs/ARCHITECTURE.md`, "Corpus index"). F
     now re-exports the one in `src/core/types.ts` (same rules), together with the corpus-file and
     spelling-list schemas moved to `src/core/corpus/schema.ts`. `npm run verify:corpus` passes
     against the unchanged corpus.
+
+## D-11 — A reference that was not read in full: NEEDS_SPECIALIST / REF_NOT_CHECKED (2026-10-03)
+
+**Decided** while writing the status rules (`docs/ARCHITECTURE.md`, "Status rules", rule 4). The
+owner left the choice to the build and asked for it to be recorded as decided.
+
+The case: the quote occurs word for word in a reviewed record, and the draft cites a reference the
+parser returned as `unknown` («[2:153]», «(الآية 153 من البقرة)») or `partial` («(البقرة: 153، 155)»).
+Such a reference may be right or wrong; the tool has not compared it. It can never give
+`MATCH_REF_OK`.
+
+Options weighed:
+
+| Option | For | Against |
+|---|---|---|
+| `MATCH` / `MATCH_NO_REFERENCE` | The text does match | The sentence would say no reference was given, which is untrue. §4 allows `MATCH` only when the "cited reference (if any) is correct" |
+| `MATCH` / a new code (reference not checked) | The label «مطابق لنص المصدر» is true of the text; no false alarm on a correct citation in an unread form | Same §4 rule: a reference is cited and was not found correct. A wrong reference in an unread form would sit under the match badge, and wrong references are a critical category of the evaluation. §2 rule 3: no unsupported positive result |
+| `DIFFERS` | — | Nothing was shown to differ. A reference that was not read is never reported as a wrong one (`attachReference` follows the same principle) |
+| `NOT_FOUND` | — | The record was found |
+| **`NEEDS_SPECIALIST` / `REF_NOT_CHECKED`** (chosen) | §1: the tool refers "whenever the evidence is not enough". The evidence for the reference is missing. §9: the more conservative status. The sentence says the text matches, names the source reference, and asks the writer to compare | A correct citation in an unread form is flagged although nothing is wrong, and the label «يحتاج مراجعة مختص» overstates it: the writer can compare two references without a specialist |
+
+The tune cases do not separate the options: every reference in `tune.jsonl` is read in full.
+
+Two limits of the choice:
+
+1. A `partial` Quran reference still carries its surah. When that surah is not the surah of the
+   text, the result is `DIFFERS` / `REF_MISMATCH_SURAH`: what was read is wrong, whatever the unread
+   part says. Only a partial reference whose surah agrees is `REF_NOT_CHECKED`.
+2. A reference of another kind attached to a quote (a hadith citation on a text claimed and found
+   as a verse) is also `REF_NOT_CHECKED`.
+
+The cost falls with every citation form the parser learns (`docs/BACKLOG.md`, P3: surah by number,
+lists of ayat). If the owner prefers the second option, the change is one line in `decide()` and
+one sentence.
+
+## D-12 — Quran matcher, word diff and status rules: choices the prompt did not settle (2026-10-03)
+
+For the owner's review. Items 1–3 touch what the user is told about a Quran text.
+
+1. **Closed by D-13.** As first built, one Uthmani sign anywhere made a span "Uthmani script", and
+   the pause marks and superscript alef of our own `exactText` counted as such signs, so
+   «بِسْمِ اللَّهِ الرَّحْمَانِ الرَّحِيمِ ۚ» ended `MATCH`.
+2. **A cited ayah range must equal the range the quote covers.** A quote of ayat 153–154 cited as
+   «[البقرة: 153]», or one ayah cited with a range around it, is `DIFFERS` / `REF_MISMATCH_AYAH`.
+   The conservative reading of "consistent with ayahRange"; the sentence names the range of the
+   source. A reference that names the surah only is consistent when the surah is right.
+3. **`DIFFERS` is not given on pending records either.** The prompt forbids `MATCH` on a pending
+   record. Telling a writer that the wording differs from a text nobody reviewed is no better
+   supported, so rules 2–7 and 11 all end `NEEDS_SPECIALIST` / `SOURCE_NOT_REVIEWED` when no
+   reviewed candidate remains. The middle band keeps `LOW_CONFIDENCE_MATCH`.
+4. **New reason codes**: `REF_NOT_CHECKED` (D-11), `LOW_CONFIDENCE_MATCH` (middle band),
+   `AMBIGUOUS_CANDIDATES`, `SOURCE_NOT_REVIEWED` (named by the prompt). `docs/EVALUATION.md`
+   section 4 lists them. The four provisional names of D-6 item 5 are kept as they are.
+5. **Level D comes from `claimLevel`, not from a new `claimedKind`.** AGENTS.md §6 names
+   `unclear_attribution` and `interpretive_claim` only, and the evaluation cases mark a personal
+   ruling as kind `interpretive_claim` with `contentLevel: "D"`. `decide()` takes the same shape:
+   `claimLevel: "D"` on an interpretive claim gives `PERSONAL_RULING`, level D. The extractor (P10)
+   must set it. (A first version used a third claimed kind, `personal_ruling`; removed.)
+6. **`unclear_attribution` is level A.** The question is whether a text is in a source, which is
+   level A content; no interpretation or ruling is involved. Claims carry no evidence, even when
+   the same words are found in a source: the tool cannot tell what is attributed to whom.
+7. **No reason code of its own for a spelling match.** `docs/ARCHITECTURE.md` suggested one; the
+   prompt and the tune cases (`T-007`) expect `MATCH_REF_OK`. The route is on the candidate
+   (`layer`, `spelling: "bridged"`).
+8. **Kind is compared for exact hits only.** A close, non-exact candidate of another kind is
+   `WORDING_DIFF`, not `KIND_MISMATCH`.
+9. **Diff keys come from the layer the candidate was found on**, ranges from `exactText`. The
+   prompt says to diff against `exactText`, never a search layer. Compared by the `default` words
+   alone, an approved «رحمة» and every Uthmani-script word would show as a difference inside a
+   `MATCH`. No layer text is ever in an op or shown.
+10. **Reason sentences are editorial wording** (`src/i18n/ar.ts`), including «من … إلى …» for a
+    range and «(وفي n من المواضع الأخرى)». The prompt's example for `REF_MISMATCH_AYAH` ended
+    «المرجع الصحيح: {ref}»; the same prompt forbids «صحيح» in reason sentences, so it reads
+    «المرجع في المصدر: {ref}».
+11. **Fuzzy search sizes**: 5 index candidates per layer, at most 5 results; alignment scoring
+    +2 / −1 / −1. Not tuned.
+
+## D-13 — A spelling error never ends MATCH: the Uthmani rule, word by word (2026-10-03)
+
+**Decided by the owner** on the review of P5: "we cannot consider a spelling error as match".
+It sharpens D-9 item 3 and replaces D-12 item 1. Rule and measurements: `docs/ARCHITECTURE.md`,
+"Quran matcher".
+
+What changed, and why each part was needed:
+
+1. **What counts as an Uthmani sign is narrower.** D-9 listed ٱ, the superscript alef and the
+   Quranic marks U+06D6–U+06ED. The everyday-script source text itself carries the superscript alef
+   (3,215 times) and the pause marks, so text copied from it passed as "Uthmani script". The signs
+   are now ٱ (U+0671), U+0656–U+065F and U+06DF–U+06ED without ۩: none of them occurs in any Quran
+   record (tested). AGENTS.md §5 was edited to say so.
+2. **A word with a superscript alef is Uthmani script by itself.** 92 ayat of mushaf 2 have
+   none of the signs of item 1; without this, the ones that differ from the main text only where
+   they carry the mark («رَبِّ مُوسَىٰ وَهَٰرُونَ») would be refused. The mark cannot
+   be typed, so a word that carries it was copied from a mushaf text.
+3. **No word may spell out a superscript alef**, even inside a span that is in Uthmani script
+   («بِسۡمِ ٱللَّهِ ٱلرَّحۡمَانِ ٱلرَّحِيمِ» is `DIFFERS`). The corpus stores the variant with the
+   mark already written as «ا», so where the mushaf has the mark is inferred from the main text,
+   letter by letter. It is an inference, not a lookup.
+
+Limits the owner should know:
+
+- **A plain alef that the everyday text writes too is accepted** in a span that is in Uthmani
+  script, also where the mushaf writes it above the line: «ءَايَات» for «ءَايَٰت», «يَاأَيُّهَا»
+  for «يَٰٓأَيُّهَا». The word is then the mushaf's letters with the everyday alef. It can only
+  arise in text that already carries Uthmani signs.
+- **32 genuine mushaf pastes are refused** (two wordings, «فَبِأَيِّ ءَالَآءِ رَبِّكُمَا
+  تُكَذِّبَانِ» and 53:55): no sign, no superscript alef, and «ءالاء» differs from «آلاء». They
+  end `DIFFERS`. Accepting «ءا» as proof of Uthmani script would also accept it typed in everyday
+  script; that is the owner's call.
+- **An exact check needs the data to say where the mushaf has the mark.** A second search variant
+  that keeps U+0670 as its own character would make rule 3 a plain comparison. It means rebuilding
+  `data/corpus` (new `corpusVersion`), which was not done here: corpus changes need the owner's
+  approval. Recorded in `docs/BACKLOG.md`.
+
+Other fixes made in the same pass, each closing a way to a wrong result:
+
+- **A reference followed by a number it did not read is `partial`** («سورة البقرة (152)»,
+  «الآية 3 والآية 4», «ح 2699»), and so is «رواه البخاري تعليقاً». Before, «سورة البقرة (152)» on
+  the text of ayah 153 ended `MATCH_REF_OK`. Now it is `REF_NOT_CHECKED` (D-11). This changed
+  `src/core/references`.
+- **Exact occurrences are collected over all layers, per place.** Before, `everyday` was skipped
+  when `default` had any hit, so «نعمة الله» cited as [إبراهيم: 34] (which the mushaf writes
+  «نعمت») was compared only with the ayat that write «نعمة» and ended `REF_MISMATCH`.
+- **Ayah numbers typed between the ayat of a quote are left out of the quote's words.** Before, they
+  made a correct multi-ayah quote `WORDING_DIFF`.

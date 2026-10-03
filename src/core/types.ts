@@ -1,6 +1,8 @@
 // Core data contracts (AGENTS.md §6). Defined once with zod; the types are inferred from the schemas.
 // Every boundary (API, LLM output, corpus files) validates against these.
 import { z } from "zod";
+// Type only: src/core/references imports this file at runtime.
+import type { Reference } from "./references";
 
 // Open union: adding a kind means a new SourceAdapter plus a Matcher, and nothing else.
 export type ContentKind = "quran" | "hadith" | (string & {});
@@ -68,12 +70,26 @@ const spanIsOrdered = { check: (s: { start: number; end: number }) => s.end > s.
 export const SpanSchema = z.object(spanShape).refine(spanIsOrdered.check, spanIsOrdered.message);
 export type Span = z.infer<typeof SpanSchema>;
 
-// AGENTS.md names DiffOp without defining it. Provisional shape, to be settled with src/core/diff:
-// word-level ops from the source text to the draft ("delete" = only in the source, "insert" = only in the draft).
-export const DiffOpSchema = z.object({
-  op: z.enum(["equal", "insert", "delete"]),
-  text: z.string(),
-});
+// Word-level diff of a quote against the source text (src/core/diff). Ops are in reading order and
+// describe the draft relative to the source: "equal" = the same words on both sides, "replace" =
+// other words in the draft than in the source, "insert" = words only in the draft, "delete" = words
+// only in the source. An op carries ranges, never text: `draft` is [start, end) in the user's draft,
+// `source` is [start, end) in the exactText of the record `recordId`. Search-layer text never appears.
+export const SourceRangeSchema = z
+  .strictObject({ recordId: z.string().min(1), ...spanShape })
+  .refine(spanIsOrdered.check, spanIsOrdered.message);
+export type SourceRange = z.infer<typeof SourceRangeSchema>;
+
+export const DIFF_OPS = ["equal", "replace", "insert", "delete"] as const;
+export const DiffOpSchema = z
+  .strictObject({
+    op: z.enum(DIFF_OPS),
+    draft: SpanSchema.optional(), // absent only for "delete"
+    source: SourceRangeSchema.optional(), // absent only for "insert"
+  })
+  .refine((d) => (d.draft !== undefined) === (d.op !== "delete") && (d.source !== undefined) === (d.op !== "insert"), {
+    message: "a diff op carries a draft range unless it is a delete, and a source range unless it is an insert",
+  });
 export type DiffOp = z.infer<typeof DiffOpSchema>;
 
 export const ClaimedKindSchema: z.ZodType<
@@ -87,6 +103,15 @@ export const CitedReferenceSchema = z.object({
   span: SpanSchema.optional(),
 });
 export type CitedReference = z.infer<typeof CitedReferenceSchema>;
+
+// What a Matcher receives: one quoted span of the draft, what the draft presents it as, and the
+// reference attached to it by src/core/references, if any. Internal to core (it crosses no
+// boundary), so it has no zod schema.
+export interface QuoteInput {
+  span: { start: number; end: number; text: string }; // text = draft.slice(start, end)
+  claimedKind: ClaimedKind;
+  reference?: Reference;
+}
 
 export const EvidenceSchema = z.object({
   record: SourceRecordSchema,

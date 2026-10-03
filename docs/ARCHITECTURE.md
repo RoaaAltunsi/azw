@@ -132,13 +132,17 @@ mushaf site or app is found. Rules for whoever uses it (the Quran matcher):
   `UTHMANI_VARIANT_OPTIONS`; compare `searchText` with the span normalized with
   `{ keepHonorificPhrases: true }`. A span is found when either comparison succeeds.
 - **A match through the variant is a spelling match**, not a wording difference: the two texts are
-  the same ayah of the same riwayah (Hafs) in two scripts. It should carry its own `reasonCode`, so
-  that it can be told apart from a match on `searchText`.
-- **Only for spans written in Uthmani script** (owner's decision, `docs/DECISIONS.md` D-9). A draft
-  that spells out an alef the source writes as a mark («الرحمان», «هاذا», «ذالك») also equals the
-  variant, but it is a spelling error in everyday script and must not end `MATCH`. Use the variant
-  for `MATCH` only when the span carries Uthmani signs: ٱ (U+0671), the superscript alef (U+0670) or
-  a Quranic mark (U+06D6–U+06ED). A span without them is compared with `searchText` only.
+  the same ayah of the same riwayah (Hafs) in two scripts. It is told apart from a match on
+  `searchText` by the candidate's `layer` ("uthmani") and `spelling` ("bridged"), not by a
+  `reasonCode` of its own: the reason codes of `MATCH` say what happened to the reference
+  ("Quran matcher", `docs/DECISIONS.md` D-12 item 7).
+- **Only for words written as the mushaf writes them** (owner's decisions, `docs/DECISIONS.md` D-9
+  and D-13). A draft that spells out an alef the source writes as a mark («الرحمان», «هاذا», «ذالك»)
+  also equals the variant, but it is a spelling error and must never end `MATCH`. The rule is applied
+  word by word and is described under "Quran matcher": a word that differs from `searchText` may
+  match through the variant only when it is in Uthmani script and does not spell out a superscript
+  alef. The superscript alef and the pause marks alone do not make a span "Uthmani script": the
+  everyday-script source text carries them too.
 - A quotation that spans several ayat must be compared with the variants of those ayat joined in
   order, not with a mix of variant and `searchText`.
 
@@ -255,6 +259,24 @@ its `phrases` (صحيح البخاري، متفق عليه، الصحيحين �
   البخاري (5)») is a commentary or an abridgement, not the collection: `unknown`.
 - A number after a group («متفق عليه (1907)») belongs to no single collection: it is dropped and
   the reference is marked `partial`.
+- «رواه البخاري تعليقاً» («معلقاً»): the writer says more about the hadith than the fields can
+  carry. The reference is read as the collection and marked `partial`.
+
+### A number the reference did not take in
+
+A reference is also `partial` when a number the writer cited stands right after it, outside what
+was read (the number stays outside `raw` and `span`):
+
+| Form | Read as |
+|---|---|
+| «سورة البقرة (153)» outside a bracket | the surah, `partial` |
+| «سورة البقرة الآية 3 والآية 4», «… آية 3، وآية رقم 4» | the surah and ayah 3, `partial` |
+| «رواه مسلم ح 2699» | the collection, `partial` |
+
+The rule: after the reference (and an optional «،») comes an ayah word, «و» + an ayah word or «ح»,
+then a number; or the reference carries no number and a bracket holding only a number follows.
+A bracketed number after a reference that already has one («سورة البقرة: 153 (1)», a footnote
+mark) and a bare number with words after it («سورة البقرة 3 مرات») do not count.
 
 ### Unknown
 
@@ -433,3 +455,266 @@ return `record.citation.display`, which the corpus build writes from the source 
 Heap is sampled at the end of each phase, so a higher transient peak inside a phase is not seen.
 The retained figure includes the parsed files the benchmark script keeps; the records themselves
 (`exactText` included) are shared with the index, not copied.
+
+## Quran matcher
+
+Code: `src/core/matchers/` (`matcher.ts`, `quran.ts`, `layer-words.ts`, `index.ts`). Tests:
+`src/core/matchers/quran.test.ts` (fixture records) and
+`src/server/quran-review.integration.test.ts` (real corpus; it sits beside the loader because
+`src/core` may not read files).
+
+A matcher finds where a quote stands in the records of its kind and reports what it found. It
+decides no status.
+
+### API
+
+```ts
+interface QuoteInput {                 // src/core/types.ts
+  span: { start: number; end: number; text: string };   // text = draft.slice(start, end)
+  claimedKind: ClaimedKind;
+  reference?: Reference;               // from attachReference, if any
+}
+
+interface Matcher {
+  kind: ContentKind;
+  match(quote: QuoteInput, index: CorpusIndex): MatchCandidate[];   // best first
+}
+
+interface MatchCandidate {
+  kind: ContentKind;
+  collection: string;
+  recordIds: string[];                 // the records the quote runs over, in reading order
+  records: SourceRecord[];
+  ayahRange?: [number, number];
+  score: number;                       // quote words equal to their source word / quote words
+  layer: string;                       // the search layer it was found on
+  hit: "exact" | "fuzzy";
+  spelling: "same" | "bridged" | "error";
+  reference: ReferenceCheck;           // none | consistent | unchecked | mismatch + reason code
+  alignment: Alignment;                // quote words and source words; input of wordDiff
+}
+```
+
+| Export of `src/core/matchers` | |
+|---|---|
+| `matchers`, `getMatcher(kind)` | The registry, by kind. Only `quran` is registered; a new kind adds one line |
+| `matchAll(quote, index)` | Runs every registered matcher, whatever the claimed kind (a "hadith" may be a verse) |
+| `quranMatcher` | The Quran matcher |
+| `hasUthmaniSigns(text)` | Whether a span carries a sign that only Uthmani-script texts have. The one place this check lives (`uthmani-spelling.ts`) |
+| `evidenceOf(candidate)` | The `Evidence[]` of a `ReviewItem`: one entry per record, each with the part of the word diff that concerns it. An `insert` (no source) goes with the record of the op before it, or the first |
+
+The result type is `MatchCandidate`, because `Candidate` is the index's type.
+
+### The quote
+
+For each layer the span text is normalized with `index.normalizeFor(layer, text)`, and leading
+attribution formulas are removed with `stripAttributionPreamble`. Words made of digits only are
+left out: they are ayah numbers typed between the ayat («… (153) …»), and the Quran text has no
+digits. The words that remain keep their ranges in the draft (through the offset map, shifted by
+`span.start`). A span with no words gives no candidates.
+
+### Exact hits and the layer rules
+
+`index.findExact` is run on the three layers in the order below. Every occurrence is one candidate
+(`hit: "exact"`), reported on the **first layer that finds it at that place**; a place is where the
+occurrence starts in `exactText`, so the same occurrence found on two layers is one candidate.
+Candidates are in mushaf order.
+
+| Layer | An occurrence found here and not on a layer above | Reported as |
+|---|---|---|
+| `default` | The quote reads as the source text does | `spelling: "same"`, score 1 |
+| `everyday` | It reads so through a spelling of the approved list (D-10 item 2) | `spelling: "bridged"`, score 1 |
+| `uthmani` | Every word is written as the mushaf writes it (below) | `spelling: "bridged"`, score 1 |
+| `uthmani` | At least one word is not | `spelling: "error"`, score < 1 |
+
+When the quote is found somewhere as it stands (`same` or `bridged`), the `error` occurrences are
+dropped: they matter only when there is nothing else. The status rules never give an `error`
+candidate `MATCH`.
+
+`ayahRange` is the ayah of the first and of the last record of the hit.
+
+**The "uthmani" layer, word by word** (`uthmani-spelling.ts`; `docs/DECISIONS.md` D-9, D-13). The
+layer writes the superscript alef as «ا» and «ءا» as «ا», so it is also equal to everyday-script
+text that spells such an alef out. For each word of the quote:
+
+1. If the word, normalized as for `default`, is the main text's word, it needs no bridge.
+2. Otherwise it must be **in Uthmani script**: the span carries a sign that only Uthmani texts have
+   (`hasUthmaniSigns`: ٱ U+0671, the marks U+0656–U+065F, the Quranic marks U+06DF–U+06ED without
+   ۩), or the word itself carries a superscript alef (U+0670), which no keyboard types.
+3. And it must **not spell out a superscript alef** (`spellsOutSuperscriptAlef`). The word's letters
+   are aligned with the main text's letters; a bare alef of the draft is
+   - the everyday spelling of that alef, where the main text has an alef too — unless the letter
+     before it is a «و» or «ي» the main text does not have («الصلواة» for «الصلوٰة»);
+   - the mushaf's own letter, where it stands in the place of another letter («لدا» for «لدى»);
+   - a superscript alef spelt out, where the main text has no letter there («الرحمان», «هاذا»).
+   An alef with hamza or wasla, and an alef marked silent (U+06DF, U+06E0, or U+0652 on an alef),
+   are never counted.
+
+The superscript alef, the pause marks and ۞ do not make a span "Uthmani script": the
+everyday-script source text has them (3,215 superscript alefs, 4,364 pause marks), and no Quran
+record has any of the signs `hasUthmaniSigns` accepts (tested on the corpus).
+
+A word that fails is compared as the main text reads it, on both sides, so the diff shows exactly
+the misspelt words as `replace`; the score is the share of the quote's words that pass.
+
+Measured on 2026-10-03 with every ayah of Quranpedia mushaf 2 (the Uthmani text the variant is
+built from; `data/raw`, test input only) pasted whole:
+
+| Input | `default` | `uthmani`, accepted | `uthmani`, spelling error |
+|---|---|---|---|
+| The 6236 ayat as they are | 2248 | 3956 | 32 |
+| The 4367 ayat that have a superscript alef, with every one of them spelt out as «ا» | 1231 | 552 | 2584 |
+
+- The 32 refused pastes are two wordings: «فَبِأَيِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ» (31 ayat of
+  الرحمن) and 53:55. They carry no sign that only Uthmani texts have and no superscript alef, so
+  «ءالاء» is taken as everyday script and differs from «آلاء». They end `DIFFERS`, not `MATCH`:
+  a miss in the safe direction (`docs/BACKLOG.md`).
+- In the second row, the 552 accepted ayat are those where every spelt-out alef is one the everyday
+  text writes too («ءايات», «ياأيها», «القرءان»); the 2584 with an alef the everyday text does not
+  write are all refused.
+- Tanzil and quran.com texts were not re-measured after this rule (no local copy).
+
+### From a layer back to exactText
+
+A hit's offsets are in layer text. `layerWords(index, layer, record)` gives every word of a record
+on a layer the range of `exactText` it stands for. `exactText` is normalized with the layer's own
+options, which keeps an offset map; where that text equals the layer text word for word (always on
+`default`), the ranges are read off the map. Where it does not (`everyday`: «رحمه» for «رحمت»;
+`uthmani`: «ياايها» for «يا أيها», «والصلواه» for «والصلاة»), the two are aligned letter by letter
+and each layer word takes the words of `exactText` its letters fall on. One layer word may cover two
+words of `exactText`. The result is cached per index and record; it holds source text only.
+
+### Fuzzy candidates
+
+Only when no layer has an exact hit. Layers: `default` and `everyday`, plus `uthmani` when the span
+has an Uthmani sign or a superscript alef (a close candidate is never a match, so any mushaf mark
+is enough here).
+
+1. `index.candidates(quote, layer, 5)` gives the closest ayat by word bigrams.
+2. For each, the window is that ayah and the two ayat before and after it in the same surah.
+3. The quote's words are aligned with the window's words by Smith-Waterman on words
+   (`alignTokens(…, "local")`: match +2, different word −1, gap −1).
+4. `score = quote words equal to their source word / quote words`. The aligned stretch of the window
+   gives the records and `ayahRange`.
+5. Windows of neighbouring candidates overlap. Of several stretches that overlap in the mushaf only
+   the best is kept (equal scores: `default` before `everyday` before `uthmani`). At most five
+   candidates are returned, best first, then in mushaf order.
+
+A quote of one word has no bigrams and so no fuzzy candidate. A quote with a word missing scores 1
+and is still `hit: "fuzzy"`: the score counts the quote's words only.
+
+### The cited reference
+
+The matcher compares `quote.reference` with each candidate, because what a reference means depends
+on the kind; the status rules only read the outcome.
+
+| Reference | Outcome |
+|---|---|
+| None | `none` |
+| `unknown`, or of another kind (a hadith citation) | `unchecked` |
+| Quran, another surah (also when `partial`) | `mismatch` / `REF_MISMATCH_SURAH` |
+| Quran, `partial` (a list of ayat), same surah | `unchecked` |
+| Quran, the surah only, same surah | `consistent` |
+| Quran, an ayah or a range equal to `ayahRange` | `consistent` |
+| Quran, same surah, any other ayah or range | `mismatch` / `REF_MISMATCH_AYAH` |
+
+A cited range must equal the range the quote covers: two ayat cited with the first ayah only is a
+mismatch. When a reference is cited, exact candidates are ordered: those it agrees with, then
+unchecked, then same surah, then the rest.
+
+## Word diff
+
+Code: `src/core/diff/` (`index.ts`, `align.ts`). Tests: `src/core/diff/index.test.ts`.
+
+| Function | Result |
+|---|---|
+| `wordsOf(normalized, original, from?, offset?)` | The words of a normalized text, each with its `key` (the normalized word) and its range in the original, trailing diacritics included |
+| `alignTokens(a, b, mode)` | `mode` "local" is Smith-Waterman, "global" is Needleman-Wunsch, over any tokens: the pairs, the number of equal pairs and the aligned stretch. Same scoring in both modes |
+| `wordDiff(alignment)` | `DiffOp[]` |
+
+`Alignment` is `{ quote: Word[]; source: SourceWord[] }`: every word of the quote with its range in
+the draft, and the stretch of source words the matcher aligned it to, each with its `recordId` and
+its range in that record's `exactText`. `wordDiff` aligns the two globally by `key` and merges
+consecutive words with the same op and the same record.
+
+```ts
+interface DiffOp {                                   // src/core/types.ts, DiffOpSchema
+  op: "equal" | "replace" | "insert" | "delete";
+  draft?: { start: number; end: number };            // in the user's draft; absent only for "delete"
+  source?: { recordId: string; start: number; end: number };   // in exactText; absent only for "insert"
+}
+```
+
+- Ops are in reading order and describe the draft relative to the source: `insert` = words only in
+  the draft, `delete` = words only in the source, `replace` = other words in the draft.
+- An op carries ranges, never text. The client slices the draft and `exactText`. Layer text never
+  appears in an op.
+- An op never crosses a record: a quote over two ayat gives at least one op per ayah.
+- A `delete` has no place in the draft of its own; it stands between the ops before and after it.
+- The `key` two words are compared by comes from the layer the candidate was found on, so «رحمة»
+  is `equal` to the «رحمت» of `exactText` in a listed ayah, and an Uthmani-script word is `equal`
+  to its everyday spelling. In a spelling-error candidate the misspelt words are compared as the
+  main text reads them, so exactly those words show as `replace`. The ranges are always those of
+  `exactText`.
+- A word's range takes in the marks after its last letter and a letter normalization dropped
+  before its first (the hamza of «ءا»).
+
+## Status rules
+
+Code: `src/core/status/` (`decide.ts`, `reason.ts`, `reason-codes.ts`). Tests: `decide.test.ts`
+(one row per branch), `reason.test.ts`.
+
+`decide({ claimedKind, claimLevel?, candidates }, config = STATUS_CONFIG)` is a pure function and the only place
+a status is decided. It reads what the matchers reported (`kind`, `hit`, `spelling`, `score`,
+`reference`, `reviewStatus` of the records) and never branches on a specific kind. It returns
+`{ status, contentLevel, reasonCode, evidence }`; `evidence` holds the candidates the decision rests
+on, best first. It never returns `ERROR` (the orchestrator sets it when something throws).
+
+`STATUS_CONFIG = { T_HIGH: 0.8, T_LOW: 0.5, AMBIGUITY_MARGIN: 0.05 }`: initial values, to be tuned
+on `eval/cases/tune.jsonl` only.
+
+The rules, in order. The first that applies decides.
+
+| # | Condition | Status | Reason code | Level |
+|---|---|---|---|---|
+| 1 | `claimedKind` is `interpretive_claim` | `NEEDS_SPECIALIST` | `INTERPRETIVE_CLAIM` | C |
+| 1 | `claimedKind` is `interpretive_claim` and `claimLevel` is `"D"` (a ruling for a personal case) | `NEEDS_SPECIALIST` | `PERSONAL_RULING` | D |
+| 1 | `claimedKind` is `unclear_attribution` | `NEEDS_SPECIALIST` | `UNCLEAR_ATTRIBUTION` | A |
+| 2 | Exact hits (spelling `same` or `bridged`), none of the claimed kind | `DIFFERS` | `KIND_MISMATCH` | A |
+| 3 | Exact, claimed kind, the reference is `consistent` with an occurrence | `MATCH` | `MATCH_REF_OK` | A |
+| 4 | Exact, claimed kind, the reference is `unchecked` | `NEEDS_SPECIALIST` | `REF_NOT_CHECKED` | A |
+| 5 | Exact, claimed kind, the reference is a `mismatch` for every occurrence | `DIFFERS` | the first occurrence's code (`REF_MISMATCH_AYAH`, `REF_MISMATCH_SURAH`) | A |
+| 6 | Exact, claimed kind, no reference | `MATCH` | `MATCH_NO_REFERENCE` | A |
+| 7 | Exact hit with spelling `error` only | `DIFFERS` | `WORDING_DIFF` | A |
+| 8 | No candidate, or best score < `T_LOW` | `NOT_FOUND` | `NO_RECORD_IN_COVERED_SOURCES` | A |
+| 9 | Two or more candidates within `AMBIGUITY_MARGIN` of the best, with different texts | `NEEDS_SPECIALIST` | `AMBIGUOUS_CANDIDATES` | A |
+| 10 | `T_LOW` ≤ best score < `T_HIGH` | `NEEDS_SPECIALIST` | `LOW_CONFIDENCE_MATCH` | A |
+| 11 | Best score ≥ `T_HIGH`, not exact | `DIFFERS` | `WORDING_DIFF` | A |
+| — | Rules 2–7 and 11, when none of the candidates the result would rest on is wholly `reviewed` | `NEEDS_SPECIALIST` | `SOURCE_NOT_REVIEWED` | A |
+
+- **Claims are not compared** and carry no evidence, even when the same words are in a source.
+  `claimLevel` comes from whoever extracted the claim (P10); it is absent for everything else. This
+  is the shape the evaluation cases use: kind `interpretive_claim` with `contentLevel` C or D.
+- **Pending records** give neither `MATCH` nor `DIFFERS`. A candidate counts as reviewed only when
+  every record it runs over is. When a text is in a reviewed and in a pending record, the result
+  rests on the reviewed one and the pending one is left out of the evidence.
+- **Several exact occurrences are one result**, never ambiguity: they are the same wording.
+  With `MATCH_REF_OK` the evidence is the occurrences the reference agrees with; otherwise all.
+- **"Different texts"** in rule 9 compares the aligned source words of the candidates. The same
+  wording found close in two places is one result with both as evidence.
+- **Kind** is compared only for exact hits (rule 2). A close candidate of another kind is rule 11:
+  the sentence names the source, and the wording is the first thing to correct.
+- **Rule 4** is `docs/DECISIONS.md` D-11.
+
+### Reason sentences
+
+`reasonAr(decision, { coverage })` returns the one Arabic sentence of a decision. The sentences are
+in `src/i18n/ar.ts` under `reason.<CODE>` and are filled with `format()`: `{ref}` is the citation of
+the first evidence candidate through `kindMeta.citationFormatter` (a quote over several records:
+«من … إلى …»; several occurrences: «… (وفي n من المواضع الأخرى)»), `{kind}` the label of the record's
+kind, `{coverage}` the covered collections (`ReviewResult.coverage`), each shown by its name
+(`collection.<id>` in `src/i18n/ar.ts`: «القرآن الكريم», «صحيح البخاري», «صحيح مسلم»; a collection
+without a name is shown by its id), joined with «، ».
+
+The sentences themselves never contain «صحيح» (tested; the book titles in `{coverage}` are names), the `NOT_FOUND` sentence never judges the text, and
+the `WORDING_DIFF` sentence points to the source without repeating the altered words.

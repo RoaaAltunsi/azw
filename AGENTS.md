@@ -88,9 +88,13 @@ It never proves authenticity.
   spelling list is a spelling match of the same ayah. The Quran matcher must use both, and still
   display and diff `exactText`. Owner's decision (D-9): a spelling error never ends
   MATCH. A span in everyday script that equals only the variant (e.g. it writes «الرحمان») is a
-  spelling error: the variant may produce MATCH only when the span is actually in Uthmani script,
-  i.e. it carries Uthmani signs (ٱ U+0671, the superscript alef U+0670, or a Quranic mark
-  U+06D6–U+06ED); otherwise compare the span with `searchText` only. Rules and measured coverage: `docs/ARCHITECTURE.md`,
+  spelling error: the variant may produce MATCH only for words actually written as the mushaf writes
+  them (decided 2026-10-03, D-13). A word that differs from `searchText` must be in Uthmani script
+  (the span carries a sign only Uthmani texts have: ٱ U+0671, U+0656–U+065F, or U+06DF–U+06ED
+  without ۩; or the word itself carries the superscript alef U+0670) and must not spell out an alef
+  the mushaf writes above the line. The superscript alef and the pause marks alone do not make a
+  span Uthmani script: our own Quran text carries them;
+  otherwise compare the span with `searchText` only. Rules and measured coverage: `docs/ARCHITECTURE.md`,
   "The Quran uthmani search variant".
 - **The Quran text is not in Uthmani script.** It is everyday (imla'i) spelling with full diacritics
   and embedded pause marks, plus the signs ۞ and ۩.

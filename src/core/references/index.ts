@@ -462,6 +462,38 @@ function looksLikeCitation(tokens: readonly Token[], a: number, b: number, squar
   return false;
 }
 
+// Words that announce a number a reference did not take in: «… وآية 4», «رواه مسلم ح 2699».
+const UNREAD_NUMBER_WORDS = [...AYAH_WORDS, ...AYAH_WORDS.map((w) => `و${w}`), "ح"];
+
+const carriesNumber = (parsed: ParsedReference): boolean =>
+  (parsed.type === "quran" && parsed.ayahStart !== undefined) ||
+  (parsed.type === "hadith" && (parsed.number !== undefined || parsed.numbers !== undefined));
+
+// Whether a number the writer cited stands right after the reference, outside what was read:
+// a second ayah or a hadith number behind a word («آية 3 وآية 4», «ح 2699»), or a bracketed
+// number after a reference that has none («سورة البقرة (153)»). Such a reference says less than
+// the writer did, so it is `partial` and never counts as checked and found correct.
+function unreadNumberFollows(tokens: readonly Token[], found: Found): boolean {
+  let j = isP(tokens[found.to], ",") ? found.to + 1 : found.to;
+  if (isW(tokens[j], ...UNREAD_NUMBER_WORDS)) {
+    j++;
+    if (isW(tokens[j], "رقم")) j++;
+    if (isP(tokens[j], ":")) j++;
+    return tokens[j]?.kind === "num";
+  }
+  return !carriesNumber(found.parsed) && isP(tokens[found.to], "(") && tokens[found.to + 1]?.kind === "num" && isP(tokens[found.to + 2], ")");
+}
+
+// «رواه البخاري تعليقاً»: the writer says the hadith is not among the connected narrations of
+// the book. The fields have no place for that, so the reference is `partial` as well.
+const QUALIFIER_WORDS = ["تعليقا", "معلقا"];
+
+function markUnreadPart(tokens: readonly Token[], found: Found): Found {
+  if (found.parsed.type === "unknown") return found;
+  if (!unreadNumberFollows(tokens, found) && !isW(tokens[found.to], ...QUALIFIER_WORDS)) return found;
+  return { ...found, parsed: { ...found.parsed, partial: true } };
+}
+
 const CLOSERS: Readonly<Record<string, string>> = { "(": ")", "[": "]", "{": "}" };
 
 function closingBracket(tokens: readonly Token[], open: number): number | undefined {
@@ -487,7 +519,7 @@ export function parseReferences(draft: string, aliases: ReferenceAliases): Refer
       grammar.quranFromAyahWord(tokens, i) ??
       grammar.quranFromSlash(tokens, i) ??
       grammar.hadithAt(tokens, i);
-    if (hit) found.push(hit);
+    if (hit) found.push(markUnreadPart(tokens, hit));
     i = hit ? hit.to : i + 1;
   }
 

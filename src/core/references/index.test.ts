@@ -159,6 +159,29 @@ describe("hadith references", () => {
     expect(parsedOf("«…» [متفق عليه: 5]")).toEqual([expected]);
   });
 
+  test("a number that follows a reference without being read into it makes it partial", () => {
+    expect(parsedOf("قال تعالى في سورة البقرة (153): ﴿…﴾")).toEqual([{ type: "quran", surah: 2, partial: true }]);
+    expect(parsedOf("سورة البقرة الآية 3 والآية 4")).toEqual([{ type: "quran", surah: 2, ayahStart: 3, partial: true }]);
+    expect(parsedOf("سورة البقرة آية 3، وآية رقم 4")).toEqual([{ type: "quran", surah: 2, ayahStart: 3, partial: true }]);
+    expect(parsedOf("«…» رواه مسلم ح 2699")).toEqual([{ type: "hadith", collections: ["muslim"], partial: true }]);
+  });
+
+  test("the unread number stays outside the reference's span", () => {
+    expect(rawOf("قال تعالى في سورة البقرة (153): ﴿…﴾")).toEqual(["سورة البقرة"]);
+    expect(rawOf("«…» رواه مسلم ح 2699")).toEqual(["رواه مسلم"]);
+  });
+
+  test("«تعليقاً» after a collection makes the reference partial", () => {
+    expect(parsedOf("«…» رواه البخاري تعليقاً")).toEqual([{ type: "hadith", collections: ["bukhari"], partial: true }]);
+    expect(parsedOf("«…» رواه البخاري معلقاً.")).toEqual([{ type: "hadith", collections: ["bukhari"], partial: true }]);
+  });
+
+  test("a number that is no part of the citation does not make it partial", () => {
+    for (const draft of ["قرأت سورة البقرة 3 مرات", "سورة البقرة: 153 (1)", "رواه مسلم (2699) (2)", "رواه البخاري، وهو 3 أقسام"]) {
+      expect(parsedOf(draft)[0], draft).not.toHaveProperty("partial");
+    }
+  });
+
   test("a reference that was read in full is not partial", () => {
     for (const draft of ["(البقرة: 153-154)", "سورة الكهف", "متفق عليه", "رواه البخاري (1) ومسلم"]) {
       expect(parsedOf(draft)[0], draft).not.toHaveProperty("partial");

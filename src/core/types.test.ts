@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
 import {
+  DiffOpSchema,
   ReviewItemSchema,
   ReviewResultSchema,
   SourceRecordSchema,
@@ -30,7 +31,14 @@ const item: ReviewItem = {
   contentLevel: "A",
   reasonCode: "EXACT_MATCH",
   reasonAr: "النص مطابق لنص المصدر.",
-  evidence: [{ record, score: 1, diff: [{ op: "equal", text: "نص المصدر" }], ayahRange: [153, 153] }],
+  evidence: [
+    {
+      record,
+      score: 1,
+      diff: [{ op: "equal", draft: { start: 0, end: 9 }, source: { recordId: "quran:2:153", start: 0, end: 9 } }],
+      ayahRange: [153, 153],
+    },
+  ],
   extractedBy: ["regex"],
 };
 
@@ -70,6 +78,25 @@ const invalid: Array<[string, unknown]> = [
 
 test.each(invalid)("ReviewItem rejects %s", (_name, value) => {
   expect(ReviewItemSchema.safeParse(value).success).toBe(false);
+});
+
+const source = { recordId: "quran:2:153", start: 0, end: 2 };
+const draft = { start: 0, end: 2 };
+const diffOps: Array<[string, unknown, boolean]> = [
+  ["equal with both ranges", { op: "equal", draft, source }, true],
+  ["replace with both ranges", { op: "replace", draft, source }, true],
+  ["insert with a draft range only", { op: "insert", draft }, true],
+  ["delete with a source range only", { op: "delete", source }, true],
+  ["equal without a source range", { op: "equal", draft }, false],
+  ["insert with a source range", { op: "insert", draft, source }, false],
+  ["delete with a draft range", { op: "delete", draft, source }, false],
+  ["an op that carries text", { op: "equal", draft, source, text: "نص" }, false],
+  ["an empty source range", { op: "delete", source: { ...source, end: 0 } }, false],
+  ["an unknown op", { op: "move", draft, source }, false],
+];
+
+test.each(diffOps)("DiffOp: %s", (_name, value, valid) => {
+  expect(DiffOpSchema.safeParse(value).success).toBe(valid);
 });
 
 test("summary must count every status", () => {
