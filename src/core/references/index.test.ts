@@ -96,7 +96,9 @@ describe("Quran references", () => {
     ["surah only, prefixed «ب»", "افتتح بسورة الفاتحة", "بسورة الفاتحة", quran(1)],
     ["surah only in square brackets", "﴿…﴾ [البقرة]", "[البقرة]", quran(2)],
     ["an ayah number the surah does not have is still a citation", "(البقرة: 300)", "(البقرة: 300)", quran(2, 300)],
-    ["a list of ayat keeps the surah only", "(البقرة: 153، 155)", "(البقرة: 153، 155)", quran(2)],
+    ["a list of ayat keeps the surah only and is marked partial", "(البقرة: 153، 155)", "(البقرة: 153، 155)", { type: "quran", surah: 2, partial: true }],
+    ["a list with a range is marked partial", "[البقرة: 153 - 155، 157]", "[البقرة: 153 - 155، 157]", { type: "quran", surah: 2, partial: true }],
+    ["a list after an ayah word is marked partial", "سورة البقرة، الآيتان 153 و154", "سورة البقرة، الآيتان 153 و154", { type: "quran", surah: 2, partial: true }],
   ];
 
   test.each(cases)("%s", (_name, draft, raw, parsed) => {
@@ -151,6 +153,18 @@ describe("hadith references", () => {
     expect(parsedOf("«…» (البخاري 6018، مسلم 2564)")).toEqual([expected]);
   });
 
+  test("a number after a group belongs to no collection: dropped, and the reference is partial", () => {
+    const expected = { type: "hadith", collections: ["bukhari", "muslim"], partial: true };
+    expect(parsedOf("«…» متفق عليه (1907).")).toEqual([expected]);
+    expect(parsedOf("«…» [متفق عليه: 5]")).toEqual([expected]);
+  });
+
+  test("a reference that was read in full is not partial", () => {
+    for (const draft of ["(البقرة: 153-154)", "سورة الكهف", "متفق عليه", "رواه البخاري (1) ومسلم"]) {
+      expect(parsedOf(draft)[0], draft).not.toHaveProperty("partial");
+    }
+  });
+
   test("a number after one of two collections is kept for that collection", () => {
     expect(parsedOf("رواه البخاري ومسلم (2564)")).toEqual([
       { type: "hadith", collections: ["bukhari", "muslim"], numbers: { muslim: "2564" } },
@@ -179,6 +193,45 @@ test("another work of a known author is not his collection", () => {
   expect(parse("«…» رواه البخاري في الأدب المفرد.")).toEqual([
     { raw: "رواه البخاري", span: { start: 4, end: 16 }, parsed: { type: "unknown" } },
   ]);
+});
+
+test("a commentary or abridgement of a collection is not the collection", () => {
+  expect(parsedOf("قال النووي في شرح صحيح مسلم: «…»")).toEqual([{ type: "unknown" }]);
+  expect(parsedOf("فتح الباري بشرح صحيح البخاري")).toEqual([{ type: "unknown" }]);
+  // The number is the abridgement's own; it must not become a number of Sahih Muslim.
+  expect(parsedOf("«…» مختصر صحيح مسلم (5)")).toEqual([{ type: "unknown" }]);
+});
+
+describe("malformed input", () => {
+  test.each([
+    ["a bracket that is never closed", "﴿…﴾ [البقرة: 153"],
+    ["a closing bracket with no opening", "البقرة: 153]"],
+    ["a bracket of the wrong kind", "[البقرة: 153)"],
+    ["a bracket longer than the limit", `(البقرة: 153 ${"كلمة ".repeat(45)})`],
+  ])("%s gives no reference", (_name, draft) => {
+    expect(rawOf(draft)).toEqual([]);
+  });
+
+  test.each([
+    ["ayah 0", "(البقرة: 0)"],
+    ["a four-digit ayah", "(البقرة: 1234)"],
+    ["words after the ayah", "(البقرة: 153 وما بعدها)"],
+  ])("%s is seen but not read", (_name, draft) => {
+    expect(parsedOf(draft)).toEqual([{ type: "unknown" }]);
+  });
+
+  test("the schema rejects references the parser must never produce", () => {
+    const span = { start: 0, end: 1 };
+    const bad = [
+      { raw: "x", span, parsed: { type: "quran", surah: 115 } },
+      { raw: "x", span, parsed: { type: "quran", surah: 2, ayahStart: 0 } },
+      { raw: "x", span, parsed: { type: "quran", surah: 2, partial: false } },
+      { raw: "x", span, parsed: { type: "hadith", collections: [] } },
+      { raw: "x", span, parsed: { type: "unknown", surah: 2 } },
+      { raw: "", span, parsed: { type: "unknown" } },
+    ];
+    for (const r of bad) expect(ReferenceSchema.safeParse(r).success, JSON.stringify(r.parsed)).toBe(false);
+  });
 });
 
 describe("no false positives", () => {

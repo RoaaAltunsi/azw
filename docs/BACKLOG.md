@@ -12,14 +12,22 @@ is built until it is moved into a prompt's scope.
   (`data/corpus/build-report.json`, `quran.uthmaniVariant.otherLettersDiffer`). Not hand-checked.
 
 - References (P3): citation forms the parser does not resolve. Surah by number («[2:153]» is
-  returned as `unknown`); a list of ayat («(البقرة: 153، 155)» keeps the surah only); two ayah
+  returned as `unknown`); a list of ayat («(البقرة: 153، 155)» keeps the surah only, `partial`); two ayah
   groups («آية 3 وآية 4» keeps the first); a bare «البقرة: 153» outside brackets; the surah without
   «سورة» after an ayah («(الآية 153 من البقرة)» is `unknown`); a hadith number after a group
-  («متفق عليه (1907)» drops the number) or after «ح» («رواه مسلم ح 2699» drops the number);
+  («متفق عليه (1907)» drops the number, `partial`) or after «ح» («رواه مسلم ح 2699» drops the
+  number); «سورة البقرة (153)» outside a bracket keeps the surah only;
   «رواه البخاري تعليقاً» is read as a plain «رواه البخاري».
-- References (P3), for the status rules in P5: a reference that is `unknown`, or that was read only
-  in part (the forms above), must never count as a reference that was checked and found correct.
-  Otherwise a wrong reference in one of these forms would pass unreported.
+- References (P3), for the status rules in P5: a reference that is `unknown` or `partial: true`
+  must never count as a reference that was checked and found correct. Otherwise a wrong reference
+  in one of these forms would pass unreported. The forms above that are read in part without the
+  parser consuming the rest («آية 3 وآية 4», «ح 2699», «سورة البقرة (153)», «تعليقاً») carry no
+  flag: the unread part stays outside `span`, so P5 must decide how to treat a number that
+  directly follows a reference.
+- References (P3), review of 2026-10-03 (second pass): other books whose title contains a
+  collection phrase are still read as the collection: «صحيح سنن الترمذي», «ضعيف سنن أبي داود»
+  (al-Albani), «زوائد …». Only «شرح», «بشرح» and «مختصر» before the phrase are caught. «صحيح» and
+  «ضعيف» cannot be added blindly: «حديث صحيح متفق عليه» is a real citation.
 - References (P3), found in the review of 2026-10-03 and left for the fix loop (P15, tune split
   only). Each can lead to a wrong DIFFERS, none to a wrong MATCH:
   - A reference after the quote is attached at any distance within the sentence («قال ﷺ: «…» وهذا

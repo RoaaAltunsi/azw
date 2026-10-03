@@ -186,9 +186,14 @@ argument, because a sentence boundary cannot be found from spans alone.
 
 | `type` | Fields |
 |---|---|
-| `quran` | `surah`; `ayahStart?`; `ayahEnd?` (only for a range, always greater than `ayahStart`) |
-| `hadith` | `collections` (ids, e.g. `bukhari`, `muslim`, `tirmidhi`); `number?` when one collection is cited; `numbers?` (collection → number) when several are cited and some carry a number |
+| `quran` | `surah`; `ayahStart?`; `ayahEnd?` (only for a range, always greater than `ayahStart`); `partial?` |
+| `hadith` | `collections` (ids, e.g. `bukhari`, `muslim`, `tirmidhi`); `number?` when one collection is cited; `numbers?` (collection → number) when several are cited and some carry a number; `partial?` |
 | `unknown` | — |
+
+`partial: true` means the writer cited more than the fields express: a list of ayat
+(«(البقرة: 153، 155)» keeps the surah only) or a number after a group («متفق عليه (1907)» drops
+the number). The status rules must treat a partial reference like an `unknown` one: never as a
+reference that was checked and found correct.
 
 ### Reading the draft
 
@@ -217,7 +222,8 @@ the shapes below.
   («١٥٤-١٥٣», which is how a range in Arabic-Indic digits displays) is read in order.
 - An ayah number has at most three digits. It is **not** checked against the surah's length:
   «(البقرة: 300)» is still a Quran citation, and the status rules report the mismatch.
-- A list of ayat («153، 155») cannot be expressed as a range: the reference keeps the surah only.
+- A list of ayat («153، 155») cannot be expressed as a range: the reference keeps the surah only
+  and is marked `partial`.
 - Outside brackets, a number with no «الآية», `:` or `/` before it is an ayah only when no word
   follows it: «قرأت سورة البقرة 3 مرات» cites the surah only.
 - One-letter names (ص، ق، ن) in a bracket need a colon: «[ص: 29]» is the surah, «(ص 15)» is a
@@ -245,6 +251,10 @@ its `phrases` (صحيح البخاري، متفق عليه، الصحيحين �
   «كتاب» or «باب» names another work of the author. That author's collection is dropped from the
   reference; if nothing is left the reference is `unknown`. The parser must not turn a citation
   of another book into a citation of the Sahih (AGENTS.md §2 rule 1).
+- For the same reason a phrase after «شرح», «بشرح» or «مختصر» («شرح صحيح مسلم», «مختصر صحيح
+  البخاري (5)») is a commentary or an abridgement, not the collection: `unknown`.
+- A number after a group («متفق عليه (1907)») belongs to no single collection: it is dropped and
+  the reference is marked `partial`.
 
 ### Unknown
 

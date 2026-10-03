@@ -12,6 +12,9 @@ export const ParsedReferenceSchema = z.discriminatedUnion("type", [
     // Absent = the writer cited the surah only, or a list of ayat that a range cannot express.
     ayahStart: z.number().int().positive().optional(),
     ayahEnd: z.number().int().positive().optional(), // only for a range; always > ayahStart
+    // The writer cited more than the fields above express (a list of ayat). Such a reference
+    // must never count as one that was checked and found correct.
+    partial: z.literal(true).optional(),
   }),
   z.strictObject({
     type: z.literal("hadith"),
@@ -19,6 +22,9 @@ export const ParsedReferenceSchema = z.discriminatedUnion("type", [
     number: z.string().min(1).optional(), // only when a single collection is cited
     // When several collections are cited and some carry their own number: collection → number.
     numbers: z.record(z.string(), z.string().min(1)).optional(),
+    // The writer gave a number that the fields above do not carry («متفق عليه (1907)»). Such a
+    // reference must never count as one that was checked and found correct.
+    partial: z.literal(true).optional(),
   }),
   z.strictObject({ type: z.literal("unknown") }),
 ]);
@@ -152,6 +158,8 @@ const NARRATION_VERBS = new Set(["رواه", "روي", "اخرجه", "اخرج",
 const IN_HIS_BOOK = ["صحيحه", "صحيحيهما", "الصحيح", "سننه", "السنن", "مسنده", "المسند", "جامعه", "موطيه", "الموطا", "مستدركه", "المستدرك"];
 // «رواه البخاري في كتاب الإيمان»: a place inside the collection.
 const PLACE_WORDS = ["كتاب", "باب"];
+// «شرح صحيح مسلم», «مختصر صحيح البخاري»: another book, not the collection.
+const DERIVED_WORK_WORDS = ["شرح", "بشرح", "مختصر"];
 // A bracket with one of these is a citation even when it cannot be parsed.
 const CITATION_WORDS = ["رواه", "اخرجه", "خرجه", "سوره", "تفسير", "انظر", "راجع"];
 // … and so is a bracket where one of these stands before a number.
@@ -244,6 +252,7 @@ function quranParsed(surah: number, ayat?: Ayat): ParsedReference {
   const parsed: Extract<ParsedReference, { type: "quran" }> = { type: "quran", surah };
   if (ayat?.ayahStart !== undefined) parsed.ayahStart = ayat.ayahStart;
   if (ayat?.ayahEnd !== undefined) parsed.ayahEnd = ayat.ayahEnd;
+  if (ayat && ayat.ayahStart === undefined) parsed.partial = true;
   return parsed;
 }
 
@@ -254,6 +263,7 @@ function hadithParsed(cites: readonly Cite[]): ParsedReference {
   // A number after a group («متفق عليه») belongs to no single collection and is dropped.
   const numbered = cites.filter((c) => c.number !== undefined && c.collections.length === 1);
   const parsed: Extract<ParsedReference, { type: "hadith" }> = { type: "hadith", collections };
+  if (cites.some((c) => c.number !== undefined && c.collections.length > 1)) parsed.partial = true;
   if (numbered.length === 0) return parsed;
   if (collections.length === 1) parsed.number = numbered[0]!.number;
   else parsed.numbers = Object.fromEntries(numbered.map((c) => [c.collections[0]!, c.number!]));
@@ -386,6 +396,7 @@ function compile(aliases: ReferenceAliases) {
     if (!hit) return undefined;
     j += hit.length;
     let collections = hit.value;
+    if (byPhrase && isW(tokens[i - 1], ...DERIVED_WORK_WORDS)) collections = [];
     if (isW(tokens[j], "في")) {
       if (isW(tokens[j + 1], ...IN_HIS_BOOK)) j += 2;
       // «رواه البخاري في الأدب المفرد»: another work of the author, not the collection.
