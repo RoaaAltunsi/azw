@@ -1,7 +1,7 @@
 {
   "manifestVersion": 1,
-  "corpusVersion": "p0-a6d2d36b84e8",
-  "generatedAt": "2026-10-02T18:14:09.706Z",
+  "corpusVersion": "p1-861f350aaa11",
+  "generatedAt": "2026-10-03T07:26:30.126Z",
   "coverage": [
     "quran",
     "bukhari",
@@ -14,8 +14,8 @@
       "kind": "quran",
       "file": {
         "path": "data/corpus/quran.json",
-        "bytes": 5684530,
-        "sha256": "57ec846272e82169975ed6a1aeeec16bddb3e8fb7244f38131e2f5460b9bdf9f"
+        "bytes": 6417509,
+        "sha256": "74d142e61ae27b2146f70d8a706bd096b8096c8080846f43dda9ed7574d196b7"
       },
       "counts": {
         "surahs": 114,
@@ -77,8 +77,8 @@
       "kind": "hadith",
       "file": {
         "path": "data/corpus/bukhari.json",
-        "bytes": 13713074,
-        "sha256": "e3091383f5327f1948546fc15c0c14fa134a7826270760c8ecb451d25085cca4"
+        "bytes": 18058857,
+        "sha256": "aaf0aca4b6533ae454f3d4f739fc7f45137e732efa78e246764560493567c463"
       },
       "counts": {
         "rawEntries": 7589,
@@ -123,8 +123,8 @@
       "kind": "hadith",
       "file": {
         "path": "data/corpus/muslim.json",
-        "bytes": 12431543,
-        "sha256": "5b79bf1eecd1ea76689c58a0caca0094ef0c6658a168c7a8519f049e659cb692"
+        "bytes": 16309506,
+        "sha256": "4ac85ad9d4b32de720b14ced2ca3c2748f28922f90faed29c704df3caf93d1ee"
       },
       "counts": {
         "rawEntries": 7563,

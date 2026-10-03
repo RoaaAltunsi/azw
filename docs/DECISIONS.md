@@ -73,3 +73,27 @@ person yet.
    the labels but is not the specialist's confirmation.
 5. Four reason codes are provisional names: `MATCH_REF_OK`, `UNCLEAR_ATTRIBUTION`,
    `INTERPRETIVE_CLAIM`, `PERSONAL_RULING`.
+
+## D-7 — Honorific phrases are not removed from Quran search text (2026-10-03)
+
+The normalization task removes «رضي الله عنه / عنها / عنهما / عنهم» at level "search". The phrase
+«رضي الله عنهم» is part of four ayat (5:119, 9:100, 58:22, 98:8). Removing it there would make a
+quotation with an altered pronoun («رضي الله عنهما ورضوا عنه») equal to the ayah's search text.
+Conservative choice: Quran `searchText` is built with `keepHonorificPhrases: true`, and a draft span
+compared with a Quran record must be normalized the same way (P2). Hadith records follow the task as
+written; the same words inside a matn are removed on both sides, so `searchText` equality alone must
+not decide MATCH.
+
+## D-8 — Normalization bridges «الملإ» / «نبإ» but adds nothing for the open spelling decision (2026-10-03)
+
+`docs/SOURCES.md` §5 item 3 stays open. The task's rule «أ إ آ ٱ → ا» makes «الملأ» equal to the
+source's «الملإ» (and «نبأ» to «نبإ») as a side effect. The other mushaf spellings (رحمت، امرأت، رءوف،
+مسئولا، داوود، مائة) and Uthmani-script words that write an alef as U+0670 (العٰلمين) are not bridged;
+no folding rule, variant list or second text was added. Table in `docs/ARCHITECTURE.md`.
+
+Three readings of the task that the owner may want to reverse:
+
+1. Punctuation and ﷺ become a word separator instead of being deleted, so «قال:«إنما» stays two words.
+2. Level "strict" also removes the superscript alef (U+0670), which the task did not list.
+3. Invisible direction marks and zero-width characters are handled although the task did not list
+   them (the hadith source is full of U+200F).

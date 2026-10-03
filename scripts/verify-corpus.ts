@@ -2,6 +2,7 @@
 //
 //   npx tsx scripts/verify-corpus.ts
 import { readFileSync } from "node:fs";
+import { normalizeWithMap } from "../src/core/normalize/index.js";
 import { CorpusFileSchema, HeldFileSchema, ReviewedFileSchema, type SourceRecord } from "./lib/schema.js";
 import { p, readJson, sha256 } from "./lib/util.js";
 
@@ -33,8 +34,11 @@ function commonChecks(collection: string, records: SourceRecord[]): void {
   check(empty.length === 0, `${collection}: exactText is non-empty for every record`, sample(empty));
   const ids = new Set(records.map((r) => r.id));
   check(ids.size === records.length, `${collection}: ids are unique`, `${records.length - ids.size} duplicate(s)`);
-  const withSearch = records.filter((r) => r.searchText !== "").length;
-  info(`searchText: ${withSearch} filled, ${records.length - withSearch} empty (empty is allowed in this phase)`);
+  // Same call as scripts/build-corpus.ts: Quran text keeps the honorific phrases (docs/DECISIONS.md D-7).
+  const staleSearch = records
+    .filter((r) => r.searchText === "" || r.searchText !== normalizeWithMap(r.exactText, "search", { keepHonorificPhrases: r.kind === "quran" }).norm)
+    .map((r) => r.id);
+  check(staleSearch.length === 0, `${collection}: searchText is non-empty and equals the normalized exactText`, sample(staleSearch));
 }
 
 const allIds = new Set<string>();

@@ -25,7 +25,7 @@ export const SourceRecordSchema = z.strictObject({
   kind: z.string().min(1),
   collection: z.string().min(1),
   exactText: z.string().min(1),
-  searchText: z.string(), // empty in this phase; normalization comes later
+  searchText: z.string(), // exactText at normalization level "search"
   matnText: z.string().min(1).optional(),
   citation: CitationSchema,
   sourceName: z.string().min(1),

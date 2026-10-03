@@ -6,6 +6,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { z } from "zod";
+import { normalizeWithMap } from "../src/core/normalize/index.js";
 import { FawazHadithApiAdapter, type HadithSourceAdapter } from "./lib/hadith-adapter.js";
 import { extractMatn } from "./lib/matn.js";
 import { reviewStatus as reviewStatusFor, type ReviewFlags } from "./lib/review-status.js";
@@ -44,8 +45,15 @@ const heldRecords = new Set(HeldFileSchema.parse(readJson(p(HELD))).records.map(
 const reviewStatus = (id: string, collection: string, flags: ReviewFlags): "reviewed" | "pending" =>
   reviewStatusFor(id, collection, { collections: approvedCollections, records: approvedRecords }, flags);
 
+// searchText = exactText at normalization level "search" (docs/ARCHITECTURE.md, "Normalization").
+// Quran text keeps the honorific phrases: «رضي الله عنهم» is part of four ayat (docs/DECISIONS.md D-7).
+const searchTextOf = (exactText: string, kind: "quran" | "hadith"): string =>
+  normalizeWithMap(exactText, "search", { keepHonorificPhrases: kind === "quran" }).norm;
+
 function writeCorpus(collection: string, kind: string, records: SourceRecord[]): void {
   for (const r of records) SourceRecordSchema.parse(r);
+  const noSearchText = records.filter((r) => r.searchText === "").map((r) => r.id);
+  if (noSearchText.length > 0) throw new Error(`${collection}: empty searchText: ${noSearchText.slice(0, 8).join(", ")}`);
   const ids = new Set(records.map((r) => r.id));
   if (ids.size !== records.length) throw new Error(`${collection}: duplicate record ids`);
   const head = { schemaVersion: 1, collection, kind, recordCount: records.length };
@@ -123,7 +131,7 @@ function buildQuran() {
         kind: "quran",
         collection: "quran",
         exactText,
-        searchText: "",
+        searchText: searchTextOf(exactText, "quran"),
         citation: { display: `${s.name}، الآية ${a.number}`, surah: s.id, ayah: a.number },
         sourceName: `Quranpedia.net — ${raw.data.name} (${raw.data.description})`,
         sourceUrl: "https://quranpedia.net",
@@ -240,7 +248,7 @@ function buildHadith(adapter: HadithSourceAdapter, collection: string) {
       kind: "hadith",
       collection,
       exactText: e.text,
-      searchText: "",
+      searchText: searchTextOf(e.text, "hadith"),
       ...(matn ? { matnText: matn.matn } : {}),
       citation: {
         display,
@@ -325,7 +333,8 @@ const reviewCounts = (records: SourceRecord[]) => ({
 });
 
 const corpusFiles = ["quran", ...adapter.collections].map((c) => fileInfo(`data/corpus/${c}.json`));
-const corpusVersion = `p0-${sha256(corpusFiles.map((f) => f.sha256).join("")).slice(0, 12)}`;
+// The prefix names the corpus format: p0 = searchText empty, p1 = searchText filled.
+const corpusVersion = `p1-${sha256(corpusFiles.map((f) => f.sha256).join("")).slice(0, 12)}`;
 
 const manifest = {
   manifestVersion: 1,
@@ -402,6 +411,7 @@ const lines: string[] = [
   "",
   "**Quran**",
   `- ${quran.findings.ayatWithLeadingBom} ayat started with U+FEFF (BOM); ${quran.findings.bomCharsStripped} such characters were stripped (leading only). No other change to the text.`,
+  "- `searchText` = `exactText` at normalization level \"search\" (`src/core/normalize`), filled for every record. Quran records keep honorific phrases (`docs/DECISIONS.md` D-7).",
   `- Marks embedded in the ayah text (kept in \`exactText\`): ${Object.entries(quran.findings.embeddedMarks).map(([k, v]) => `${k}×${v}`).join(", ")}.`,
   `- Upstream sha256 \`${quran.source.upstreamChecksum.sha256}\` covers \`mushafs-1.json.gz\` (${quran.source.upstreamChecksum.bytes} bytes), not the local JSON.`,
   gz
