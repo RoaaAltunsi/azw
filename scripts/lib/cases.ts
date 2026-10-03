@@ -36,13 +36,8 @@ export const CRITICAL_CATEGORIES: ReadonlySet<Category> = new Set(["WORDING_ERRO
 const EXPECTED_STATUSES = ["MATCH", "DIFFERS", "NOT_FOUND", "NEEDS_SPECIALIST"] as const;
 type ExpectedStatus = (typeof EXPECTED_STATUSES)[number];
 
-// Reason codes an expected item may carry, by status: the list of src/core/status, plus the
-// hadith matcher's reference codes, which the cases already use and P11 adds to that list.
-const HADITH_REFERENCE_CODES = ["REF_MISMATCH_COLLECTION", "REF_MISMATCH_NUMBER", "REF_NOT_AGREED_UPON"];
-export const REASON_CODES: Record<ExpectedStatus, readonly string[]> = {
-  ...DECIDED_REASON_CODES,
-  DIFFERS: [...DECIDED_REASON_CODES.DIFFERS, ...HADITH_REFERENCE_CODES],
-};
+// Reason codes an expected item may carry, by status: the list of src/core/status.
+export const REASON_CODES: Record<ExpectedStatus, readonly string[]> = DECIDED_REASON_CODES;
 
 export const ExpectedItemSchema = z.strictObject({
   quote: z.string().min(1),

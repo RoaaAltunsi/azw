@@ -4,7 +4,15 @@ import type { Status } from "../types";
 
 export const REASON_CODES = {
   MATCH: ["MATCH_REF_OK", "MATCH_NO_REFERENCE"],
-  DIFFERS: ["WORDING_DIFF", "REF_MISMATCH_AYAH", "REF_MISMATCH_SURAH", "KIND_MISMATCH"],
+  DIFFERS: [
+    "WORDING_DIFF",
+    "REF_MISMATCH_AYAH",
+    "REF_MISMATCH_SURAH",
+    "REF_MISMATCH_COLLECTION",
+    "REF_MISMATCH_NUMBER",
+    "REF_NOT_AGREED_UPON",
+    "KIND_MISMATCH",
+  ],
   NOT_FOUND: ["NO_RECORD_IN_COVERED_SOURCES"],
   NEEDS_SPECIALIST: [
     "REF_NOT_CHECKED",
@@ -21,6 +29,6 @@ export const REASON_CODES = {
 export type DecidedStatus = keyof typeof REASON_CODES;
 export type ReasonCode = (typeof REASON_CODES)[DecidedStatus][number];
 
-// What a matcher may report when the cited reference contradicts the record it found. Each matcher
-// adds the codes of its kind here (hadith: collection, number, «متفق عليه»).
-export type ReferenceMismatchCode = Extract<ReasonCode, `REF_MISMATCH_${string}`>;
+// What a matcher may report when the cited reference contradicts the record it found: the Quran
+// matcher the ayah and the surah, the hadith matcher the collection, the number and «متفق عليه».
+export type ReferenceMismatchCode = Extract<ReasonCode, `REF_MISMATCH_${string}` | "REF_NOT_AGREED_UPON">;

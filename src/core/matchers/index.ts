@@ -1,17 +1,22 @@
-// One Matcher per ContentKind, registered by kind. Documented in docs/ARCHITECTURE.md ("Quran matcher").
+// One Matcher per ContentKind, registered by kind. Documented in docs/ARCHITECTURE.md ("Quran matcher",
+// "Hadith matcher").
 import type { CorpusIndex } from "../corpus";
 import type { QuoteInput } from "../types";
+import { hadithMatcher } from "./hadith";
 import type { MatchCandidate, Matcher } from "./matcher";
 import { quranMatcher } from "./quran";
 
 export { evidenceOf } from "./evidence";
+export { hadithMatcher } from "./hadith";
 export type { MatchCandidate, Matcher, ReferenceCheck } from "./matcher";
 export { quranMatcher } from "./quran";
 export { hasUthmaniSigns } from "./uthmani-spelling";
+export { inVerseMarks } from "./verse-marks";
 
-// A new kind adds its matcher here (hadith: P11).
+// A new kind adds its matcher here.
 export const matchers: Readonly<Record<string, Matcher>> = {
   quran: quranMatcher,
+  hadith: hadithMatcher,
 };
 
 export function getMatcher(kind: string): Matcher | undefined {

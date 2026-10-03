@@ -10,7 +10,7 @@ import type { LlmExtractedItem } from "./extract/llm";
 import { review, searchedCoverage, type LlmPort, type ReviewDeps } from "./review";
 import { ReviewResultSchema, STATUSES, type ReviewResult } from "./types";
 
-// The fixture corpus holds a Quran collection and a hadith collection; only "quran" has a matcher.
+// The fixture corpus holds a Quran collection and a hadith collection, each with its matcher.
 const index = buildCorpusIndex([createQuranAdapter(QURAN_FIXTURE, SPELLING_FIXTURE), createHadithAdapter("alpha", ALPHA_FIXTURE)]);
 const aliases = {
   surahs: [{ number: 113, bareName: "الفلق", spellingVariants: [], alternateNames: [] }],
@@ -29,7 +29,7 @@ describe("review()", () => {
     expect(result).toEqual({
       apiVersion: "1",
       corpusVersion: "fixture-1",
-      coverage: ["quran"],
+      coverage: ["quran", "alpha"],
       items: [],
       summary: { MATCH: 0, DIFFERS: 0, NOT_FOUND: 0, NEEDS_SPECIALIST: 0, ERROR: 0 },
       warnings: ["LLM_UNAVAILABLE_REGEX_ONLY"],
@@ -109,28 +109,48 @@ describe("review()", () => {
 });
 
 describe("coverage is what is searched", () => {
+  const quranOnly = { quran: quranMatcher };
+
   test("a collection whose kind has no matcher is not in the coverage", () => {
-    expect(searchedCoverage(["quran", "alpha"], index, matchers)).toEqual(["quran"]);
+    expect(searchedCoverage(["quran", "alpha"], index, quranOnly)).toEqual(["quran"]);
     expect(searchedCoverage(["quran", "alpha"], index, {})).toEqual([]);
+    expect(searchedCoverage(["quran", "alpha"], index, matchers)).toEqual(["quran", "alpha"]);
   });
 
   test("registering a matcher for the kind widens it", async () => {
-    const hadithMatcher: Matcher = { kind: "hadith", match: () => [] };
-    const registry = { ...matchers, hadith: hadithMatcher };
+    const empty: Matcher = { kind: "hadith", match: () => [] };
+    const registry = { ...quranOnly, hadith: empty };
     expect(searchedCoverage(["quran", "alpha"], index, registry)).toEqual(["quran", "alpha"]);
     const result = await review("قال رسول الله ﷺ: «كلام لا يشبه شيئا من النصوص»", { ...deps, matchers: registry });
     expect(result.coverage).toEqual(["quran", "alpha"]);
     expect(result.items[0]!.reasonAr).toContain("(القرآن الكريم، alpha)");
   });
 
-  test("a text the hadith collection holds is NOT_FOUND, and the sentence names only what was searched", async () => {
+  test("a text of a collection nothing searches is NOT_FOUND, and the sentence names only what was searched", async () => {
     const text = "أخبرنا فلان أن الماء كان قليلا في تلك السنة";
     const layer = { collection: "alpha", layer: "default" };
     expect(index.findExact(index.normalizeFor(layer, text).norm, layer)).not.toEqual([]);
-    const result = await review(`قال رسول الله ﷺ: «${text}»`, deps);
+    const result = await review(`قال رسول الله ﷺ: «${text}»`, { ...deps, matchers: quranOnly });
     expect(result.coverage).toEqual(["quran"]);
     expect(result.items[0]!.status).toBe("NOT_FOUND");
     expect(result.items[0]!.reasonAr).toBe("لم نجد هذا النص في المصادر المغطاة (القرآن الكريم). هذا لا يعني الحكم عليه؛ راجعه قبل النشر.");
+  });
+
+  test("with the hadith matcher the same text is found, and the result rests on the reviewed record only", async () => {
+    const result = await review("قال رسول الله ﷺ: «أخبرنا فلان أن الماء كان قليلا في تلك السنة»", deps);
+    expect(result.coverage).toEqual(["quran", "alpha"]);
+    const [item] = result.items;
+    expect([item!.status, item!.reasonCode]).toEqual(["MATCH", "MATCH_NO_REFERENCE"]);
+    // "alpha:3" holds the same text and is pending: it is left out of the evidence.
+    expect(item!.evidence.map((e) => e.record.id)).toEqual(["alpha:2"]);
+  });
+
+  test("hadith qudsi: «قال الله تعالى» before a text found only in a hadith record is not a kind mismatch; ﴿…﴾ is", async () => {
+    const text = "خرجنا في سفر طويل";
+    const phrase = await review(`قال الله تعالى: «${text}»`, deps);
+    expect(phrase.items.map((i) => [i.claimedKind, i.status, i.reasonCode, i.evidence[0]?.record.id])).toEqual([["quran", "MATCH", "MATCH_NO_REFERENCE", "alpha:1"]]);
+    const marked = await review(`قال الله تعالى: ﴿${text}﴾`, deps);
+    expect(marked.items.map((i) => [i.claimedKind, i.status, i.reasonCode, i.evidence[0]?.record.id])).toEqual([["quran", "DIFFERS", "KIND_MISMATCH", "alpha:1"]]);
   });
 });
 

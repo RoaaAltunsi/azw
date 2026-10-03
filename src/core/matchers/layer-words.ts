@@ -9,7 +9,7 @@ export interface LayerWord extends SourceWord {
   at: number; // offset of the word in the record's layer text (what an ExactHit's offsets count in)
 }
 
-// Built on first use, per index. Holds source text only, never anything from a draft.
+// Built on first use, per index (layerWords). Holds source text only, never anything from a draft.
 const cache = new WeakMap<CorpusIndex, Map<string, LayerWord[]>>();
 
 // Spreads the letters of every word into one sequence, remembering the word each came from.
@@ -48,13 +48,9 @@ function project(tokens: readonly { key: string }[], base: readonly Word[]): Arr
   });
 }
 
-export function layerWords(index: CorpusIndex, layer: LayerRef, record: SourceRecord): LayerWord[] {
-  let perIndex = cache.get(index);
-  if (!perIndex) cache.set(index, (perIndex = new Map()));
-  const key = `${layer.collection}\u0000${layer.layer}\u0000${record.id}`;
-  const cached = perIndex.get(key);
-  if (cached) return cached;
-
+// Not cached: for a collection whose records are long and many (hadith), where a cache of every
+// record a quote was ever found in would grow with the corpus.
+export function wordsOnLayer(index: CorpusIndex, layer: LayerRef, record: SourceRecord): LayerWord[] {
   const text = index.layerText(layer, record.id);
   if (text === undefined) throw new Error(`${record.id} has no text on layer "${layer.layer}"`);
   const tokens = [...text.matchAll(/\S+/g)].map((m) => ({ key: m[0], at: m.index }));
@@ -64,10 +60,19 @@ export function layerWords(index: CorpusIndex, layer: LayerRef, record: SourceRe
 
   const same = tokens.length === base.length && tokens.every((token, i) => token.key === base[i]!.key);
   const spans = same ? tokens.map((_, i): [number, number] => [i, i]) : project(tokens, base);
-  const words = tokens.map((token, i) => {
+  return tokens.map((token, i) => {
     const [first, last] = spans[i]!;
     return { key: token.key, at: token.at, recordId: record.id, start: base[first]!.start, end: base[last]!.end };
   });
+}
+
+export function layerWords(index: CorpusIndex, layer: LayerRef, record: SourceRecord): LayerWord[] {
+  let perIndex = cache.get(index);
+  if (!perIndex) cache.set(index, (perIndex = new Map()));
+  const key = `${layer.collection}\u0000${layer.layer}\u0000${record.id}`;
+  const cached = perIndex.get(key);
+  if (cached) return cached;
+  const words = wordsOnLayer(index, layer, record);
   perIndex.set(key, words);
   return words;
 }

@@ -6,7 +6,7 @@ import { ALPHA_FIXTURE, ayah, QURAN_FIXTURE, SPELLING_FIXTURE } from "../corpus/
 import { wordDiff } from "../diff";
 import type { ParsedReference, Reference } from "../references";
 import { EvidenceSchema, type ClaimedKind, type QuoteInput } from "../types";
-import { evidenceOf, getMatcher, matchAll, matchers, quranMatcher, type MatchCandidate } from "./index";
+import { evidenceOf, getMatcher, hadithMatcher, matchAll, matchers, quranMatcher, type MatchCandidate } from "./index";
 
 const index = buildCorpusIndex([createQuranAdapter(QURAN_FIXTURE, SPELLING_FIXTURE), createHadithAdapter("alpha", ALPHA_FIXTURE)]);
 
@@ -255,9 +255,10 @@ describe("evidenceOf", () => {
 describe("registry", () => {
   test("matchers are registered by kind", () => {
     expect(getMatcher("quran")).toBe(quranMatcher);
-    expect(getMatcher("hadith")).toBeUndefined();
+    expect(getMatcher("hadith")).toBe(hadithMatcher);
+    expect(getMatcher("dua")).toBeUndefined();
     expect(getMatcher("toString")).toBeUndefined();
-    expect(Object.keys(matchers)).toEqual(["quran"]);
+    expect(Object.keys(matchers)).toEqual(["quran", "hadith"]);
   });
 
   test("matchAll runs every matcher whatever the claimed kind", () => {

@@ -141,6 +141,8 @@ export interface QuoteInput {
   span: { start: number; end: number; text: string }; // text = draft.slice(start, end)
   claimedKind: ClaimedKind;
   reference?: Reference;
+  // The span stands inside ﴿…﴾ in the draft: the writer marked it as a verse.
+  verseMarks?: boolean;
 }
 
 export const EvidenceSchema = z.object({

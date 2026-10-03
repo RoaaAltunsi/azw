@@ -80,6 +80,32 @@ is built until it is moved into a prompt's scope.
 - Hadith matcher (P11), from `docs/DECISIONS.md` D-6 item 4: the reason sentences for
   `REF_MISMATCH_COLLECTION` and `REF_NOT_AGREED_UPON` must say the text was not found in the
   tool's copy of the other book, never that the book does not contain it (the corpus has gaps).
+  Done in P11 (`docs/DECISIONS.md` D-22).
+- Hadith matcher (P11), for later prompts:
+  - A close hadith candidate needs three words of the quote (`MIN_MATCHED_WORDS`, D-22 item 9;
+    it fixed `T-015`). Set on one tune case: measure it in the evaluation. The Quran matcher has
+    no such minimum; a three-word sentence that shares two words with an ayah still ends
+    `LOW_CONFIDENCE_MATCH`.
+  - A close Quran candidate and a close hadith candidate with different wordings are
+    `AMBIGUOUS_CANDIDATES` whatever the claimed kind (`decide()` compares the kind for exact hits
+    only). A misquoted verse that a hadith record quotes in another wording could so end
+    `NEEDS_SPECIALIST` and not `DIFFERS`. Not seen in the tune cases; measure in the evaluation.
+  - «متفق عليه» is compared as a wording: a hadith that both books hold in slightly different
+    words ends `REF_NOT_AGREED_UPON` for the wording one of them has (D-22 item 1). Telling that
+    two records are the same hadith needs data the corpus does not have (the Dorar pointer,
+    P11b, may help).
+  - Hadith qudsi (D-22 item 2): words of the Prophet ﷺ introduced with «قال الله تعالى» in «…»
+    end `MATCH`; the wrong speaker is not reported. A kind of its own from the extractors
+    ("God's words, verse or hadith qudsi") plus a field in the data would close it.
+  - A cited book outside the corpus («رواه الترمذي») on a text found in the Sahihayn ends
+    `REF_NOT_CHECKED` with the general sentence. A sentence of its own («الكتاب المذكور ليس من
+    المصادر المغطاة») would be clearer (a new reason code: an API change).
+  - The UI shows `claimedKind` «آية قرآنية» on a hadith qudsi item that ends `MATCH` on a hadith
+    record: the label is the draft's claim. Not looked at in P11 (no UI change in scope).
+  - The reason sentences cannot name the cited book (`reasonAr` fills `{ref}`, `{kind}` and
+    `{coverage}` only), so they say «الكتاب المذكور في المسودة».
+  - No matn layer: a quote is found in the chain as well as in the text, and a one-word change in
+    a narrator's name is a wording difference like any other.
 - Hadith records (D-5): 250 Bukhari and 30 Muslim records are pending because their text does not
   open with a formula of direct transmission. One can be released with an entry in
   `data/review/reviewed.json` that quotes a source naming it as connected under its number. A
@@ -91,7 +117,7 @@ is built until it is moved into a prompt's scope.
   purpose: at the edge of a fragment the tool cannot tell an added word from a changed one.
 - References, hadith (P11): `REF_MISMATCH_COLLECTION`, `REF_MISMATCH_NUMBER` and
   `REF_NOT_AGREED_UPON` join `src/core/status/reason-codes.ts` with the hadith matcher;
-  `scripts/lib/cases.ts` adds them to the core list until then.
+  `scripts/lib/cases.ts` adds them to the core list until then. Done in P11.
 
 - Orchestrator and API (P6), for later prompts:
   - `AGENTS.md` §6 showed the contract as it was before P6. Done on 2026-10-03, on the owner's
@@ -100,7 +126,7 @@ is built until it is moved into a prompt's scope.
   - A `ReviewItem` does not say which evidence entries belong to one occurrence. A client can tell
     from `ayahRange` and the order, but a field (an occurrence index) would be clearer. An API
     contract change, like `layer` / `spelling` above.
-  - A quote whose claimed kind has no registered matcher (a hadith, until P11) ends `NOT_FOUND`
+  - A quote whose claimed kind has no registered matcher (none today: both kinds have one) ends `NOT_FOUND`
     with a sentence that names only what was searched. A result-level warning
     («KIND_NOT_SEARCHED») would let the UI say so once for the whole draft.
   - An item that ends `ERROR` leaves no trace beyond the `ERROR` count in the request log. A hook
@@ -144,7 +170,8 @@ is built until it is moved into a prompt's scope.
     qudsi. A text claimed `quran` through an attribution phrase (not through `﴿…﴾`) that is found
     only in a hadith record must not end `DIFFERS` / `KIND_MISMATCH`. Either the extractor gives
     such a quote a kind of its own, or `decide()` treats it as a hadith claim; test with
-    «قال الله تعالى: «أنا عند ظن عبدي بي»».
+    «قال الله تعالى: «أنا عند ظن عبدي بي»». Done in P11: `decide()` reads it as a hadith claim
+    (`docs/DECISIONS.md` D-22 item 2).
 ## Ideas for after the challenge
 
 - Normalization: more honorific phrases found in the hadith corpus and left in `searchText` —

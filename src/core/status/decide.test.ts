@@ -4,7 +4,7 @@ import { describe, expect, test } from "vitest";
 import { hadith } from "../corpus/test-fixtures";
 import type { MatchCandidate } from "../matchers";
 import { STATUSES } from "../types";
-import { decide, REASON_CODES, STATUS_CONFIG, type Decision } from "./index";
+import { decide, REASON_CODES, STATUS_CONFIG, type Decision, type ReferenceMismatchCode } from "./index";
 
 interface Shape {
   id?: string;
@@ -12,7 +12,8 @@ interface Shape {
   hit?: MatchCandidate["hit"];
   spelling?: MatchCandidate["spelling"];
   score?: number;
-  reference?: "none" | "consistent" | "unchecked" | "REF_MISMATCH_AYAH" | "REF_MISMATCH_SURAH";
+  reference?: "none" | "consistent" | "unchecked" | ReferenceMismatchCode;
+  claimAdmitted?: boolean;
   pending?: boolean | "partly";
   wording?: string;
 }
@@ -31,8 +32,8 @@ function candidate(shape: Shape = {}): MatchCandidate {
     layer: "default",
     hit,
     spelling,
-    reference:
-      reference === "REF_MISMATCH_AYAH" || reference === "REF_MISMATCH_SURAH" ? { result: "mismatch", reasonCode: reference } : { result: reference },
+    reference: reference === "none" || reference === "consistent" || reference === "unchecked" ? { result: reference } : { result: "mismatch", reasonCode: reference },
+    ...(shape.claimAdmitted ? { claimAdmitted: true } : {}),
     alignment: {
       quote: [],
       source: wording.split(" ").map((key, i) => ({ key, recordId: records[0]!.id, start: i, end: i + 1 })),
@@ -87,6 +88,9 @@ const rows: Row[] = [
     [candidate({ id: "1", reference: "REF_MISMATCH_SURAH" }), candidate({ id: "2", reference: "unchecked" })],
     "NEEDS_SPECIALIST/REF_NOT_CHECKED/A [fixture:2]",
   ],
+  ["exact, wrong collection", "hadith", [candidate({ kind: "hadith", reference: "REF_MISMATCH_COLLECTION" })], "DIFFERS/REF_MISMATCH_COLLECTION/A [fixture:1]"],
+  ["exact, wrong number", "hadith", [candidate({ kind: "hadith", reference: "REF_MISMATCH_NUMBER" })], "DIFFERS/REF_MISMATCH_NUMBER/A [fixture:1]"],
+  ["exact, cited to two books and found in one", "hadith", [candidate({ kind: "hadith", reference: "REF_NOT_AGREED_UPON" })], "DIFFERS/REF_NOT_AGREED_UPON/A [fixture:1]"],
   ["an exact hit outranks a fuzzy candidate", "quran", [fuzzy(1, { id: "2" }), candidate()], "MATCH/MATCH_NO_REFERENCE/A [fixture:1]"],
 
   // --- exact, of another kind ---
@@ -101,6 +105,27 @@ const rows: Row[] = [
     "exact in both kinds: the claimed kind decides",
     "hadith",
     [candidate({ id: "1", kind: "quran" }), candidate({ id: "2", kind: "hadith" })],
+    "MATCH/MATCH_NO_REFERENCE/A [fixture:2]",
+  ],
+  // --- exact, of another kind that the claim as worded also admits (a hadith qudsi after «قال الله تعالى») ---
+  ["another kind that admits the claim stands for the claimed kind", "quran", [candidate({ kind: "hadith", claimAdmitted: true })], "MATCH/MATCH_NO_REFERENCE/A [fixture:1]"],
+  [
+    "… and its reference is then read as usual",
+    "quran",
+    [candidate({ kind: "hadith", claimAdmitted: true, reference: "REF_MISMATCH_COLLECTION" })],
+    "DIFFERS/REF_MISMATCH_COLLECTION/A [fixture:1]",
+  ],
+  ["… pending: not reviewed", "quran", [candidate({ kind: "hadith", claimAdmitted: true, pending: true })], "NEEDS_SPECIALIST/SOURCE_NOT_REVIEWED/A [fixture:1]"],
+  [
+    "found in the claimed kind too: the claimed kind alone decides",
+    "quran",
+    [candidate({ id: "1", kind: "hadith", claimAdmitted: true }), candidate({ id: "2", kind: "quran" })],
+    "MATCH/MATCH_NO_REFERENCE/A [fixture:2]",
+  ],
+  [
+    "of two other kinds, only the one that admits the claim stands for it",
+    "quran",
+    [candidate({ id: "1", kind: "dua" }), candidate({ id: "2", kind: "hadith", claimAdmitted: true })],
     "MATCH/MATCH_NO_REFERENCE/A [fixture:2]",
   ],
   ["a kind nobody registered is handled like any other", "dua", [candidate({ kind: "dua" })], "MATCH/MATCH_NO_REFERENCE/A [fixture:1]"],

@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
 import { regexExtractor, type Extractor } from "../core/extract";
-import { hasUthmaniSigns, matchAll, type MatchCandidate } from "../core/matchers";
+import { hasUthmaniSigns, quranMatcher, type MatchCandidate } from "../core/matchers";
 import { normalizeWithMap } from "../core/normalize";
 import { review as runReview, REVIEW_LIMITS } from "../core/review";
 import { ReviewResultSchema, type ClaimedKind, type ReviewItem } from "../core/types";
@@ -39,7 +39,7 @@ async function review(draft: string, quote: string, claimedKind: ClaimedKind = "
   expect(result.items).toHaveLength(1);
   const item = result.items[0]!;
   const ids = item.evidence.map((e) => e.record.id);
-  const candidates = matchAll({ span, claimedKind }, corpus.index);
+  const candidates = quranMatcher.match({ span, claimedKind }, corpus.index);
   const best = candidates.find((c) => c.recordIds[0] === ids[0]);
   // The diff of the first occurrence: its records are the first evidence entries.
   const diff = item.evidence.slice(0, best?.recordIds.length ?? 0).flatMap((e) =>
@@ -287,8 +287,7 @@ describe("kind and coverage", () => {
     const r = await review(`قال تعالى: ﴿${quote}﴾.`, quote);
     expect(outcome(r)).toBe("NOT_FOUND/NO_RECORD_IN_COVERED_SOURCES");
     expect(r.item.evidence).toEqual([]);
-    // Only the Quran is searched until the hadith matcher is registered (P11).
-    expect(r.reason).toBe("لم نجد هذا النص في المصادر المغطاة (القرآن الكريم). هذا لا يعني الحكم عليه؛ راجعه قبل النشر.");
+    expect(r.reason).toBe("لم نجد هذا النص في المصادر المغطاة (القرآن الكريم، صحيح البخاري، صحيح مسلم). هذا لا يعني الحكم عليه؛ راجعه قبل النشر.");
   });
 
   test("a phrase repeated in the Quran is one MATCH with every occurrence", async () => {
@@ -305,7 +304,7 @@ describe("kind and coverage", () => {
   });
 });
 
-// Every tune case whose expected records are Quran records (the hadith cases wait for P11).
+// Every tune case whose expected records are Quran records (the hadith cases: hadith-review.integration.test.ts).
 interface TuneCase {
   id: string;
   draft: string;
@@ -380,23 +379,18 @@ describe("the pipeline with the regex extractor", () => {
     ]);
   });
 
-  // AGENTS.md §2 rules 1 and 3: the corpus holds Sahih al-Bukhari, but no matcher searches it until
-  // P11. The result must not say that the text was looked for there.
-  test("a real Bukhari text after «قال رسول الله» → NOT_FOUND whose sentence names the Quran only", async () => {
+  // The coverage is what is searched (AGENTS.md §6): with the hadith matcher registered, the two
+  // hadith collections of the corpus are in it. More: src/server/hadith-review.integration.test.ts.
+  test("a real Bukhari text after «قال رسول الله», cited to al-Bukhari → MATCH on bukhari:1", async () => {
     const quote = "إنما الأعمال بالنيات، وإنما لكل امرئ ما نوى";
-    const layer = { collection: "bukhari", layer: "default" };
-    const held = corpus.index.findExact(corpus.index.normalizeFor(layer, quote).norm, layer);
-    expect(held.map((hit) => hit.recordIds[0])).toContain("bukhari:1");
     expect(corpus.coverage).toEqual(["quran", "bukhari", "muslim"]);
 
     const result = await runReview(`قال رسول الله ﷺ: «${quote}». رواه البخاري.`, deps);
-    expect(result.coverage).toEqual(["quran"]);
+    expect(result.coverage).toEqual(["quran", "bukhari", "muslim"]);
     expect(result.items).toHaveLength(1);
     const [item] = result.items;
-    expect([item!.claimedKind, item!.status, item!.reasonCode]).toEqual(["hadith", "NOT_FOUND", "NO_RECORD_IN_COVERED_SOURCES"]);
-    expect(item!.evidence).toEqual([]);
-    expect(item!.reasonAr).toBe("لم نجد هذا النص في المصادر المغطاة (القرآن الكريم). هذا لا يعني الحكم عليه؛ راجعه قبل النشر.");
-    expect(item!.reasonAr).not.toMatch(/البخاري|مسلم/);
+    expect([item!.claimedKind, item!.status, item!.reasonCode]).toEqual(["hadith", "MATCH", "MATCH_REF_OK"]);
+    expect(item!.evidence.map((e) => e.record.id)).toEqual(["bukhari:1"]);
     expect(item!.citedReference).toEqual({
       raw: "رواه البخاري",
       span: expect.any(Object),

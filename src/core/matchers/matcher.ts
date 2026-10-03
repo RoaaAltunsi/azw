@@ -1,6 +1,6 @@
 // The Matcher contract: one Matcher per ContentKind. A matcher finds where a quote stands in the
 // records of its kind and reports what it found. It decides no status (src/core/status does).
-// Documented in docs/ARCHITECTURE.md ("Quran matcher").
+// Documented in docs/ARCHITECTURE.md ("Quran matcher", "Hadith matcher").
 import type { CorpusIndex } from "../corpus";
 import type { Alignment } from "../diff";
 import type { ReferenceMismatchCode } from "../status/reason-codes";
@@ -34,6 +34,10 @@ export interface MatchCandidate {
   // "error": found only through a spelling the quote is not entitled to; never a match.
   spelling: "same" | "bridged" | "error";
   reference: ReferenceCheck;
+  // The quote claims another kind than this candidate's, in words that are also a way of citing
+  // this kind (hadith: «قال الله تعالى» before a hadith qudsi). The status rules read it only when
+  // the quote was found word for word in no record of the kind it claims.
+  claimAdmitted?: boolean;
   // The quote's words and the source words they stand against; input of wordDiff.
   alignment: Alignment;
 }

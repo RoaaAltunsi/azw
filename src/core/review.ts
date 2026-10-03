@@ -6,7 +6,7 @@ import type { CorpusIndex } from "./corpus";
 import type { ExtractedQuote, Extractor } from "./extract";
 import { LlmExtractionSchema, validateSpans, type LlmExtraction } from "./extract/llm";
 import { mergeQuotes, type MergedQuote } from "./extract/merge";
-import { evidenceOf, matchAll, matchers, type Matcher } from "./matchers";
+import { evidenceOf, inVerseMarks, matchAll, matchers, type Matcher } from "./matchers";
 import { attachReference, parseReferences, type Reference, type ReferenceAliases } from "./references";
 import { decide, reasonAr } from "./status";
 import { API_VERSION, ExtractedBySchema, STATUSES, type DiffOp, type ReviewItem, type ReviewResult, type Status } from "./types";
@@ -161,7 +161,8 @@ export async function review(draft: string, deps: ReviewDeps): Promise<ReviewRes
   //      rules), then the word diff of the occurrences the decision rests on.
   const reviewOne = (quote: MergedQuote): ReviewItem => {
     const reference: Reference | undefined = attachReference(quote.span, references, draft);
-    const candidates = matchAll({ span: quote.span, claimedKind: quote.claimedKind, reference }, deps.index, registry);
+    const verseMarks = inVerseMarks(draft, quote.span);
+    const candidates = matchAll({ span: quote.span, claimedKind: quote.claimedKind, reference, verseMarks }, deps.index, registry);
     const decision = decide({ claimedKind: quote.claimedKind, claimLevel: quote.claimLevel, candidates });
     return {
       id: itemId(quote),

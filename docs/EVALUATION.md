@@ -120,9 +120,9 @@ Codes settled when `src/core/status` was written (P5); the list lives in
 | `AMBIGUOUS_CANDIDATES` | `NEEDS_SPECIALIST` | Two or more close candidates with different texts |
 | `SOURCE_NOT_REVIEWED` | `NEEDS_SPECIALIST` | The text was found only in records that are still pending |
 
-No case uses the last four yet. `scripts/lib/cases.ts` takes its list from `src/core/status` and
-adds `REF_MISMATCH_COLLECTION`, `REF_MISMATCH_NUMBER` and `REF_NOT_AGREED_UPON`, which belong to
-the hadith matcher (P11) and are not in `src/core/status` yet.
+No case uses the last four yet. `scripts/lib/cases.ts` takes its list from `src/core/status`,
+which since P11 holds the hadith matcher's `REF_MISMATCH_COLLECTION`, `REF_MISMATCH_NUMBER` and
+`REF_NOT_AGREED_UPON`.
 
 `REF_MISMATCH_NUMBER` is accepted by the checker but no case uses it yet.
 

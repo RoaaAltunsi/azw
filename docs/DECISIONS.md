@@ -993,3 +993,124 @@ Limits: seven hand-written drafts are not a measurement. The prompt's behaviour 
 the latency against the 15 s budget are for the evaluation (P14). Whether the configured model
 accepted `temperature: 0` or was called without it is not visible from outside the adapter. `AGENTS.md` §6 still
 lists two warnings in its `ReviewResult` comment and was not edited (outside this prompt's list).
+
+## D-22 — Hadith matcher: choices the prompt did not settle (2026-10-03)
+
+Made while adding the hadith matcher (`docs/ARCHITECTURE.md`, "Hadith matcher"). They decide how a
+cited reference is compared with the records that hold a text, and which claim a quote is taken
+to make; none grades a hadith, edits a text or states a grade. Items 1 and 2 are decisions on
+religious content (`AGENTS.md` §9); the rest are engineering choices.
+
+1. **A pending record holds a text but confirms no reference.** The prompt left open how pending
+   records count when a reference is compared («متفق عليه»: "found in both collections").
+
+   *The term.* Ibn al-Salah, المقدمة، النوع الأول، الفائدة السابعة, lists as the first division of
+   the sound hadith «صحيح أخرجه البخاري ومسلم جميعا», and says of the phrase «صحيح متفق عليه»:
+   «يطلقون ذلك ويعنون به اتفاق البخاري ومسلم، لا اتفاق الأمة عليه» (read on 2026-10-03 at
+   <https://ar.wikisource.org/wiki/مقدمة_ابن_الصلاح/النوع_الأول>). So «متفق عليه» claims that both
+   books hold the hadith, and the tool can compare that claim with its two copies.
+
+   | Option | Result for a text reviewed in one book and pending in the other, cited «متفق عليه» |
+   |---|---|
+   | A pending record counts like any other | `MATCH` / `MATCH_REF_OK`: the reference would be called correct on the strength of a record that may not support `MATCH` (`AGENTS.md` §5: pending records "can never produce MATCH") |
+   | A pending record does not count at all | `DIFFERS` / `REF_NOT_AGREED_UPON`: the sentence would say the text was not found in the other book's copy, which is untrue: it is there |
+   | **It holds the text and confirms nothing** (chosen) | `NEEDS_SPECIALIST` / `REF_NOT_CHECKED` on the reviewed record: the text matches, the reference could not be confirmed |
+
+   The rule, for every hadith reference: a cited book is *held* when any record of it holds the
+   quote, and *confirmed* only when a reviewed record does. A book that is not held makes the
+   reference wrong (`REF_NOT_AGREED_UPON`, or `REF_MISMATCH_COLLECTION` for the record of another
+   book); a book that is held but not confirmed makes it `unchecked`. With one cited book whose
+   only records are pending the result is `NEEDS_SPECIALIST` / `SOURCE_NOT_REVIEWED`, as without a
+   reference. This follows §2 rule 3 and D-11 (a reference that was not checked is never taken as
+   correct and never as wrong).
+
+   *Measured.* On the corpus, «إنما الأعمال بالنيات» is in `bukhari:1` and in no Muslim record,
+   so «متفق عليه» on these exact words ends `DIFFERS` / `REF_NOT_AGREED_UPON` with the sentence
+   «… ولم نجده بهذا اللفظ في نسختنا من الكتاب الآخر. هذا لا يعني أنه ليس فيه». The wording quoted
+   is not in the tool's copy of one book. That is what the tool can say, and the sentence says no
+   more (D-6 item 4).
+
+   *Limit.* In the discipline «متفق عليه» is said of a hadith, also when the two books differ in
+   a word; the tool compares a wording. A correct «متفق عليه» on a wording only one book has is
+   therefore reported as `DIFFERS`. The sentence is worded for that case; a matcher that knows
+   two records are the same hadith needs data the corpus does not have (`docs/BACKLOG.md`).
+2. **Hadith qudsi: «قال الله تعالى» before a text found only in a hadith record is read as a
+   hadith claim.** D-20 item 9 established (al-Qattan, al-Jurjani) that «قال الله تعالى» is one of
+   the two forms of citing a hadith qudsi, and left the rule to this prompt.
+
+   | Option | For | Against |
+   |---|---|---|
+   | The extractor gives a kind of its own | The claim would be exact | The extractors and `ClaimedKind` are outside this prompt |
+   | Read in the record whether the words are God's speech (a formula such as «قال الله» before the hit) | A misattribution («قال الله تعالى: «إنما الأعمال بالنيات»») would stay `KIND_MISMATCH` | Measured on 12 well-known texts (37 records): the forms are «قال الله», «يقول الله», «إن الله قال», «إن الله يقول», «فيما روى عن الله … أنه قال», «قال ربكم … قال», «كتب في كتابه», and others, some far from the quoted words. A list would miss correct citations, and telling whose speech a sentence of a record is, is reading the hadith, not matching a text |
+   | **Read in the draft: a phrase admits a hadith, `﴿…﴾` does not** (chosen) | The smallest rule; it reads only what the writer wrote (D-20 item 2) | See the limit below |
+
+   The rule: a quote claimed `quran` whose span is not between `﴿` and `﴾`, found word for word
+   in no Quran record and in a hadith record, is decided as a hadith claim (`MATCH`, or the
+   reference outcomes of a hadith). The hadith matcher marks its candidates (`claimAdmitted`),
+   and `decide()` reads the mark only when nothing of the claimed kind was found exactly; it names
+   no kind. A `﴿…﴾` quote found only in a hadith record stays `DIFFERS` / `KIND_MISMATCH`.
+
+   *Tested* on the real corpus: «قال الله تعالى: «أنا عند ظن عبدي بي»» → `MATCH` /
+   `MATCH_NO_REFERENCE` with `bukhari:7405`, `bukhari:7505`, `muslim:6805`, `muslim:6829`,
+   `muslim:6952`; with «رواه البخاري» → `MATCH_REF_OK` on the two Bukhari records; the same words
+   in `﴿…﴾` → `KIND_MISMATCH`; a verse after «قال الله تعالى» in «…» → `MATCH` on the Quran record
+   alone.
+
+   *Limit.* The rule does not know that a record is a hadith qudsi: the data has no such field.
+   Words of the Prophet ﷺ introduced with «قال الله تعالى» in «…» also end `MATCH`: the status
+   says the wording stands in the source (`AGENTS.md` §4), and the evidence shows the record with
+   its own attribution, but the wrong speaker is not reported. `ReviewItem.claimedKind` stays
+   `quran`.
+3. **A book the tool has no copy of is neither confirmed nor contradicted.** The prompt: "another
+   collection → mismatch `REF_MISMATCH_COLLECTION`". For «رواه الترمذي» on a text found in
+   al-Bukhari that sentence («لم نجده في نسختنا من الكتاب المذكور») would be untrue: there is no
+   copy, and the hadith may be in both books. Such a reference, alone or beside a covered book,
+   is `unchecked` → `NEEDS_SPECIALIST` / `REF_NOT_CHECKED`. A departure from the prompt for
+   uncovered books only (§2 rules 1 and 3).
+4. **A partial reference that names another book is still a wrong book.** The prompt: "partial →
+   unchecked". As for the surah of a partial Quran reference (D-11, limit 1), what was read is
+   wrong whatever the unread part says: «رواه مسلم ح 2699» on a text found only in al-Bukhari is
+   `REF_MISMATCH_COLLECTION`. A partial reference whose books agree is `unchecked`.
+5. **The number is compared with `citation.number`**, the number the corpus cites by: for Muslim
+   the Abd al-Baqi number, for a split Bukhari entry its integer part (D-1). Leading zeros aside,
+   nothing is bridged. A cited number on a record that has none is `unchecked`. Printed editions
+   number differently, so the `REF_MISMATCH_NUMBER` sentence says «وقد يختلف الترقيم باختلاف
+   الطبعات» and gives the source's reference; it does not call the writer's number wrong in the
+   writer's own edition.
+6. **Several books cited and close candidates only**: a book missing among the candidates is
+   `unchecked`, not `REF_NOT_AGREED_UPON`. Close candidates are the best five, so a missing book
+   proves nothing. `decide()` does not read the reference of a close candidate today.
+7. **Which miss is reported.** When the reference agrees with no record, the nearest miss comes
+   first: a wrong number in the right book, then a book missing from a group, then another book.
+8. **Engineering.** One candidate per record (a second occurrence in the same record is the same
+   place). `alignment` is built when read, and a record's words are not cached: a two-word quote
+   stands in 7534 records. Close candidates: 10 per collection from the index, 5 returned.
+
+9. **A close candidate needs three words of the quote** (added the same day, on the owner's
+   instruction to fix `T-015`). «النظافة من الإيمان», labeled `NOT_FOUND`, ended
+   `NEEDS_SPECIALIST` / `LOW_CONFIDENCE_MATCH` with five Bukhari records as evidence: each holds
+   «من الإيمان», two of the quote's three words (score 0.67, above `T_LOW`).
+
+   | Option | Against |
+   |---|---|
+   | Raise `T_LOW` above 0.67 | A ratio: it would also drop a six-word quote with four words in a record, which is a real near match worth referring. It changes the Quran results too |
+   | **A minimum of three matched words, in the hadith matcher** (chosen) | A three-word quote with one word changed is `NOT_FOUND`, not referred |
+
+   Two neighbouring words shared with a record of a 14,000-record corpus that holds the chains
+   show nothing about the quote; showing those records as "a close text" would attribute to the
+   source what it does not contain (`AGENTS.md` §2 rules 1 and 3). `NOT_FOUND` says only that the
+   text was not found. Tuned on the tune split only: all eight hadith tune cases now end as
+   labeled. The Quran matcher was not changed.
+
+Changes outside `src/core/matchers` that the prompt did not list, each needed by item 2:
+`QuoteInput.verseMarks` (`src/core/types.ts`), the line of `src/core/review.ts` that sets it, and
+the `claimAdmitted` branch of `decide()`. The API schema did not change beyond the three reason
+codes. In `src/core/matchers`, `layer-words.ts` now exports the uncached `wordsOnLayer`;
+`layerWords` and the Quran matcher behave as before.
+
+Limits: the reference rules were tested on fixture records and on about thirty drafts written for
+the tests, not measured on the evaluation cases beyond the tune split. The eight tune cases with
+a hadith claim end as labeled (item 9). `STATUS_CONFIG` was not changed, and the minimum of three
+words was set on one case: the evaluation should measure it. That «إنما الأعمال بالنيات» is in no Muslim record was read in the corpus only.
+Ibn al-Salah's sentence was read in one digital copy (Wikisource), not in a printed edition. This
+is an AI tool's documented source check, not a scholar's review.

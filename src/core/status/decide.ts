@@ -69,7 +69,10 @@ export function decide(input: DecideInput, config: StatusConfig = STATUS_CONFIG)
   // 1. The quote occurs word for word, in a spelling the layer rules accept.
   const exact = ranked.filter((c) => c.hit === "exact" && c.spelling !== "error");
   if (exact.length > 0) {
-    const ofClaimedKind = exact.filter((c) => c.kind === input.claimedKind);
+    // Nothing of the claimed kind: the occurrences whose kind the claim, as worded, also admits
+    // stand for it (a hadith qudsi cited with «قال الله تعالى», docs/DECISIONS.md D-22 item 2).
+    const sameKind = exact.filter((c) => c.kind === input.claimedKind);
+    const ofClaimedKind = sameKind.length > 0 ? sameKind : exact.filter((c) => c.claimAdmitted);
     if (ofClaimedKind.length === 0) return onReviewed(exact, (reviewed) => result("DIFFERS", "KIND_MISMATCH", reviewed));
 
     const consistent = ofClaimedKind.filter((c) => c.reference.result === "consistent");

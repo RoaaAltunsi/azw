@@ -491,15 +491,17 @@ interface MatchCandidate {
   hit: "exact" | "fuzzy";
   spelling: "same" | "bridged" | "error";
   reference: ReferenceCheck;           // none | consistent | unchecked | mismatch + reason code
+  claimAdmitted?: boolean;             // of another kind than claimed, in words that also cite this kind ("Hadith matcher")
   alignment: Alignment;                // quote words and source words; input of wordDiff
 }
 ```
 
 | Export of `src/core/matchers` | |
 |---|---|
-| `matchers`, `getMatcher(kind)` | The registry, by kind. Only `quran` is registered; a new kind adds one line |
+| `matchers`, `getMatcher(kind)` | The registry, by kind: `quran` and `hadith`. A new kind adds one line |
 | `matchAll(quote, index)` | Runs every registered matcher, whatever the claimed kind (a "hadith" may be a verse) |
-| `quranMatcher` | The Quran matcher |
+| `quranMatcher`, `hadithMatcher` | The two matchers ("Hadith matcher" below) |
+| `inVerseMarks(draft, span)` | Whether a span stands between `﴿` and `﴾` in the draft: `QuoteInput.verseMarks` |
 | `hasUthmaniSigns(text)` | Whether a span carries a sign that only Uthmani-script texts have. The one place this check lives (`uthmani-spelling.ts`) |
 | `evidenceOf(candidate)` | The `Evidence[]` of a `ReviewItem`: one entry per record (as an `ApiSourceRecord`, without the retrieval keys: see "API v1"), each with the part of the word diff that concerns it. An `insert` (no source) goes with the record of the op before it, or the first |
 
@@ -623,6 +625,114 @@ A cited range must equal the range the quote covers: two ayat cited with the fir
 mismatch. When a reference is cited, exact candidates are ordered: those it agrees with, then
 unchecked, then same surah, then the rest.
 
+## Hadith matcher
+
+Code: `src/core/matchers/hadith.ts`, `verse-marks.ts`. Tests: `src/core/matchers/hadith.test.ts`
+(fixture records) and `src/server/hadith-review.integration.test.ts` (real corpus, through the
+orchestrator). Decisions: `docs/DECISIONS.md` D-22.
+
+`hadithMatcher` (kind "hadith") searches the `default` layer of every hadith collection the index
+holds, in corpus order (`bukhari`, then `muslim`). It names no collection: a new hadith book is a
+corpus file and an adapter. The layer is the whole `searchText`, chain included; `matnText` is not
+used. Like the Quran matcher it reports what it found and decides no status, and it adds no grade:
+a grade reaches a result only as `record.grade` of an evidence record, with its `by`.
+
+### The quote
+
+Normalized with the layer's options; a leading attribution formula is left out, as for the Quran.
+A quote with no word left gives no candidate.
+
+### Exact hits
+
+`findExact` on each collection. **One candidate per record** that holds the quote word for word: a
+second occurrence inside the same record is the same place (the first is aligned). `score` 1,
+`hit: "exact"`, `spelling: "same"` (there is one layer, so nothing is bridged), no `ayahRange`.
+The same wording under several numbers or in both books gives several candidates, which `decide()`
+reads as one result ("Status rules").
+
+`alignment` is built when it is read. A short quote stands in thousands of records («رسول الله»:
+7534), and only the occurrences that are shown need their words, so the words of a record are
+computed for those and are not cached (`wordsOnLayer`; the Quran matcher's `layerWords` caches,
+which for 14,000 long records would grow with every quote).
+
+### Close candidates
+
+Only when no hadith collection has an exact hit.
+
+1. `index.candidates(quote, layer, 10)` per collection: the closest records by word bigrams.
+2. The quote's words are aligned with the words of the whole record (Smith-Waterman on words, as
+   for the Quran). `score = quote words equal to their source word / quote words`; the aligned
+   stretch is the candidate's source side.
+3. A record in which fewer than three words of the quote stand (`MIN_MATCHED_WORDS`) is not a
+   candidate. Records are long and hold the chain, so two neighbouring words of almost any
+   sentence stand in some record: «النظافة من الإيمان» shares «من الإيمان» with several, and must
+   not be shown as a near match of them (tune case `T-015`, D-22 item 9).
+4. Best first; equal scores keep the corpus order of the collections. At most five are returned.
+
+A quote of one word has no bigrams and so no close candidate. A quote of two or three words is
+either found word for word or not found: with one word changed, fewer than three are left.
+
+### The cited reference
+
+Each candidate carries the comparison of `quote.reference` with its record. `found` is where the
+quote was found, over all candidates. The first row that applies:
+
+| Reference | Outcome |
+|---|---|
+| None | `none` |
+| `unknown`, or of another kind (a Quran citation) | `unchecked` |
+| Names a book the index does not hold («رواه الترمذي», «رواه البخاري والترمذي») | `unchecked` |
+| Does not name the record's collection (also when `partial`) | `mismatch` / `REF_MISMATCH_COLLECTION` |
+| `partial` | `unchecked` |
+| Names several books («متفق عليه», «رواه البخاري ومسلم») and one of them holds the quote in no record | `mismatch` / `REF_NOT_AGREED_UPON` (exact hits); `unchecked` (close candidates: they are the best few only) |
+| A number for this collection (`number`, or `numbers[collection]`), and the record has no `citation.number` | `unchecked` |
+| A number that is not `citation.number` (leading zeros aside) | `mismatch` / `REF_MISMATCH_NUMBER` |
+| One of the cited books holds the quote in pending records only | `unchecked` |
+| Otherwise | `consistent` |
+
+- **A book the tool has no copy of** can be neither confirmed nor contradicted: the text may well
+  be in al-Tirmidhi too. Such a citation on a text found in the Sahihayn ends `NEEDS_SPECIALIST` /
+  `REF_NOT_CHECKED`, never a wrong reference.
+- **The number** is compared with `citation.number`: for Muslim the Abd al-Baqi number, not the
+  record id (`muslim:534` is cited as no. 223). A split entry is cited by its integer part.
+  Editions number differently, and the `REF_MISMATCH_NUMBER` sentence says so.
+- **Pending records** hold a text but confirm nothing (D-22 item 1): a cited book counts as
+  confirmed only through a reviewed record. «متفق عليه» on a text that is reviewed in one book and
+  pending in the other is `unchecked` on every candidate, so the result is `NEEDS_SPECIALIST` /
+  `REF_NOT_CHECKED` on the reviewed record: not `MATCH_REF_OK`, and not a wrong reference.
+- Exact candidates are ordered: those the reference agrees with, then unchecked, then a wrong
+  number, then a book missing from a group, then another book. `decide()` gives the reason of the
+  first, so the nearest miss is the one reported.
+
+The sentences of `REF_MISMATCH_COLLECTION` and `REF_NOT_AGREED_UPON` say that the text was not found
+in the tool's copy of the book («لم نجده في نسختنا من الكتاب …. هذا لا يعني أنه ليس فيه»), never
+that the book does not contain it (`docs/DECISIONS.md` D-6 item 4): the corpus has gaps.
+
+### Hadith qudsi: a claim another kind admits
+
+«قال الله تعالى: «…»» is the claim of a verse and also a form of citing a hadith qudsi (D-20
+item 9). The extractor gives such a quote the kind `quran`. So that a hadith qudsi cited this way
+does not end `DIFFERS` / `KIND_MISMATCH`:
+
+- `QuoteInput.verseMarks` says whether the span stands between `﴿` and `﴾` in the draft
+  (`inVerseMarks`, set by the orchestrator, whoever extracted the span).
+- The hadith matcher sets `claimAdmitted: true` on its candidates when the claimed kind is `quran`
+  and the span is not in verse marks.
+- `decide()` reads `claimAdmitted` only when no exact hit is of the claimed kind: the admitted
+  candidates then stand for it, and the reference is read as for a hadith claim (rule 2 of "Status
+  rules"). It names no kind.
+
+`ReviewItem.claimedKind` stays `quran`: it is what the draft says. A verse after «قال الله تعالى»
+is found in the Quran and is answered by the Quran records alone, even when a hadith record
+quotes it. A `﴿…﴾` quote found only in a hadith record stays `KIND_MISMATCH`. The rule does not
+read whose words the text is inside the record (D-22 item 2 gives the reason and the limit).
+
+### Measured
+
+On 2026-10-03 (Node 22.16, Windows 11 laptop, the real corpus, warm): one review of a draft with
+ten hadith quotes, regex extractor, no LLM: 28–53 ms over four runs. A two-word quote found in
+7534 records: 42 ms.
+
 ## Word diff
 
 Code: `src/core/diff/` (`index.ts`, `align.ts`). Tests: `src/core/diff/index.test.ts`.
@@ -681,10 +791,11 @@ The rules, in order. The first that applies decides.
 | 1 | `claimedKind` is `interpretive_claim` | `NEEDS_SPECIALIST` | `INTERPRETIVE_CLAIM` | C |
 | 1 | `claimedKind` is `interpretive_claim` and `claimLevel` is `"D"` (a ruling for a personal case) | `NEEDS_SPECIALIST` | `PERSONAL_RULING` | D |
 | 1 | `claimedKind` is `unclear_attribution` | `NEEDS_SPECIALIST` | `UNCLEAR_ATTRIBUTION` | A |
-| 2 | Exact hits (spelling `same` or `bridged`), none of the claimed kind | `DIFFERS` | `KIND_MISMATCH` | A |
+| 2 | Exact hits (spelling `same` or `bridged`), none of the claimed kind and none with `claimAdmitted` | `DIFFERS` | `KIND_MISMATCH` | A |
+| 2 | Exact hits, none of the claimed kind, some with `claimAdmitted` | rules 3–6 on those candidates | | A |
 | 3 | Exact, claimed kind, the reference is `consistent` with an occurrence | `MATCH` | `MATCH_REF_OK` | A |
 | 4 | Exact, claimed kind, the reference is `unchecked` | `NEEDS_SPECIALIST` | `REF_NOT_CHECKED` | A |
-| 5 | Exact, claimed kind, the reference is a `mismatch` for every occurrence | `DIFFERS` | the first occurrence's code (`REF_MISMATCH_AYAH`, `REF_MISMATCH_SURAH`) | A |
+| 5 | Exact, claimed kind, the reference is a `mismatch` for every occurrence | `DIFFERS` | the first occurrence's code (`REF_MISMATCH_AYAH`, `REF_MISMATCH_SURAH`; hadith: `REF_MISMATCH_NUMBER`, `REF_NOT_AGREED_UPON`, `REF_MISMATCH_COLLECTION`) | A |
 | 6 | Exact, claimed kind, no reference | `MATCH` | `MATCH_NO_REFERENCE` | A |
 | 7 | Exact hit with spelling `error` only | `DIFFERS` | `WORDING_DIFF` | A |
 | 8 | No candidate, or best score < `T_LOW` | `NOT_FOUND` | `NO_RECORD_IN_COVERED_SOURCES` | A |
@@ -703,6 +814,10 @@ The rules, in order. The first that applies decides.
   With `MATCH_REF_OK` the evidence is the occurrences the reference agrees with; otherwise all.
 - **"Different texts"** in rule 9 compares the aligned source words of the candidates. The same
   wording found close in two places is one result with both as evidence.
+- **A claim another kind admits** (`claimAdmitted`, set by a matcher): the quote claims one kind
+  in words that are also a way of citing another («قال الله تعالى» before a hadith qudsi). It is
+  read only when nothing of the claimed kind was found word for word; the rule names no kind
+  (`docs/DECISIONS.md` D-22 item 2).
 - **Kind** is compared only for exact hits (rule 2). A close candidate of another kind is rule 11:
   the sentence names the source, and the wording is the first thing to correct.
 - **Rule 4** is `docs/DECISIONS.md` D-11.
@@ -919,8 +1034,8 @@ The order is that of `AGENTS.md` §6.
 
    Then the item limit is applied.
 4. **References.** `parseReferences(draft, aliases)` once per draft.
-5. **Per item**: `attachReference` → `matchAll` (every registered matcher, whatever the claimed
-   kind) → `decide` → `reasonAr` → `evidenceOf` for the occurrences that are shown. The word diff
+5. **Per item**: `attachReference` → `inVerseMarks` (whether the span stands in `﴿…﴾`: "Hadith
+   matcher") → `matchAll` (every registered matcher, whatever the claimed kind) → `decide` → `reasonAr` → `evidenceOf` for the occurrences that are shown. The word diff
    is a pure function of the alignment the matcher made, and `decide` does not read it, so it is
    computed after the decision and only for the evidence that is returned.
 6. **Explanations**: P12.
@@ -941,11 +1056,11 @@ the `LLM_*` variables (`createLlmPort`, built on the first request and kept), or
 
 `ReviewResult.coverage`, and the `{coverage}` of the reason sentences, is
 `searchedCoverage(deps.coverage, index, registry)`: the collections of the corpus whose kind has a
-registered matcher. It is derived from `index.layers` and the registry and names no kind. Today
-the corpus holds `quran`, `bukhari` and `muslim` and only the Quran matcher is registered, so the
-coverage is `["quran"]`: a hadith quote that ends `NOT_FOUND` is told «لم نجد هذا النص في المصادر
-المغطاة (القرآن الكريم)», because nothing looked in the two hadith collections. Registering the
-hadith matcher (P11) widens it with no other change.
+registered matcher. It is derived from `index.layers` and the registry and names no kind. The
+corpus holds `quran`, `bukhari` and `muslim` and both matchers are registered, so the coverage is
+`["quran", "bukhari", "muslim"]`: a quote that ends `NOT_FOUND` is told «لم نجد هذا النص في
+المصادر المغطاة (القرآن الكريم، صحيح البخاري، صحيح مسلم)». A corpus file whose kind had no matcher
+would be left out, because nothing would look in it.
 
 ### Bounds
 

@@ -60,12 +60,12 @@ describe("POST /api/v1/review — happy path", () => {
     expect(response.headers.get("x-request-id")).toBe("req-1");
     const result = ReviewResultSchema.parse(await response.json());
     expect(result.apiVersion).toBe("1");
-    expect(result.coverage).toEqual(["quran"]);
+    expect(result.coverage).toEqual(["quran", "bukhari", "muslim"]);
     expect(result.items.map((i) => [i.status, i.reasonCode])).toEqual([
       ["MATCH", "MATCH_REF_OK"],
-      ["NOT_FOUND", "NO_RECORD_IN_COVERED_SOURCES"],
+      ["MATCH", "MATCH_REF_OK"],
     ]);
-    expect(result.summary).toEqual({ MATCH: 1, DIFFERS: 0, NOT_FOUND: 1, NEEDS_SPECIALIST: 0, ERROR: 0 });
+    expect(result.summary).toEqual({ MATCH: 2, DIFFERS: 0, NOT_FOUND: 0, NEEDS_SPECIALIST: 0, ERROR: 0 });
     expect(result.warnings).toEqual(["LLM_UNAVAILABLE_REGEX_ONLY"]);
   });
 
@@ -313,7 +313,7 @@ describe("privacy: what is logged", () => {
       reviewMs: 0,
       totalMs: 0,
       items: 2,
-      summary: { MATCH: 1, DIFFERS: 0, NOT_FOUND: 1, NEEDS_SPECIALIST: 0, ERROR: 0 },
+      summary: { MATCH: 2, DIFFERS: 0, NOT_FOUND: 0, NEEDS_SPECIALIST: 0, ERROR: 0 },
       warnings: ["LLM_UNAVAILABLE_REGEX_ONLY"],
     });
 
@@ -336,7 +336,7 @@ describe("GET /api/v1/health", () => {
     expect(HealthSchema.parse(await response.json())).toEqual({
       ok: true,
       corpusVersion: loadCorpus(ROOT).corpusVersion,
-      coverage: ["quran"],
+      coverage: ["quran", "bukhari", "muslim"],
       llmConfigured: false,
     });
   });

@@ -605,6 +605,9 @@ most 5 occurrences; `reasonAr` states how many other places there are.
 | `DIFFERS` | `WORDING_DIFF` |
 | `DIFFERS` | `REF_MISMATCH_AYAH` |
 | `DIFFERS` | `REF_MISMATCH_SURAH` |
+| `DIFFERS` | `REF_MISMATCH_COLLECTION` |
+| `DIFFERS` | `REF_MISMATCH_NUMBER` |
+| `DIFFERS` | `REF_NOT_AGREED_UPON` |
 | `DIFFERS` | `KIND_MISMATCH` |
 | `NOT_FOUND` | `NO_RECORD_IN_COVERED_SOURCES` |
 | `NEEDS_SPECIALIST` | `REF_NOT_CHECKED` |
@@ -716,7 +719,9 @@ Response (200), from a run on corpus `p2-e2bfaf5a3ad2`:
   "apiVersion": "1",
   "corpusVersion": "p2-e2bfaf5a3ad2",
   "coverage": [
-    "quran"
+    "quran",
+    "bukhari",
+    "muslim"
   ],
   "items": [
     {
@@ -794,20 +799,59 @@ Response (200), from a run on corpus `p2-e2bfaf5a3ad2`:
         "text": "إنما الأعمال بالنيات"
       },
       "claimedKind": "hadith",
-      "status": "NOT_FOUND",
+      "status": "MATCH",
       "contentLevel": "A",
-      "reasonCode": "NO_RECORD_IN_COVERED_SOURCES",
-      "reasonAr": "لم نجد هذا النص في المصادر المغطاة (القرآن الكريم). هذا لا يعني الحكم عليه؛ راجعه قبل النشر.",
-      "evidence": [],
+      "reasonCode": "MATCH_NO_REFERENCE",
+      "reasonAr": "النص مطابق لنص المصدر. لم يُذكر له مرجع في المسودة، ويُستحسن إضافته: صحيح البخاري، حديث رقم 1.",
+      "evidence": [
+        {
+          "record": {
+            "id": "bukhari:1",
+            "kind": "hadith",
+            "collection": "bukhari",
+            "exactText": "حَدَّثَنَا الْحُمَيْدِيُّ عَبْدُ اللَّهِ بْنُ الزُّبَيْرِ ، قَالَ : حَدَّثَنَا سُفْيَانُ ، قَالَ : حَدَّثَنَا يَحْيَى بْنُ سَعِيدٍ الْأَنْصَارِيُّ ، قَالَ : أَخْبَرَنِي مُحَمَّدُ بْنُ إِبْرَاهِيمَ التَّيْمِيُّ ، أَنَّهُ سَمِعَ عَلْقَمَةَ بْنَ وَقَّاصٍ اللَّيْثِيَّ ، يَقُولُ : سَمِعْتُ عُمَرَ بْنَ الْخَطَّابِ رَضِيَ اللَّهُ عَنْهُ عَلَى الْمِنْبَرِ، قَالَ : سَمِعْتُ رَسُولَ اللَّهِ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ، يَقُولُ : \" إِنَّمَا الْأَعْمَالُ بِالنِّيَّاتِ، وَإِنَّمَا لِكُلِّ امْرِئٍ مَا نَوَى، فَمَنْ كَانَتْ هِجْرَتُهُ إِلَى دُنْيَا يُصِيبُهَا أَوْ إِلَى امْرَأَةٍ يَنْكِحُهَا، فَهِجْرَتُهُ إِلَى مَا هَاجَرَ إِلَيْهِ",
+            "citation": {
+              "display": "صحيح البخاري، حديث رقم 1",
+              "number": "1",
+              "book": "1"
+            },
+            "sourceName": "fawazahmed0/hadith-api — ara-bukhari",
+            "sourceUrl": "https://raw.githubusercontent.com/fawazahmed0/hadith-api/df57907be35291c91ad6a6691180e22ca9920784/editions/ara-bukhari.min.json",
+            "edition": "ara-bukhari @ df57907",
+            "license": "The Unlicense (public-domain dedication)",
+            "reviewStatus": "reviewed",
+            "grade": {
+              "text": "صحيح",
+              "by": "صحيح البخاري",
+              "sourceRef": "صحيح البخاري، حديث رقم 1"
+            }
+          },
+          "score": 1,
+          "diff": [
+            {
+              "op": "equal",
+              "draft": {
+                "start": 67,
+                "end": 87
+              },
+              "source": {
+                "recordId": "bukhari:1",
+                "start": 431,
+                "end": 466
+              }
+            }
+          ]
+        }
+      ],
       "extractedBy": [
         "regex"
       ]
     }
   ],
   "summary": {
-    "MATCH": 1,
+    "MATCH": 2,
     "DIFFERS": 0,
-    "NOT_FOUND": 1,
+    "NOT_FOUND": 0,
     "NEEDS_SPECIALIST": 0,
     "ERROR": 0
   },
@@ -882,7 +926,9 @@ Example:
   "ok": true,
   "corpusVersion": "p2-e2bfaf5a3ad2",
   "coverage": [
-    "quran"
+    "quran",
+    "bukhari",
+    "muslim"
   ],
   "llmConfigured": false
 }
