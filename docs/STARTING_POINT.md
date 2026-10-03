@@ -1,32 +1,36 @@
 # Starting point
 
-What existed in this repository before the challenge days (4–6 October 2026).
+What existed in this repository before work on the product began (4–6 October 2026).
 
 The participant guide allows earlier work on condition that the starting version is documented and
-rights are disclosed, and it evaluates only what is done from 4 to 6 October. This file is that
-documentation. Everything listed here is preparation: source data, checks on that data, and test
-cases. **No product code existed before 4 October 2026: there was no `src/` directory, no app, no
-API, no matching logic, no normalization, no LLM integration and no UI.**
+rights are disclosed, and it evaluates only what is done in the challenge days, 4 to 6 October.
+This file is that documentation.
+
+**Work on the product began on 3 October 2026, one day before the official start.** The owner is
+the only team member and has a full-time job during the challenge's daytime hours, so the owner
+started a day early and counts the work from 3 October onwards as challenge work.
+
+Everything listed here is preparation: source data, checks on that data, and test cases. **No
+product code existed at the starting point: there was no `src/` directory, no app, no API, no
+matching logic, no normalization, no LLM integration and no UI.**
 
 ## 1. The marker commit
 
 | | |
 |---|---|
 | Tag | `pre-challenge-start` |
-| Commit | `<PRE_CHALLENGE_COMMIT>` (filled in on 4 October; a commit cannot contain its own hash) |
-| Pre-challenge commits | The history starts on 2026-10-02; every commit up to the tag is dated before 4 October |
+| Commit | `aa9a516`, dated 2026-10-02 23:36 (+03:00) |
+| Pre-challenge commits | The history starts on 2026-10-02; every commit up to the tag is dated 2 October |
 | Corpus version at the tag | `p0-a6d2d36b84e8` (`data/corpus/manifest.json`) |
 
-To set the marker, on the last commit made before 4 October 09:00 Riyadh time:
+The marker was set with:
 
 ```
-git tag pre-challenge-start
+git tag pre-challenge-start aa9a516
 git push origin pre-challenge-start
-git rev-parse --short pre-challenge-start
 ```
 
-Put the hash printed by the last command in the table above as part of the first commit of
-4 October. Do not move the tag afterwards.
+Do not move the tag afterwards.
 
 To see what was built during the challenge:
 
