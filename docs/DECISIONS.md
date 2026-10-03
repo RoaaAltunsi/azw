@@ -637,3 +637,33 @@ Limits of this entry: the routes were tested through their handlers with Web `Re
 origin and its preflight, an empty draft). No browser made a cross-origin request, and the files
 named by `outputFileTracingIncludes` were read in the build's trace files
 (`.next/server/app/api/v1/*/route.js.nft.json`), not on a deployed host.
+
+## D-18 — The documents brought in line before the UI (2026-10-03)
+
+Before P7 the owner asked for every document to agree with what P6 built. Four points were
+settled; each follows from a rule already in force, so no new source was consulted.
+
+1. **`AGENTS.md` §6 now shows the contract as built** (D-17): `evidence[].record` is an
+   `ApiSourceRecord`, `citedReference.parsed` is a `ParsedReference`, `coverage` is the searched
+   coverage, and the pipeline lists the word diff after the status rules. Edited on the owner's
+   instruction. `docs/API.md` (generated) stays the detailed contract.
+2. **The UI never names a source that is not searched.** The home screen's scope note and the
+   "covered sources" line are built from `coverage` of `GET /api/v1/health`, not written into the
+   page. The P7 prompt's fixed wording «يراجع الآيات وأحاديث الصحيحين في مسودتك» would be untrue
+   until the hadith matcher is registered (P11): the same reason as D-17 item 3 (`AGENTS.md` §2
+   rules 1 and 3). Now a rule in `AGENTS.md` §6.
+3. **The copy button reads «انسخ نص المصدر مع المرجع»**, not «انسخ النص الصحيح مع المرجع». The
+   tool shows that a text stands in a source with this wording; it does not prove authenticity
+   (`AGENTS.md` §4), and «الصحيح» beside a hadith reads as a grade (§2 rule 4). The same choice
+   as D-12 item 10 for the reason sentences. Now a rule in `AGENTS.md` §8, for every label.
+4. **The Quran font is decided by a check, in P7.** The P7 prompt asked for "the Uthmani font".
+   The Quran text is in everyday spelling (`AGENTS.md` §5), and §8 allows the KFGQPC Hafs font
+   only if its terms permit web embedding and it renders this text correctly on real ayat;
+   otherwise Amiri. The prompt now says so; the check and its result will be recorded by P7.
+
+Also done: `docs/PRIVACY.md` written from what the code does today (AGENTS.md §2 rule 8 asks for a
+published notice, and the UI's footer links to it). It must be updated when the LLM extractor
+(P10) starts sending drafts to a provider; the P10 and P13 prompts say so.
+
+Limits: the prompt pack (`Azw_Build_Prompts.md`) is a local file outside the repository; its P7–P13
+prompts were edited to match, and the prompts already run (P0–P6) were left as they were written.

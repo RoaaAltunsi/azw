@@ -92,10 +92,9 @@ is built until it is moved into a prompt's scope.
   `scripts/lib/cases.ts` adds them to the core list until then.
 
 - Orchestrator and API (P6), for later prompts:
-  - `AGENTS.md` §6 still shows `evidence: Array<{ record: SourceRecord … }>`,
-    `citedReference.parsed?: unknown` and `coverage` as «e.g. ["quran", "bukhari", "muslim"]». The
-    code follows `docs/DECISIONS.md` D-17 (API record, typed `parsed`, searched coverage). The
-    snippet in `AGENTS.md` should be brought in line by the owner.
+  - `AGENTS.md` §6 showed the contract as it was before P6. Done on 2026-10-03, on the owner's
+    instruction: the API record, the typed `parsed`, the searched coverage and the pipeline order
+    are now as in `docs/DECISIONS.md` D-17 (see D-18).
   - A `ReviewItem` does not say which evidence entries belong to one occurrence. A client can tell
     from `ayahRange` and the order, but a field (an occurrence index) would be clearer. An API
     contract change, like `layer` / `spelling` above.

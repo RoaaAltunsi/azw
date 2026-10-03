@@ -61,7 +61,8 @@ Every result item carries `contentLevel: "A" | "B" | "C" | "D"`.
 | `NOT_FOUND` | لم يُتحقق منه ضمن المصادر المتاحة | No sufficient record in the covered sources. Never call it false or fabricated |
 | `NEEDS_SPECIALIST` | يحتاج مراجعة مختص | Ambiguous or conflicting candidates, mid-confidence score, interpretive or ruling claims (levels C/D) |
 
-Plus a system state `ERROR` → «تعذّر إكمال التحقق». It never shows a match badge.
+Plus a system state `ERROR` → «تعذّر إكمال التحقق». It never shows a match badge, and an `ERROR` item
+carries no evidence.
 
 Why «مطابق لنص المصدر» and not «موثّق»: the app proves that a text exists in a source with this wording.
 It never proves authenticity.
@@ -169,7 +170,8 @@ azw/
 │  ├─ components/
 │  └─ i18n/                   # UI strings (ar now; keys ready for other languages)
 ├─ public/                    # manifest.webmanifest, icons, fonts
-└─ docs/                      # SOURCES.md, STARTING_POINT.md, ARCHITECTURE.md, EVALUATION.md, PRIVACY.md
+└─ docs/                      # SOURCES.md, STARTING_POINT.md, ARCHITECTURE.md, API.md (generated), DECISIONS.md,
+                              # BACKLOG.md, EVALUATION.md, PRIVACY.md
 ```
 
 ### Extension points (design for them now, build them later)
@@ -184,9 +186,10 @@ azw/
   carries no grade (`docs/DECISIONS.md` D-2, D-5).
 - **New clients** (browser extension, Android share target, WordPress plugin, mobile keyboard): all call
   the stable versioned API `POST /api/v1/review`. The response schema is defined once with zod in
-  `src/core/types.ts` and exported. CORS is configured by an env allowlist (empty in the MVP).
-- **New LLM provider**: everything goes through `LlmPort` (an interface in core). Swapping providers
-  touches only `src/llm/`.
+  `src/core/types.ts` and exported; `docs/API.md` is generated from it (`npm run docs:api`) and is
+  the contract a client builds against. CORS is configured by an env allowlist (empty in the MVP).
+- **New LLM provider**: everything goes through `LlmPort` (an interface in core, declared in
+  `src/core/review.ts`). Swapping providers touches only `src/llm/`.
 - **Other UI languages**: all strings live in `src/i18n/ar.ts`. No hard-coded UI text in components.
 
 ### Core data contracts (keep these names)
@@ -214,16 +217,22 @@ interface SourceRecord {
   grade?: { text: string; by: string; sourceRef: string };
 }
 
+// A record as it leaves the API (docs/DECISIONS.md D-17): searchText, searchVariants and matnText
+// are retrieval keys and never reach a client. Built by toApiRecord from a list of allowed fields.
+type ApiSourceRecord = Omit<SourceRecord, "searchText" | "searchVariants" | "matnText">;
+
 interface ReviewItem {
   id: string;
   span: { start: number; end: number; text: string };          // exact span in the user's draft
   claimedKind: ContentKind | "unclear_attribution" | "interpretive_claim";
-  citedReference?: { raw: string; parsed?: unknown; span?: { start: number; end: number } };
+  // parsed: ParsedReference from src/core/references (type "quran" | "hadith" | "unknown", `partial?`)
+  citedReference?: { raw: string; parsed?: ParsedReference; span?: { start: number; end: number } };
   status: Status;
   contentLevel: ContentLevel;
   reasonCode: string;            // machine-readable reason, e.g. "REF_MISMATCH_AYAH"
   reasonAr: string;              // deterministic Arabic sentence
-  evidence: Array<{ record: SourceRecord; score: number; diff?: DiffOp[]; ayahRange?: [number, number] }>;
+  // At most REVIEW_LIMITS.MAX_EVIDENCE_PER_ITEM occurrences; reasonAr counts the rest. Empty for ERROR.
+  evidence: Array<{ record: ApiSourceRecord; score: number; diff?: DiffOp[]; ayahRange?: [number, number] }>;
   explanation?: { text: string; generated: true };             // optional LLM text, always labeled
   extractedBy: Array<"regex" | "llm" | "manual">;
 }
@@ -231,26 +240,33 @@ interface ReviewItem {
 interface ReviewResult {
   apiVersion: "1";
   corpusVersion: string;         // from data/corpus/manifest.json
-  coverage: string[];            // e.g. ["quran", "bukhari", "muslim"]
+  // The collections that were searched: those of the corpus whose kind has a registered matcher.
+  // ["quran"] until the hadith matcher is registered, then ["quran", "bukhari", "muslim"].
+  coverage: string[];
   items: ReviewItem[];
   summary: Record<Status, number>;
-  warnings: string[];            // e.g. "LLM_UNAVAILABLE_REGEX_ONLY"
+  warnings: string[];            // "LLM_UNAVAILABLE_REGEX_ONLY", "ITEM_LIMIT_REACHED"
 }
 ```
+
+**Coverage must be true.** A collection the corpus holds but no matcher searches is never named in
+a result, in a reason sentence or in the UI (section 2, rules 1 and 3). The UI reads the covered
+sources from the API (`coverage` of a result or of `GET /api/v1/health`); it never hard-codes them.
 
 ### Pipeline (the order is fixed)
 
 ```
 draft
  → extract: regex extractor (always) + LLM extractor (if available), in parallel
- → validate: every LLM span must exist verbatim in the draft; drop the rest
- → merge + dedupe spans
+ → validate: every extracted span (regex or LLM) must exist verbatim in the draft; drop the rest
+ → merge + dedupe spans, then the item limit
  → parse cited references deterministically (no LLM)
  → retrieve candidates across ALL kinds (a "hadith" may actually be a verse)
- → score + align + word diff against exactText
+ → score + align against exactText
  → status rules (pure function, unit-tested)
+ → word diff against exactText, for the evidence that is returned (D-17: the rules do not read it)
  → optional grounded explanation (LLM), validated
- → ReviewResult
+ → ReviewResult, validated against ReviewResultSchema before it leaves the API
 ```
 
 ## 7. Tech stack
@@ -276,6 +292,10 @@ draft
   if its terms allow web embedding AND it renders our text correctly (otherwise Amiri). Our Quran
   text is not in Uthmani script (section 5), so check the rendering on real ayat before adopting it.
 - Motif: a dashed "trace" line from a quote to its source card.
+- Wording: the tool's own sentences and labels never use «صحيح» for a text or a reference, because
+  it reads as a judgment on authenticity (`docs/DECISIONS.md` D-12 item 10, D-18). The source's
+  text is «نص المصدر», its reference «المرجع في المصدر». Book titles («صحيح البخاري») and a grade
+  quoted from a record with its attribution are not the tool's own words.
 
 ## 9. Conventions
 
