@@ -21,9 +21,15 @@ export const warningText = (code: string): string => lookup(`warning.${code}`) ?
 // The order of the summary row. ERROR is a system state: it is counted only when it happened.
 const SUMMARY_ORDER = ["MATCH", "DIFFERS", "NEEDS_SPECIALIST", "NOT_FOUND", "ERROR"] as const satisfies readonly Status[];
 
+// One count per status, in the order of the row: «2 مطابق», «1 مختلف», …
+export function summaryParts(summary: ReviewResult["summary"]): Array<{ status: Status; text: string }> {
+  return SUMMARY_ORDER.filter((status) => status !== "ERROR" || summary.ERROR > 0).map((status) => ({
+    status,
+    text: format(`results.summary.${status}`, { n: summary[status] }),
+  }));
+}
+
 export function summaryText(result: Pick<ReviewResult, "items" | "summary">): string {
-  const parts = SUMMARY_ORDER.filter((status) => status !== "ERROR" || result.summary.ERROR > 0).map((status) =>
-    format(`results.summary.${status}`, { n: result.summary[status] }),
-  );
+  const parts = summaryParts(result.summary).map((part) => part.text);
   return format("results.summary", { count: result.items.length, parts: parts.join(t("results.summary.separator")) });
 }

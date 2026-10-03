@@ -13,13 +13,13 @@ export default function HowItWorksPage() {
         <InfoList ordered items={["how.steps.1", "how.steps.2", "how.steps.3", "how.steps.4", "how.steps.5"]} />
       </InfoSection>
       <InfoSection title={t("how.statuses.title")}>
-        <dl className="mt-3 space-y-4">
+        <dl className="mt-4 space-y-3">
           {STATUSES.map((status) => (
-            <div key={status}>
+            <div key={status} data-status={status} className="status-card status-wash px-4 py-3">
               <dt>
                 <StatusPill status={status} />
               </dt>
-              <dd className="mt-1 text-base leading-8 text-ink">{t(`how.status.${status}`)}</dd>
+              <dd className="mt-2 text-base leading-8 text-ink">{t(`how.status.${status}`)}</dd>
             </div>
           ))}
         </dl>

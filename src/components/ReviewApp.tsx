@@ -2,11 +2,15 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { ReviewResult } from "@/core/types";
-import { format, t } from "@/i18n/ar";
+import { format, t, type MessageKey } from "@/i18n/ar";
+import { Icon, type IconName } from "./Icon";
+import { Notice } from "./Notice";
 import { ResultsSkeleton, ResultsView } from "./ResultsView";
 import { requestReview } from "./lib/api-client";
 import { coverageNames, summaryText } from "./lib/labels";
 import { useHealth, type HealthState } from "./useHealth";
+
+const FORM_ID = "review-form";
 
 type Phase =
   | { kind: "idle" }
@@ -52,39 +56,55 @@ export function ReviewApp() {
 
   return (
     <>
-      <ScopeNote health={health} />
+      <div className="mx-auto mt-6 max-w-3xl">
+        <ScopeNote health={health} />
 
-      <form onSubmit={submit} className="mt-6" aria-busy={loading}>
-        <label htmlFor="draft" className="block text-sm font-semibold text-ink">
-          {t("home.draft.label")}
-        </label>
-        <textarea
-          id="draft"
-          name="draft"
-          dir="rtl"
-          lang="ar"
-          rows={9}
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          placeholder={t("home.draft.placeholder")}
-          aria-describedby="draft-hint"
-          autoComplete="off"
-          className="mt-1 block w-full rounded-xl border border-ink/40 bg-white p-4 text-lg leading-9 text-ink placeholder:text-ink/60"
-        />
-        <p id="draft-hint" className="mt-1 text-xs text-ink/80">
-          {t("home.draft.hint")}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-3">
-          <button type="submit" className="btn-primary grow sm:grow-0 sm:px-8" aria-disabled={loading}>
-            {loading ? t("home.submit.loading") : t("home.submit")}
-          </button>
-          <button type="button" className="btn-secondary" onClick={() => setText(t("home.example.draft"))}>
-            {t("home.example")}
-          </button>
-        </div>
-      </form>
+        <form id={FORM_ID} onSubmit={submit} className="card composer mt-4 overflow-hidden" aria-busy={loading}>
+          <label htmlFor="draft" className="eyebrow block px-4 pt-3">
+            {t("home.draft.label")}
+          </label>
+          <textarea
+            id="draft"
+            name="draft"
+            dir="rtl"
+            lang="ar"
+            rows={7}
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            placeholder={t("home.draft.placeholder")}
+            aria-describedby="draft-hint"
+            autoComplete="off"
+            className="block w-full resize-y bg-transparent px-4 py-2 text-lg leading-9 text-ink placeholder:text-ink/55"
+          />
+          <div className="flex flex-col gap-3 border-t border-line bg-tint/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p id="draft-hint" className="flex items-center gap-1.5 text-xs leading-5 text-muted">
+              <Icon name="lock" size={14} />
+              {t("home.draft.hint")}
+            </p>
+            <div className="flex shrink-0 gap-2">
+              <button type="button" className="btn-secondary" onClick={() => setText(t("home.example.draft"))}>
+                {t("home.example")}
+              </button>
+              <button type="submit" className="btn-primary grow sm:px-6" aria-disabled={loading}>
+                {loading && <Icon name="spinner" />}
+                {loading ? t("home.submit.loading") : t("home.submit")}
+              </button>
+            </div>
+          </div>
+        </form>
 
-      <SourcesLine health={health} />
+        <SourcesLine health={health} />
+
+        {phase.kind === "idle" && <UsageGuide />}
+        {phase.kind === "error" && (
+          <Notice tone="error" role="alert" title={t("state.error.title")} className="mt-8">
+            <p>{phase.message}</p>
+            <button type="submit" form={FORM_ID} className="btn-secondary mt-2">
+              {t("state.error.retry")}
+            </button>
+          </Notice>
+        )}
+      </div>
 
       {/* What changed, for assistive technology. The visible result follows. */}
       <p role="status" className="sr-only">
@@ -93,14 +113,7 @@ export function ReviewApp() {
           (phase.result.items.length === 0 ? t("state.noQuotes.title") : summaryText(phase.result))}
       </p>
 
-      {phase.kind === "idle" && <p className="mt-8 text-center text-sm text-ink/80">{t("state.empty")}</p>}
       {loading && <ResultsSkeleton />}
-      {phase.kind === "error" && (
-        <div role="alert" data-status="ERROR" className="status-card mt-8 rounded-xl bg-white p-4 shadow-sm">
-          <h2 className="text-base font-bold text-ink">{t("state.error.title")}</h2>
-          <p className="mt-1 text-sm leading-7 text-ink">{phase.message}</p>
-        </div>
-      )}
       {phase.kind === "done" && (
         <ResultsView result={phase.result} draft={phase.draft} stale={text !== phase.draft} headingRef={resultsHeading} />
       )}
@@ -112,20 +125,61 @@ export function ReviewApp() {
 // and when it does not come, no source is named.
 function ScopeNote({ health }: { health: HealthState }) {
   return (
-    <p className="mt-4 text-center text-base leading-7 text-ink" aria-live="polite">
-      {health.status === "ready" && format("home.scope", { coverage: coverageNames(health.health.coverage) })}
-      {health.status === "loading" && t("home.scope.loading")}
-      {health.status === "unavailable" && t("home.scope.unavailable")}
-    </p>
+    <div aria-live="polite" className="text-center text-sm leading-7 text-ink sm:text-base">
+      {health.status === "ready" && <p>{format("home.scope", { coverage: coverageNames(health.health.coverage) })}</p>}
+      {health.status === "loading" && (
+        <p>
+          <span className="sr-only">{t("home.scope.loading")}</span>
+          <span aria-hidden="true" className="skeleton mx-auto block h-7 w-4/5 max-w-md" />
+        </p>
+      )}
+      {health.status === "unavailable" && <Notice className="text-start">{t("home.scope.unavailable")}</Notice>}
+    </div>
   );
 }
 
+// Under the draft box: what is searched and the data version, and whether the server has no LLM
+// keys (LLM_PROVIDER, LLM_MODEL, LLM_API_KEY), as GET /api/v1/health reports it.
 function SourcesLine({ health }: { health: HealthState }) {
   if (health.status !== "ready") return null;
-  const { coverage, corpusVersion } = health.health;
+  const { coverage, corpusVersion, llmConfigured } = health.health;
   return (
-    <p className="mt-3 text-xs text-ink/80">
-      {format("home.sourcesLine", { coverage: coverageNames(coverage), version: corpusVersion })}
-    </p>
+    <div className="mt-3 space-y-1 px-1 text-xs leading-6 text-muted">
+      <p>{format("home.sourcesLine", { coverage: coverageNames(coverage), version: corpusVersion })}</p>
+      {!llmConfigured && (
+        <p className="flex items-start gap-1.5">
+          <Icon name="info" size={14} className="mt-1" />
+          {t("home.llm.notConfigured")}
+        </p>
+      )}
+    </div>
+  );
+}
+
+const GUIDE_STEPS: ReadonlyArray<{ icon: IconName; label: MessageKey }> = [
+  { icon: "paste", label: "home.guide.1" },
+  { icon: "search", label: "home.guide.2" },
+  { icon: "compare", label: "home.guide.3" },
+];
+
+// The idle state: the three steps, joined by the trace line.
+function UsageGuide() {
+  return (
+    <section aria-label={t("home.guide.title")} className="mt-10">
+      <ol className="flex items-start justify-center">
+        {GUIDE_STEPS.map(({ icon, label }, i) => (
+          <li key={label} className="flex items-start">
+            {i > 0 && <span aria-hidden="true" className="trace-rule mt-5 w-6 sm:w-16" />}
+            <span className="flex w-24 flex-col items-center gap-2 text-center text-xs font-medium text-ink sm:w-28 sm:text-sm">
+              <span className="flex size-10 items-center justify-center rounded-full border border-line bg-surface text-ink shadow-card">
+                <Icon name={icon} size={18} />
+              </span>
+              {t(label)}
+            </span>
+          </li>
+        ))}
+      </ol>
+      <p className="mt-5 text-center text-sm text-muted">{t("state.empty")}</p>
+    </section>
   );
 }

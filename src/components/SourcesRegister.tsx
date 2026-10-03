@@ -1,6 +1,8 @@
 "use client";
 
 import { format, t, type MessageKey } from "@/i18n/ar";
+import { Icon } from "./Icon";
+import { Notice } from "./Notice";
 import { InfoSection } from "./SiteChrome";
 import { useHealth } from "./useHealth";
 
@@ -25,31 +27,49 @@ export const searchedSources = (coverage: readonly string[]): SourceEntry[] =>
 
 export function SourcesRegister() {
   const health = useHealth();
-  if (health.status === "loading") return <p className="mt-6 text-sm text-ink/80">{t("sources.loading")}</p>;
+  if (health.status === "loading") {
+    return (
+      <div role="status" className="mt-8 space-y-3 border-t border-line pt-6">
+        <span className="sr-only">{t("sources.loading")}</span>
+        <div className="skeleton h-6 w-40" />
+        <div className="skeleton h-4 w-full" />
+        <div className="skeleton h-4 w-5/6" />
+        <div className="skeleton h-4 w-2/3" />
+      </div>
+    );
+  }
   if (health.status === "unavailable") {
     return (
-      <p role="alert" className="mt-6 text-sm text-ink">
+      <Notice tone="error" role="alert" className="mt-6">
         {t("sources.unavailable")}
-      </p>
+      </Notice>
     );
   }
   const { coverage, corpusVersion } = health.health;
   return (
     <>
-      <p className="mt-3 text-sm text-ink/80">{format("sources.version", { version: corpusVersion })}</p>
+      <p className="mt-4 inline-block rounded-full border border-line bg-tint px-3 py-1 text-xs font-medium text-muted">
+        {format("sources.version", { version: corpusVersion })}
+      </p>
       {searchedSources(coverage).map((source) => (
         <InfoSection key={source.id} title={t(`sources.${source.id}.title`)}>
-          <dl className="mt-3 space-y-3 text-base leading-8 text-ink">
+          <dl className="mt-3 divide-y divide-line text-base leading-8 text-ink">
             {FIELDS.map((field) => (
-              <div key={field}>
-                <dt className="text-sm font-semibold text-ink/80">{t(`sources.field.${field}`)}</dt>
+              <div key={field} className="py-3 sm:grid sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-4">
+                <dt className="eyebrow sm:pt-1.5">{t(`sources.field.${field}`)}</dt>
                 <dd>{t(`sources.${source.id}.${field}` satisfies MessageKey)}</dd>
               </div>
             ))}
           </dl>
           <p className="mt-3 text-sm">
-            <a href={source.url} target="_blank" rel="noreferrer noopener" className="text-ink underline underline-offset-4">
+            <a
+              href={source.url}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="text-link inline-flex items-center gap-1.5"
+            >
               {t(`sources.${source.id}.linkLabel`)}
+              <Icon name="external" size={14} />
             </a>
           </p>
         </InfoSection>

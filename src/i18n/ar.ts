@@ -63,6 +63,8 @@ export const ar = {
 
   "banner.aiTool": "أداة مدعومة بالذكاء الاصطناعي، وليست بديلاً عن المختص.",
   "a11y.skipToContent": "انتقل إلى المحتوى",
+  "header.home": "عَزْو، الصفحة الرئيسية",
+  "header.nav": "التنقل الرئيسي",
 
   // Home. {coverage} is built from GET /api/v1/health, never written here (docs/DECISIONS.md D-18).
   "home.scope": "يراجع النقول من: {coverage}. لا يُصدر فتاوى ولا يحكم على الأحاديث.",
@@ -75,6 +77,12 @@ export const ar = {
   "home.example": "مثال",
   "home.submit": "راجع النقول",
   "home.submit.loading": "جارٍ مراجعة النقول…",
+  // Shown when GET /api/v1/health says llmConfigured: false (the LLM_* variables are not set).
+  "home.llm.notConfigured": "لم تُضبط مفاتيح النموذج اللغوي على الخادم، فتُستخرج النقول بالقواعد الآلية وحدها.",
+  "home.guide.title": "طريقة الاستعمال",
+  "home.guide.1": "الصق مسودتك",
+  "home.guide.2": "راجع النقول",
+  "home.guide.3": "قارن بنص المصدر",
   // The demo draft uses the two forms the temporary extractor reads: ﴿…﴾, and «…» after «قال رسول الله».
   "home.example.draft":
     "الصبر من أعظم ما يتزود به المؤمن. قال الله تعالى: ﴿يا أيها الذين آمنوا استعينوا بالصبر والصلاة إن الله مع الصابرين﴾ [البقرة: 153].\nوقال سبحانه: ﴿إن مع العسر يسرا﴾ [الشرح: 7].\nوقال تعالى: ﴿الذين إذا أصابتهم مصيبة قالوا إنا لله وإنا له راجعون﴾ [البقرة: 156].\nوقال رسول الله ﷺ: «إنما الأعمال بالنيات».",
@@ -86,6 +94,7 @@ export const ar = {
   "state.empty": "الصق مسودتك ثم اضغط «راجع النقول»، أو جرّب «مثال».",
   "state.loading": "جارٍ مراجعة النقول…",
   "state.error.title": "تعذّر إكمال التحقق",
+  "state.error.retry": "أعد المحاولة",
   "state.error.network": "تعذّر الاتصال بالخدمة، ولم تُراجَع المسودة. تحقق من اتصالك ثم أعد المحاولة.",
   "state.error.unexpected": "وصل من الخدمة رد غير متوقع، فلم تُعرض أي نتيجة. يُرجى إعادة المحاولة لاحقاً.",
   "state.noQuotes.title": "لم نعثر على نقول في المسودة",

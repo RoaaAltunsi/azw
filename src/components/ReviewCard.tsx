@@ -6,8 +6,9 @@ import { format, t } from "@/i18n/ar";
 import { CopySourceButton } from "./CopySourceButton";
 import { DiffLegend, DiffText } from "./DiffText";
 import { ExplanationBox } from "./ExplanationBox";
+import { Icon } from "./Icon";
 import { ScriptureBlock, SourceText } from "./ScriptureBlock";
-import { StatusPill } from "./StatusPill";
+import { StatusIcon, StatusPill } from "./StatusPill";
 import { kindLabel } from "./lib/labels";
 import { groupOccurrences, occurrenceCitation, type Occurrence } from "./lib/occurrences";
 import { draftSegments, hasDiff, hasDifference } from "./lib/segments";
@@ -38,23 +39,25 @@ export function ReviewCard({ item, index }: ReviewCardProps) {
       tabIndex={-1}
       aria-labelledby={titleId}
       data-status={item.status}
-      className="status-card scroll-mt-4 rounded-xl bg-white p-4 shadow-sm"
+      className="card status-card scroll-mt-4 p-4 sm:p-5"
     >
-      <header className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <h4 id={titleId} className="text-sm font-bold text-ink">
-          {format("card.title", { index })}
-        </h4>
+      <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <div>
+          <h4 id={titleId} className="text-base font-bold text-ink">
+            {format("card.title", { index })}
+          </h4>
+          <p className="text-xs leading-5 text-muted">{format("card.claimedAs", { kind: kindLabel(item.claimedKind) })}</p>
+        </div>
         <StatusPill status={item.status} />
-        <span className="text-xs text-ink/80">{format("card.claimedAs", { kind: kindLabel(item.claimedKind) })}</span>
       </header>
 
-      <section className="mt-3" aria-label={t("card.draft.label")}>
-        <h5 className="text-xs font-semibold text-ink/80">{t("card.draft.label")}</h5>
-        <blockquote className="mt-1 rounded-lg bg-tint p-3 font-quote text-lg leading-[2.2] text-ink">
+      <section className="mt-4" aria-label={t("card.draft.label")}>
+        <h5 className="eyebrow">{t("card.draft.label")}</h5>
+        <blockquote className="mt-1 rounded-xl bg-tint px-4 py-3 font-quote text-lg leading-[2.2] text-ink">
           <DiffText segments={draftSegments(item.span, entries)} side="draft" />
         </blockquote>
         {item.citedReference && item.citedReference.raw !== "" && (
-          <p className="mt-1 text-xs text-ink/80">{format("card.citedReference", { raw: item.citedReference.raw })}</p>
+          <p className="mt-1.5 text-xs text-muted">{format("card.citedReference", { raw: item.citedReference.raw })}</p>
         )}
       </section>
 
@@ -68,10 +71,15 @@ export function ReviewCard({ item, index }: ReviewCardProps) {
         </>
       )}
 
-      <p className="mt-3 text-sm leading-7 text-ink">
-        <span className="font-semibold">{t("card.reason.label")}: </span>
-        {item.reasonAr}
-      </p>
+      <div className="status-wash mt-4 flex gap-2.5 px-3.5 py-3 text-sm leading-7 text-ink">
+        <span className="status-ink mt-1.5">
+          <StatusIcon status={item.status} />
+        </span>
+        <p>
+          <span className="font-semibold">{t("card.reason.label")}: </span>
+          {item.reasonAr}
+        </p>
+      </div>
 
       {occurrence && (
         <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -83,6 +91,7 @@ export function ReviewCard({ item, index }: ReviewCardProps) {
               aria-controls={compareId}
               onClick={() => setComparing((open) => !open)}
             >
+              <Icon name="compare" />
               {comparing ? t("card.compare.hide") : t("card.compare.show")}
             </button>
           )}
@@ -125,7 +134,7 @@ function OccurrencePicker({
           type="button"
           aria-pressed={i === selected}
           onClick={() => onSelect(i)}
-          className="rounded-full border border-ink/40 bg-white px-3 py-1 text-xs text-ink aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-white"
+          className="cursor-pointer rounded-full border border-line-strong bg-surface px-3 py-1.5 text-xs text-ink hover:border-ink aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-white"
         >
           {format("card.occurrences.item", { index: i + 1, ref: occurrenceCitation(occurrence) })}
         </button>
@@ -138,26 +147,26 @@ function OccurrencePicker({
 // on a narrow screen), joined by the trace line.
 function CompareView({ id, item, occurrence }: { id: string; item: ReviewItem; occurrence: Occurrence }) {
   return (
-    <section id={id} aria-label={t("card.compare.title")} className="mt-3 rounded-lg border border-ink/20 p-3">
-      <h5 className="text-xs font-semibold text-ink/80">{t("card.compare.title")}</h5>
+    <section id={id} aria-label={t("card.compare.title")} className="mt-3 rounded-xl border border-line p-3">
+      <h5 className="eyebrow">{t("card.compare.title")}</h5>
       <div className="mt-2 grid gap-3 md:grid-cols-[1fr_auto_1fr] md:items-stretch">
         <div>
-          <h6 className="text-xs font-semibold text-ink/80">{t("card.compare.draft")}</h6>
-          <p className="mt-1 rounded-lg bg-tint p-3 font-quote text-xl leading-[2.4] text-ink">
+          <h6 className="eyebrow">{t("card.compare.draft")}</h6>
+          <p className="mt-1 rounded-xl bg-tint p-3 font-quote text-xl leading-[2.4] text-ink">
             <DiffText segments={draftSegments(item.span, occurrence.entries)} side="draft" />
           </p>
         </div>
         <div
           aria-hidden="true"
-          className="border-t-2 border-dashed border-vermilion md:border-s-2 md:border-t-0"
+          className="trace-rule md:border-s-2 md:border-t-0 md:border-dashed md:border-vermilion"
         />
         <div>
-          <h6 className="text-xs font-semibold text-ink/80">{t("card.compare.source")}</h6>
-          <div className="mt-1 rounded-lg border border-ink/20 bg-[#fbf8f0] p-3">
+          <h6 className="eyebrow">{t("card.compare.source")}</h6>
+          <div className="mt-1 rounded-xl border border-line bg-paper p-3">
             {occurrence.entries.map((entry) => (
               <SourceText key={entry.record.id} entry={entry} aligned />
             ))}
-            <p className="mt-2 text-xs text-ink/80">{occurrenceCitation(occurrence)}</p>
+            <p className="mt-2 text-xs text-muted">{occurrenceCitation(occurrence)}</p>
           </div>
         </div>
       </div>

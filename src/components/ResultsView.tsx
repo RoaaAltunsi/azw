@@ -2,8 +2,13 @@ import type { Ref } from "react";
 import type { ReviewResult } from "@/core/types";
 import { t } from "@/i18n/ar";
 import { DraftView } from "./DraftView";
+import { Notice } from "./Notice";
 import { ReviewCard } from "./ReviewCard";
-import { summaryText, warningText } from "./lib/labels";
+import { StatusIcon } from "./StatusPill";
+import { summaryParts, summaryText, warningText } from "./lib/labels";
+
+// The two columns of a result: the reviewed draft, and the cards.
+const RESULT_GRID = "grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:items-start";
 
 interface ResultsViewProps {
   result: ReviewResult;
@@ -15,33 +20,34 @@ interface ResultsViewProps {
 export function ResultsView({ result, draft, stale, headingRef }: ResultsViewProps) {
   const empty = result.items.length === 0;
   return (
-    <section aria-labelledby="results-title" className="mt-8">
-      <h2 id="results-title" ref={headingRef} tabIndex={-1} className="text-xl font-bold text-ink quiet-focus">
-        {t("results.title")}
-      </h2>
+    <section aria-labelledby="results-title" className="mt-10">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-b border-line pb-4">
+        <h2 id="results-title" ref={headingRef} tabIndex={-1} className="text-xl font-bold text-ink quiet-focus">
+          {t("results.title")}
+        </h2>
+        {!empty && <SummaryRow result={result} />}
+      </div>
 
-      {stale && <p className="mt-2 rounded-lg border border-ink/30 bg-white p-3 text-sm text-ink">{t("state.stale")}</p>}
-
-      {!empty && <p className="mt-2 text-base font-semibold text-ink">{summaryText(result)}</p>}
+      {stale && <Notice className="mt-4">{t("state.stale")}</Notice>}
 
       {result.warnings.length > 0 && (
-        <ul aria-label={t("results.notices")} className="mt-3 space-y-1">
+        <ul aria-label={t("results.notices")} className="mt-4 space-y-2">
           {result.warnings.map((code) => (
-            <li key={code} className="rounded-lg border border-ink/20 bg-white px-3 py-2 text-xs leading-6 text-ink/80">
-              {warningText(code)}
+            <li key={code}>
+              <Notice>{warningText(code)}</Notice>
             </li>
           ))}
         </ul>
       )}
 
       {empty ? (
-        <div className="mt-4 rounded-xl bg-white p-4 shadow-sm">
+        <div className="card mx-auto mt-6 max-w-3xl p-5 text-center">
           <h3 className="text-base font-bold text-ink">{t("state.noQuotes.title")}</h3>
-          <p className="mt-2 text-sm leading-7 text-ink">{t("extract.formsNote")}</p>
-          <p className="mt-1 text-sm leading-7 text-ink">{t("state.noQuotes.body")}</p>
+          <p className="mt-2 text-sm leading-7 text-muted">{t("extract.formsNote")}</p>
+          <p className="mt-1 text-sm leading-7 text-muted">{t("state.noQuotes.body")}</p>
         </div>
       ) : (
-        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:items-start">
+        <div className={`mt-4 ${RESULT_GRID}`}>
           <div className="lg:sticky lg:top-4">
             <DraftView draft={draft} items={result.items} />
           </div>
@@ -59,19 +65,50 @@ export function ResultsView({ result, draft, stale, headingRef }: ResultsViewPro
   );
 }
 
+// The counts of the result: one sentence for assistive technology, and the same counts as one
+// chip per status (icon + words) for the eye.
+function SummaryRow({ result }: { result: ReviewResult }) {
+  return (
+    <>
+      <p className="sr-only">{summaryText(result)}</p>
+      <ul aria-hidden="true" className="flex flex-wrap gap-2">
+        {summaryParts(result.summary).map(({ status, text }) => (
+          <li key={status} data-status={status} className="status-pill">
+            <StatusIcon status={status} />
+            {text}
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
 // The loading state: the shape of a result, with nothing in it.
 export function ResultsSkeleton() {
   return (
-    <div aria-hidden="true" className="mt-8 space-y-4">
-      <div className="h-6 w-2/3 rounded bg-ink/10 motion-safe:animate-pulse" />
-      {[0, 1, 2].map((i) => (
-        <div key={i} className="space-y-3 rounded-xl bg-white p-4 shadow-sm">
-          <div className="h-5 w-40 rounded-full bg-ink/10 motion-safe:animate-pulse" />
-          <div className="h-12 rounded-lg bg-ink/10 motion-safe:animate-pulse" />
-          <div className="h-20 rounded-lg bg-ink/5 motion-safe:animate-pulse" />
-          <div className="h-4 w-3/4 rounded bg-ink/10 motion-safe:animate-pulse" />
+    <div aria-hidden="true" className="mt-10">
+      <div className="flex items-center justify-between border-b border-line pb-4">
+        <div className="skeleton h-7 w-36" />
+        <div className="skeleton h-7 w-56 rounded-full" />
+      </div>
+      <div className={`mt-4 ${RESULT_GRID}`}>
+        <div className="card space-y-3 p-4">
+          <div className="skeleton h-4 w-32" />
+          <div className="skeleton h-4 w-full" />
+          <div className="skeleton h-4 w-11/12" />
+          <div className="skeleton h-4 w-3/4" />
         </div>
-      ))}
+        <div className="space-y-4">
+          {[0, 1].map((i) => (
+            <div key={i} className="card space-y-3 p-4">
+              <div className="skeleton h-6 w-44 rounded-full" />
+              <div className="skeleton h-14" />
+              <div className="skeleton h-24" />
+              <div className="skeleton h-4 w-3/4" />
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

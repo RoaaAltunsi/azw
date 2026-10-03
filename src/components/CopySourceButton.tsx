@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { t } from "@/i18n/ar";
+import { Icon } from "./Icon";
 import { sourceCopyText, type Occurrence } from "./lib/occurrences";
 
 type CopyState = "idle" | "done" | "failed";
@@ -23,9 +24,10 @@ export function CopySourceButton({ occurrence }: { occurrence: Occurrence }) {
   return (
     <span className="inline-flex flex-wrap items-center gap-2">
       <button type="button" onClick={copy} className="btn-secondary">
+        <Icon name="copy" />
         {t("card.copy")}
       </button>
-      <span role="status" className="text-xs text-ink/80">
+      <span role="status" className="text-xs text-muted">
         {state === "done" && t("card.copy.done")}
         {state === "failed" && t("card.copy.failed")}
       </span>

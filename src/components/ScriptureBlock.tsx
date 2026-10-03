@@ -1,6 +1,7 @@
 import type { Evidence } from "@/core/types";
 import { format, t } from "@/i18n/ar";
 import { DiffText } from "./DiffText";
+import { Icon } from "./Icon";
 import { kindUi } from "./lib/kind-ui";
 import { occurrenceCitation, type Occurrence } from "./lib/occurrences";
 import { alignedSourceSegments, sourceSegments } from "./lib/segments";
@@ -23,15 +24,15 @@ export function SourceText({ entry, aligned = false }: { entry: Evidence; aligne
 export function ScriptureBlock({ occurrence }: { occurrence: Occurrence }) {
   const several = occurrence.entries.length > 1;
   return (
-    <section className="rounded-lg border border-ink/20 bg-[#fbf8f0] p-4" aria-label={t("card.source.label")}>
-      <h4 className="text-xs font-semibold text-ink/80">{t("card.source.label")}</h4>
+    <section className="rounded-xl border border-line bg-paper p-4" aria-label={t("card.source.label")}>
+      <h4 className="eyebrow">{t("card.source.label")}</h4>
       {occurrence.entries.map((entry) => (
         <div key={entry.record.id} className="mt-1">
           <SourceText entry={entry} />
           <RecordFacts entry={entry} showCitation={several} />
         </div>
       ))}
-      <p className="mt-3 border-t border-ink/15 pt-2 text-sm font-medium text-ink">
+      <p className="mt-3 border-t border-line pt-3 text-sm font-semibold text-ink">
         {format("card.source.reference", { ref: occurrenceCitation(occurrence) })}
       </p>
       <SourceLink entry={occurrence.entries[0]!} />
@@ -46,7 +47,7 @@ function RecordFacts({ entry, showCitation }: { entry: Evidence; showCitation: b
   const { record } = entry;
   if (!showCitation && !record.grade && record.reviewStatus === "reviewed") return null;
   return (
-    <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink/80">
+    <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
       {showCitation && <li>{record.citation.display}</li>}
       {record.grade && <li>{format("card.grade", { text: record.grade.text, by: record.grade.by })}</li>}
       {record.reviewStatus === "pending" && <li>{t("card.source.pending")}</li>}
@@ -57,11 +58,12 @@ function RecordFacts({ entry, showCitation }: { entry: Evidence; showCitation: b
 function SourceLink({ entry }: { entry: Evidence }) {
   const { sourceUrl, sourceName } = entry.record;
   const label = format("card.source.link", { name: sourceName });
-  if (!sourceUrl) return <p className="mt-1 text-xs text-ink/80">{label}</p>;
+  if (!sourceUrl) return <p className="mt-1 text-xs text-muted">{label}</p>;
   return (
     <p className="mt-1 text-xs">
-      <a href={sourceUrl} target="_blank" rel="noreferrer noopener" className="text-ink underline underline-offset-4">
+      <a href={sourceUrl} target="_blank" rel="noreferrer noopener" className="text-link inline-flex items-center gap-1.5">
         {label}
+        <Icon name="external" size={12} />
       </a>
     </p>
   );

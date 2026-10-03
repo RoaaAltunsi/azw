@@ -21,12 +21,12 @@ function goToCard(event: MouseEvent<HTMLAnchorElement>, id: string) {
 // underline style of its own, and the status named for assistive technology.
 export function DraftView({ draft, items }: { draft: string; items: readonly ReviewItem[] }) {
   return (
-    <section aria-labelledby="draft-view-title" className="rounded-xl bg-white p-4 shadow-sm">
+    <section aria-labelledby="draft-view-title" className="card p-4 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto">
       <h3 id="draft-view-title" className="text-sm font-bold text-ink">
         {t("results.draft.title")}
       </h3>
-      {items.length > 0 && <p className="mt-1 text-xs text-ink/80">{t("results.draft.hint")}</p>}
-      <p className="mt-3 whitespace-pre-wrap break-words text-base leading-9 text-ink" lang="ar">
+      {items.length > 0 && <p className="mt-1 text-xs text-muted">{t("results.draft.hint")}</p>}
+      <p className="mt-3 whitespace-pre-wrap break-words border-t border-line pt-3 text-base leading-9 text-ink" lang="ar">
         {draftPieces(draft, items).map((piece, i) => {
           const { item, index } = piece;
           if (!item || index === undefined) return <span key={i}>{piece.text}</span>;
