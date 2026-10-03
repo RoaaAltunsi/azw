@@ -57,10 +57,12 @@ export const SourceRecordSchema = z.strictObject({
 export type SourceRecord = z.infer<typeof SourceRecordSchema>;
 
 // Offsets into the user's draft: [start, end).
-export const SpanSchema = z.object({
+const spanShape = {
   start: z.number().int().nonnegative(),
   end: z.number().int().nonnegative(),
-});
+};
+const spanIsOrdered = { check: (s: { start: number; end: number }) => s.end > s.start, message: "span is empty or reversed" };
+export const SpanSchema = z.object(spanShape).refine(spanIsOrdered.check, spanIsOrdered.message);
 export type Span = z.infer<typeof SpanSchema>;
 
 // AGENTS.md names DiffOp without defining it. Provisional shape, to be settled with src/core/diff:
@@ -101,19 +103,29 @@ export type Explanation = z.infer<typeof ExplanationSchema>;
 export const ExtractedBySchema = z.enum(["regex", "llm", "manual"]);
 export type ExtractedBy = z.infer<typeof ExtractedBySchema>;
 
-export const ReviewItemSchema = z.object({
-  id: z.string().min(1),
-  span: SpanSchema.extend({ text: z.string() }), // exact span in the user's draft
-  claimedKind: ClaimedKindSchema,
-  citedReference: CitedReferenceSchema.optional(),
-  status: StatusSchema,
-  contentLevel: ContentLevelSchema,
-  reasonCode: z.string().min(1), // machine-readable reason, e.g. "REF_MISMATCH_AYAH"
-  reasonAr: z.string().min(1), // deterministic Arabic sentence
-  evidence: z.array(EvidenceSchema),
-  explanation: ExplanationSchema.optional(),
-  extractedBy: z.array(ExtractedBySchema),
-});
+// The status rules decide MATCH; this is only a backstop at the boundary (AGENTS.md §2.1, §2.3, §4):
+// a MATCH that does not rest on reviewed records is rejected, whoever produced it.
+export const ReviewItemSchema = z
+  .object({
+    id: z.string().min(1),
+    // exact span in the user's draft
+    span: z.object({ ...spanShape, text: z.string().min(1) }).refine(spanIsOrdered.check, spanIsOrdered.message),
+    claimedKind: ClaimedKindSchema,
+    citedReference: CitedReferenceSchema.optional(),
+    status: StatusSchema,
+    contentLevel: ContentLevelSchema,
+    reasonCode: z.string().min(1), // machine-readable reason, e.g. "REF_MISMATCH_AYAH"
+    reasonAr: z.string().min(1), // deterministic Arabic sentence
+    evidence: z.array(EvidenceSchema),
+    explanation: ExplanationSchema.optional(),
+    extractedBy: z.array(ExtractedBySchema).min(1),
+  })
+  .refine(
+    (item) =>
+      item.status !== "MATCH" ||
+      (item.evidence.length > 0 && item.evidence.every((e) => e.record.reviewStatus === "reviewed")),
+    { path: ["status"], message: "MATCH requires evidence, and every evidence record must be reviewed" },
+  );
 export type ReviewItem = z.infer<typeof ReviewItemSchema>;
 
 export const API_VERSION = "1";

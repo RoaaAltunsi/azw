@@ -21,8 +21,8 @@ const coreBoundary = {
             message: "src/core must not depend on Next.js or React.",
           },
           {
-            // "@/app/…", "src/app/…", "../llm/…", "../../components/…" and the bare folders.
-            regex: "^(@/|src/|(\\.\\./)+)(app|components|llm)(/|$)",
+            // "@/app/…", "src/app/…", "../llm/…", "./../../components/…" and the bare folders.
+            regex: "^(@/|src/|(\\.{1,2}/)*\\.\\./)(app|components|llm)(/|$)",
             message: "src/core must not import from src/app, src/components or src/llm.",
           },
         ],
@@ -31,6 +31,18 @@ const coreBoundary = {
     "no-restricted-globals": [
       "error",
       { name: "fetch", message: "src/core does no I/O; inject a port instead." },
+    ],
+    "no-restricted-syntax": [
+      "error",
+      {
+        // no-restricted-imports does not see import("…").
+        selector: "ImportExpression",
+        message: "src/core uses static imports only, so the boundary rule can check them.",
+      },
+      {
+        selector: "MemberExpression[object.name=/^(globalThis|window|self)$/][property.name='fetch']",
+        message: "src/core does no I/O; inject a port instead.",
+      },
     ],
   },
 };

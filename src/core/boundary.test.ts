@@ -21,6 +21,8 @@ const forbidden = [
   "../../llm/provider",
   "../../components/Badge",
   "../app/layout",
+  "./../../llm",
+  "next/font/google",
 ];
 
 test.each(forbidden)("src/core may not import %s", async (source) => {
@@ -38,6 +40,22 @@ test.each(allowed)("src/core may import %s", async (source) => {
 test("src/core may not call fetch", async () => {
   const ids = await ruleIds(`export const r = fetch("https://example.com");\n`, "src/core/corpus/sample.ts");
   expect(ids).toContain("no-restricted-globals");
+}, 30_000);
+
+const evasions = [
+  `export const m = import("react");`,
+  `export const r = globalThis.fetch("https://example.com");`,
+  `export const r = window.fetch("https://example.com");`,
+];
+
+test.each(evasions)("src/core may not use %s", async (code) => {
+  const ids = await ruleIds(`${code}\n`, "src/core/corpus/sample.ts");
+  expect(ids).toContain("no-restricted-syntax");
+}, 30_000);
+
+test("the restriction also covers .tsx files in src/core", async () => {
+  const ids = await ruleIds(`import "react";\n`, "src/core/status/sample.tsx");
+  expect(ids).toContain("no-restricted-imports");
 }, 30_000);
 
 test("the restriction applies only to src/core", async () => {

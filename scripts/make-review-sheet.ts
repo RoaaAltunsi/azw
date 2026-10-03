@@ -112,7 +112,6 @@ const MUSLIM_EXAMPLES: Array<[SourceRecord, string]> = [
 
 const b = report.bukhari;
 const m = report.muslim;
-const gz = src("quran").source.upstreamChecksum!;
 const firstShared = (f: HadithFindings): string => f.sharedTextGroups[0]!.map((id) => `\`${id}\``).join(" = ");
 
 const md = `# Azw — data review sheet

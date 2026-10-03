@@ -57,6 +57,15 @@ const invalid: Array<[string, unknown]> = [
   ["explanation not marked as generated", { ...item, explanation: { text: "شرح", generated: false } }],
   ["unknown extractor", { ...item, extractedBy: ["memory"] }],
   ["negative span offset", { ...item, span: { start: -1, end: 2, text: "نص" } }],
+  ["reversed span", { ...item, span: { start: 5, end: 2, text: "نص" } }],
+  ["empty span", { ...item, span: { start: 3, end: 3, text: "" } }],
+  ["no extractor", { ...item, extractedBy: [] }],
+  ["MATCH without evidence", { ...item, evidence: [] }],
+  ["MATCH on a pending record", { ...item, evidence: [{ record: { ...record, reviewStatus: "pending" }, score: 1 }] }],
+  [
+    "MATCH mixing reviewed and pending records",
+    { ...item, evidence: [{ record, score: 1 }, { record: { ...record, reviewStatus: "pending" }, score: 1 }] },
+  ],
 ];
 
 test.each(invalid)("ReviewItem rejects %s", (_name, value) => {
@@ -77,8 +86,14 @@ test("SourceRecord rejects unknown fields and an invalid review status", () => {
   expect(SourceRecordSchema.safeParse({ ...record, reviewStatus: "approved" }).success).toBe(false);
 });
 
-test("the built corpus conforms to SourceRecordSchema", () => {
-  const corpus = JSON.parse(readFileSync("data/corpus/bukhari.json", "utf8")) as { records: unknown[] };
+test.each(["DIFFERS", "NOT_FOUND", "NEEDS_SPECIALIST", "ERROR"])("%s does not need reviewed evidence", (status) => {
+  expect(ReviewItemSchema.safeParse({ ...item, status, evidence: [] }).success).toBe(true);
+  const pending = [{ record: { ...record, reviewStatus: "pending" }, score: 0.8 }];
+  expect(ReviewItemSchema.safeParse({ ...item, status, evidence: pending }).success).toBe(true);
+});
+
+test.each(["quran", "bukhari", "muslim"])("the built %s corpus conforms to SourceRecordSchema", (collection) => {
+  const corpus = JSON.parse(readFileSync(`data/corpus/${collection}.json`, "utf8")) as { records: unknown[] };
   expect(corpus.records.length).toBeGreaterThan(0);
   for (const r of corpus.records) SourceRecordSchema.parse(r);
 });
