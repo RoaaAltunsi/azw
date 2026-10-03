@@ -4,6 +4,7 @@
 //
 // The regex extractor below is both the fallback when no LLM takes part and the baseline the LLM
 // extractor is compared with. Every rule is documented in docs/ARCHITECTURE.md ("Regex extractor").
+// What an LLM returns is read in ./llm (schema, span validation); ./merge makes one list of both.
 import type { ClaimedKind, ContentLevel, ExtractedBy } from "../types";
 
 export interface ExtractedQuote {
@@ -136,7 +137,8 @@ function trimmed(draft: string, start: number, end: number, edge: RegExp = /\s/)
   return { start, end };
 }
 
-const wordCount = (text: string): number => text.split(/\s+/).filter((word) => LETTER.test(word)).length;
+// Words that hold a letter: what the one-word rule counts.
+export const wordCount = (text: string): number => text.split(/\s+/).filter((word) => LETTER.test(word)).length;
 
 // The quote whose opening mark stands at `at`. null = a mark stands there but gives no quote of
 // this phrase (﴿, an unclosed or nested mark); undefined = no quotation mark there.
@@ -171,7 +173,7 @@ interface Found {
 // Two phrases before one quote («يُروى عن النبي ﷺ أنه قال», «قال رسول الله ﷺ: قال الله تعالى»):
 // the weaker claim is kept. An unclear attribution stays unclear, and words the writer gives as a
 // hadith are not claimed as a verse.
-const weakerKind = (outer: ClaimedKind, inner: ClaimedKind): ClaimedKind =>
+export const weakerKind = (outer: ClaimedKind, inner: ClaimedKind): ClaimedKind =>
   outer === UNCLEAR || inner === UNCLEAR ? UNCLEAR : outer === "quran" ? inner : outer;
 
 export function createRegexExtractor(patterns: readonly AttributionPattern[]): Extractor {

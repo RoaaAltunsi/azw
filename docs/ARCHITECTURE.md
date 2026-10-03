@@ -725,7 +725,7 @@ the `WORDING_DIFF` sentence points to the source without repeating the altered w
 Code: `src/core/extract/index.ts`. Tests: `src/core/extract/index.test.ts` (hand-written drafts).
 
 `regexExtractor` is an `Extractor` (`draft → ExtractedQuote[]`, `extractedBy: "regex"`). It is the
-fallback when no LLM takes part and the baseline the LLM extractor (P10) is compared with. It reads
+fallback when no LLM takes part and the baseline the LLM extractor ("LLM extractor" below) is compared with. It reads
 the draft only: no corpus, no alias list, no LLM. It decides no status; a quote it returns is a
 claim of the writer that the matchers then check.
 
@@ -800,24 +800,91 @@ comma, dash or colon at either end. `draft.slice(start, end) === text`, always.
   list («يقول النبي», «قال الله عز وجل» without «تعالى», «رُوي»), `{…}` and single quotes are not
   read (`docs/BACKLOG.md`).
 - An unbracketed «سورة البقرة: 153» after an unmarked verse is inside the span.
-- Interpretive claims and personal rulings are not detected: that is the LLM extractor's (P10).
+- Interpretive claims and personal rulings are not detected: that is the LLM extractor's.
+
+## LLM extractor
+
+Code: `src/core/extract/llm.ts` (the output schema and `validateSpans`, pure), `src/llm/`
+(`index.ts`: configuration; `openai.ts`: the adapter; `prompts/extract.ts`: the prompt). Tests:
+`src/core/extract/llm.test.ts`, `src/llm/openai.test.ts` (a fake client, no network), and the
+mocked port in `src/core/review.test.ts`. Choices: `docs/DECISIONS.md` D-21.
+
+The model reads the draft and returns text; it returns no offset and decides nothing. What it
+returns is untrusted input (`AGENTS.md` §2 rule 9).
+
+**The port** (`LlmPort`, declared in `src/core/review.ts`):
+`extractQuotes(draft) → Promise<LlmExtraction>` and `explainDiff(input) → Promise<string | null>`
+(not called: P12; the adapter returns `null`). A rejection means that no LLM took part.
+
+**The output schema** (`LlmExtractionSchema`, zod; the same object is the structured-output schema
+sent to the provider and the check `review()` runs on what the port returns):
+
+```ts
+{ items: Array<{ quote: string;
+                 kind: "quran" | "hadith" | "unclear_attribution" | "interpretive_claim";
+                 claimLevel: "C" | "D" | null;
+                 citedReference: string | null;
+                 attributionPhrase: string | null }>,
+  isDraft: boolean }
+```
+
+`citedReference` and `attributionPhrase` are kept for the evaluation only. Nothing in the pipeline
+reads them: the reference of an item is the one `attachReference` finds. A field outside the
+schema (a status, an offset) is not read.
+
+**`validateSpans(draft, items)`** → `{ quotes: ExtractedQuote[], notInDraft }`:
+
+- Each quote is looked up in the draft as literal text; only the whitespace between its words may
+  differ. A diacritic, a letter or a completed text is a difference: the quote is not in the draft.
+- The offsets are those of the place found, and the span text is `draft.slice(start, end)`.
+- A quote returned twice takes the next occurrence. A further copy, when the draft has no further
+  occurrence, is dropped and not counted.
+- A quote that is not found is dropped and counted in `notInDraft`; the result then carries the
+  warning `LLM_SPAN_NOT_IN_DRAFT`.
+- A quote of one word (words that hold a letter) is dropped, unless its kind is
+  `interpretive_claim`.
+- `claimLevel` is kept for an interpretive claim only (`null` there is `"C"`).
+
+**The adapter** (`createOpenAiPort`): the OpenAI Responses API with structured output
+(`responses.parse`, the JSON schema made from the zod schema by the SDK's `zodTextFormat`, strict).
+
+| | |
+|---|---|
+| System prompt | Appendix A1 of the prompt pack, verbatim (`EXTRACT_SYSTEM_PROMPT`, `EXTRACT_PROMPT_VERSION = "1"`), sent as `instructions` |
+| Draft | A user message of its own: `<draft>\n…\n</draft>` |
+| Temperature | 0. A model that refuses the parameter (HTTP 400 naming `temperature`) is called again without it, and without it from then on |
+| Timeout | `LLM_TIMEOUT_MS` (15000) for the extraction as a whole, the retry included: one `AbortSignal` |
+| Retry | One, and only after a connection error, 429 or 5xx. Not after a timeout, a 4xx, a refusal or a cut output. The SDK's own retries are off |
+| Storage | `store: false` |
+| Logging | None |
+
+`createLlmPort(readLlmConfig())` returns the port when `LLM_PROVIDER`, `LLM_MODEL` and
+`LLM_API_KEY` are set and an adapter exists for the provider (`openai`); otherwise `undefined`,
+and the review runs on the regex extractor. A new provider is one adapter file and one entry of
+`PROVIDERS` in `src/llm/index.ts`.
+
+Limits: the automated tests use a fake client. Against the provider the adapter was run by hand
+only, on seven short drafts through the running app (2026-10-03, `docs/DECISIONS.md` D-21, "Live
+run"); the prompt was not measured on the evaluation cases (P14). A draft that contains the text `</draft>` closes the delimiter early; the draft is not
+rewritten for it, and what the model returns is validated whatever it read.
 
 ## Orchestrator
 
-Code: `src/core/review.ts`, `src/core/extract/index.ts` (see "Regex extractor"). Tests:
-`src/core/review.test.ts` (fixture records), `src/core/extract/index.test.ts`, and
-`src/server/quran-review.integration.test.ts` (real corpus).
+Code: `src/core/review.ts`, `src/core/extract/` (`index.ts`: "Regex extractor"; `llm.ts`: "LLM
+extractor"; `merge.ts`: step 3 below). Tests: `src/core/review.test.ts` (fixture records, a mocked
+`LlmPort`), `src/core/extract/*.test.ts`, and `src/server/quran-review.integration.test.ts` (real
+corpus).
 
 `review(draft, deps)` returns a `Promise<ReviewResult>`. It does no I/O and reads no clock of its
-own: everything comes in through `deps`. The same draft with the same `deps` gives the same result,
-ids included; a result holds no time.
+own: everything comes in through `deps`. The same draft with the same `deps` and the same answer
+of the LLM gives the same result, ids included; a result holds no time.
 
 | `deps` | |
 |---|---|
 | `index`, `aliases`, `corpusVersion`, `coverage` | From `loadCorpus`. `coverage` is what the corpus holds |
-| `extractors` | `Extractor[]`, in priority order. An extractor is a function `draft → ExtractedQuote[]`, each `{ span, claimedKind, claimLevel?, extractedBy }` |
-| `llm?` | `LlmPort` (`extractQuotes`, `explainDiff`). Declared for P10; nothing calls it yet |
-| `now` | The clock, for the time budget of LLM calls (P10). Not read yet |
+| `extractors` | `Extractor[]`, in priority order, all before the LLM. An extractor is a function `draft → ExtractedQuote[]`, each `{ span, claimedKind, claimLevel?, extractedBy }` |
+| `llm?` | `LlmPort`. Absent = no LLM takes part. Its time budget is the adapter's own |
+| `now` | The clock. Not read |
 | `matchers?` | The matcher registry; defaults to `matchers` of `src/core/matchers`. A test passes its own |
 | `limits?` | Defaults to `REVIEW_LIMITS` |
 
@@ -825,14 +892,32 @@ ids included; a result holds no time.
 
 The order is that of `AGENTS.md` §6.
 
-1. **Extract.** Every extractor reads the draft. Until P10 no LLM takes part, so every result
-   carries the warning `LLM_UNAVAILABLE_REGEX_ONLY`.
-2. **Validate.** A span is kept only if it lies in the draft and `draft.slice(start, end)` is its
-   `text`. This holds for every extractor, not only the LLM.
-3. **Merge.** In draft order. The same span from two extractors is one quote whose `extractedBy`
-   names both (the kind of the first extractor in `deps.extractors` is kept). A span that overlaps
-   one already kept is dropped: the earlier start wins, then the longer span. Then the item limit
-   is applied.
+1. **Extract.** `deps.llm.extractQuotes(draft)` is started, the extractors read the draft, and the
+   LLM's answer is awaited. When no LLM took part (none was passed in, the call failed or timed
+   out, or the answer does not fit `LlmExtractionSchema`) the result carries the warning
+   `LLM_UNAVAILABLE_REGEX_ONLY`, and only then.
+2. **Validate.** An extractor's span is kept only if it lies in the draft and
+   `draft.slice(start, end)` is its `text`. The LLM's quotes go through `validateSpans` ("LLM
+   extractor"): offsets computed in the draft; a quote the draft does not hold is dropped, with
+   the warning `LLM_SPAN_NOT_IN_DRAFT`.
+   **Not a draft.** `isDraft: false` counts only when the extractors found no quote either: then
+   the result has zero items and the warning `NOT_A_DRAFT`. When they found a quote, everything
+   is reviewed as usual: the model's output never removes an item.
+3. **Merge** (`mergeQuotes`, `src/core/extract/merge.ts`). In draft order; a place of the draft
+   belongs to one item only.
+   - *The same item*: identical spans, or an overlap with intersection over union ≥ 0.5
+     (`SAME_ITEM_MIN_IOU`). One quote whose `extractedBy` names every extractor. The LLM's span is
+     kept, because a regex quote without marks runs to the sentence end. The kind is the weaker
+     claim (D-20 item 2: `unclear_attribution`, then any other kind, then `quran`; of two other
+     kinds, the earlier extractor's), except that a regex `﴿…﴾` quote stays `quran`.
+   - An `interpretive_claim` and a quotation are never the same item. A claim whose span
+     overlaps a quotation («يجوز لك أن تفطر لقوله تعالى: ﴿…﴾») is cut to the part outside it,
+     before anything else: the longest stretch no quotation covers (the first, of two equally
+     long), trimmed of whitespace, marks and punctuation. Both are items. A claim with no letter
+     left is dropped. So a claim never removes a quotation.
+   - *Any other overlap*: one span is kept. The earlier start wins, then the longer span.
+
+   Then the item limit is applied.
 4. **References.** `parseReferences(draft, aliases)` once per draft.
 5. **Per item**: `attachReference` → `matchAll` (every registered matcher, whatever the claimed
    kind) → `decide` → `reasonAr` → `evidenceOf` for the occurrences that are shown. The word diff
@@ -846,7 +931,11 @@ typed by `ParsedReferenceSchema` (`docs/DECISIONS.md` D-17).
 **Item ids** are `item-<start>-<end>`: the position of the span in the draft. Step 3 leaves at most
 one item per place, so they are unique.
 
-**The extractor** the API passes in is `regexExtractor` ("Regex extractor" above).
+**What the API passes in**: `regexExtractor` as the one extractor, and as `llm` the port built from
+the `LLM_*` variables (`createLlmPort`, built on the first request and kept), or nothing.
+
+**Warnings**, in this order: `LLM_UNAVAILABLE_REGEX_ONLY`, `LLM_SPAN_NOT_IN_DRAFT`, `NOT_A_DRAFT`,
+`ITEM_LIMIT_REACHED`. The UI shows each with its sentence `warning.<CODE>` of `src/i18n/ar.ts`.
 
 ### Coverage
 
@@ -915,7 +1004,8 @@ validation above and be answered with 500. `grade` is copied only when the recor
 
 **Settings** (`.env.example`), read on each request; a missing or malformed value falls back to
 the default: `MAX_DRAFT_CHARS` (12000, UTF-16 code units), `RATE_LIMIT_PER_MIN` (10),
-`CORS_ALLOWLIST` (empty).
+`CORS_ALLOWLIST` (empty). The LLM: `LLM_PROVIDER` (`openai`), `LLM_MODEL`, `LLM_API_KEY`,
+`LLM_TIMEOUT_MS` (15000), read once, on the first request ("LLM extractor").
 
 **Rate limit.** A token bucket per client in memory: `RATE_LIMIT_PER_MIN` tokens, refilled evenly
 over a minute. The client is the first address of `X-Forwarded-For` (else `X-Real-IP`). Limits:
@@ -937,7 +1027,9 @@ that throws does not change the answer.
 `{ ok, corpusVersion, coverage, llmConfigured }`. `coverage` is the searched coverage, as in a
 result. `llmConfigured` is true when `LLM_PROVIDER`, `LLM_MODEL` and `LLM_API_KEY` are all set; it
 does not say that an LLM is used. When the corpus does not load: 503 with `ok: false`,
-`corpusVersion: null`, `coverage: []`. The first call loads the corpus (about 0.8 s).
+`corpusVersion: null`, `coverage: []`. The first call loads the corpus (about 0.8 s). Whether an
+LLM took part in a review is read from the result: it did unless the warning
+`LLM_UNAVAILABLE_REGEX_ONLY` is there.
 
 ### Deployment
 

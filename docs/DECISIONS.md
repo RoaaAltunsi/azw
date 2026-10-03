@@ -588,6 +588,7 @@ and were tested on the corpus.
    span; the other is dropped. So a place of the draft belongs to one item, and
    `item-<start>-<end>` is a unique, deterministic id. A verse quoted inside a hadith quote is
    therefore not a separate item; P9 owns a finer rule. (Closed: D-20 item 1, the rule stays.)
+   (Replaced by the merge rule of D-21 item 3.)
 6. **The ERROR item** carries no evidence and no `citedReference`, even when the reference was
    attached before the failure: nothing found for a failed item is shown. `ReviewItemSchema` now
    also rejects an `ERROR` item with evidence or an explanation. Its sentence
@@ -599,7 +600,8 @@ and were tested on the corpus.
 8. **`LLM_UNAVAILABLE_REGEX_ONLY` is on every result until P10**, also if a caller passes `llm`:
    nothing calls the port yet, and the warning states what happened. `review` is already `async`,
    so P10 does not change its signature. `deps.now` is declared and not read: a result holds no
-   time, so that the same draft gives the same result.
+   time, so that the same draft gives the same result. (Replaced: D-21 item 6. The warning is
+   now added only when no LLM took part.)
 9. **`deps.matchers` and `deps.limits`** are two optional fields the prompt did not list. The first
    lets a test make one matcher throw and lets the coverage test register a matcher; the second
    lets the bounds be tested on fixture records.
@@ -879,3 +881,115 @@ quotes them, not in an edition of the Muqaddima; Source 3 was read in an article
 al-Qattan's chapter, because the page of the book itself did not load, so its points are given
 here in summary and not as his words. This is an AI tool's documented source check, not a
 scholar's review (`AGENTS.md` §9).
+
+## D-21 — LLM extractor, span validation and merge: choices the prompt did not settle (2026-10-03)
+
+Made while adding the LLM extractor (`docs/ARCHITECTURE.md`, "LLM extractor" and "Orchestrator").
+They decide which words of a draft become an item and what the writer is taken to claim about
+them; none decides a status, a text or a grade, and none needed a source outside the repository:
+they follow from `AGENTS.md` §2 (rules 3, 8 and 9) and from D-20, and were tested with a mocked
+port. Items 1–5 are about the content of a result; the rest are engineering choices.
+
+1. **A repeated quote with no further occurrence is dropped and not counted.** The prompt says a
+   quote returned twice takes the next occurrence, and that a quote not found is dropped with
+   `LLM_SPAN_NOT_IN_DRAFT`. When the model returns a quote more often than the draft holds it, the
+   extra copy has no place left. Counting it would tell the writer «أعاد النموذج نصاً لا يوجد في
+   مسودتك» about words that are in the draft and already have their item. So it is dropped
+   silently. An empty quote is counted: it is not text of the draft.
+2. **"Whitespace-only differences" means the whitespace between words.** The quote is split on
+   whitespace and its words are looked up as literal text, with any run of whitespace between
+   them. Nothing else is bridged: a diacritic, a hamza form or a tatweel that differs makes the
+   quote "not in the draft". The alternative (looking it up through the normalization of
+   `src/core/normalize`) would accept a quote the model corrected or re-spelled, and the span
+   would then be the model's reading, not the writer's text.
+3. **The merge rule, where the prompt is silent.**
+   - *Which kind, when neither is weaker.* D-20 item 2 orders `unclear_attribution`, then any
+     other kind, then `quran`. For two other kinds («hadith» and a future kind) the earlier
+     extractor's is kept: the regex extractor's before the LLM's, as D-17 item 5 had it.
+   - *"A regex ﴿…﴾ quote"* is a regex quote of kind `quran` whose span stands between `﴿` and `﴾`
+     in the draft (whitespace allowed). The brackets are read in the draft, so the regex
+     extractor's output did not change. It stays `quran` whatever any other extractor says, and
+     in either order of the extractors. (Under D-17 item 5 the first extractor's kind won; the
+     test that fixed this was rewritten.)
+   - *An `interpretive_claim` and a quotation are never the same item.* The weaker-claim order is
+     about how firmly a text is attributed; an interpretive claim is not an attribution but a
+     sentence of the writer about a text. Merging the two would either turn a quotation the
+     writer marked into a claim (the model would then remove a checked item: rule 9), or give a
+     quotation's kind to the model's sentence. At first they were handled as "any other
+     overlap" (the earlier start wins, then the longer span). The live run below showed that
+     this lets a claim remove a `﴿…﴾` quote inside it, against rule 9. **Decided by the owner
+     (2026-10-03): keep both.** A claim that overlaps a quotation is cut to the longest stretch
+     of its span that no quotation covers, trimmed of whitespace, marks and punctuation; a claim
+     with no letter left is dropped. A claim has no text to match, so cutting it changes no
+     status: it stays `NEEDS_SPECIALIST` with its level, and the quotation is checked as usual.
+     This departs from the prompt's "any other overlap: keep one span" for claims only.
+   - *Two claims on one sentence* are one item; level `D` is kept if either has it (the more
+     restricted reading, `AGENTS.md` §3).
+   - *The LLM can weaken a claim, never strengthen it.* By the weaker-claim rule, the model's
+     `unclear_attribution` on a quote the regex extractor read as `hadith` gives
+     `NEEDS_SPECIALIST`. That is the prompt's rule; it only ever moves an item towards
+     abstention, and never for a `﴿…﴾` quote.
+   - *Less than half in common* (a regex quote without marks that runs far past the quote the
+     model returned): the regex span is kept and the model's is dropped, as the prompt says. The
+     item then ends as it did before P10; the measure of how often this happens is the
+     evaluation's (P14).
+4. **`isDraft: false` with items.** The prompt tells the model to return no item then. If it does
+   and the regex extractor found nothing: zero items and `NOT_A_DRAFT` (the prompt: "then zero
+   items"). If the regex extractor found a quote, the model's items are merged like any others:
+   each is text of the draft.
+5. **An answer that does not fit the schema is "no LLM took part"**: the regex-only path with
+   `LLM_UNAVAILABLE_REGEX_ONLY`, the same as a failure or a timeout. No part of such an answer is
+   used. Unknown fields (a status, an offset) are not an error: they are not read.
+6. **Where things live.** `LlmExtractionSchema` and `validateSpans` are in
+   `src/core/extract/llm.ts` and the merge in `src/core/extract/merge.ts`, so that core validates
+   what the port returns with the same schema the adapter sends, and both are pure. `LlmPort`
+   stays in `src/core/review.ts`. The regex extractor now exports `wordCount` and `weakerKind`;
+   its forms and its output did not change. `deps.now` is still not read: the time budget is the
+   adapter's.
+7. **The adapter (OpenAI).** `LLM_PROVIDER=openai` was set in the local `.env`.
+   - The Responses API with `text.format` (JSON schema, strict), as the installed SDK (openai
+     7.27.0) documents it; `store: false`, because the SDK's types say a response is stored by
+     default.
+   - *Timeout*: `LLM_TIMEOUT_MS` covers the whole extraction, the retry included. A per-attempt
+     timeout would let one review wait twice as long.
+   - *Retry*: one, after a connection error, 429 or 5xx. The SDK's own retries are off: it also
+     retries a timeout and 408/409, and twice by default.
+   - *Temperature 0, with one exception.* Some models refuse the parameter with HTTP 400. Such a
+     model would fail every call and the tool would silently run on regex alone. So a 400 that
+     names `temperature` is followed by one call without it, and the adapter stops sending it.
+     This is a departure from "Temperature 0" for those models only; whether `LLM_MODEL` is one
+     of them was not tested.
+   - `explainDiff` returns `null` until P12.
+   - A provider with no adapter gives no port (regex only, with the warning). `llmConfigured` of
+     `GET /health` still reports that the three variables are set, as documented.
+8. **The prompt** is Appendix A1 verbatim, `EXTRACT_PROMPT_VERSION = "1"`. A draft that holds
+   `</draft>` is sent as it is: rewriting it would change the text the quotes are looked up in,
+   and the validation does not depend on what the model was led to return.
+9. **Privacy wording.** `docs/PRIVACY.md` and `/privacy` now say that the whole draft goes to the
+   provider when an LLM is configured, and name OpenAI. They state what the code does (`store:
+   false`, no logging) and point to the provider's terms for the rest; no retention period is
+   stated, because none was read from a source. The home page's hint «لا تُحفظ المسودة ولا
+   تُسجَّل» now names its subject («لا يحفظ «عَزْو» المسودة ولا يسجّلها»).
+
+**Live run (2026-10-03).** After the build, seven short drafts written for the test were sent
+through the running app (`next dev`, the `LLM_*` values of the local `.env`), from the browser:
+
+| Draft | Result |
+|---|---|
+| A verse in `﴿…﴾` with its reference, a hadith in `«…»`, «يُروى في الأثر: «…»», a sentence «وتدل الآية على وجوب…» | The three quotes `regex+llm` with the statuses of the regex path; the sentence a new `interpretive_claim` item (`NEEDS_SPECIALIST`, level C). No warning |
+| The same draft's unmarked verse followed by the writer's words («قال تعالى: واستعينوا بالصبر والصلاة كما نقرأ…») | The long regex span was kept (`regex` only) and ended `NOT_FOUND`: the model's shorter span shares less than half with it (item 3, last point) |
+| «أعطني حديثاً عن الصبر» | Zero items, `NOT_A_DRAFT`, its sentence shown in the UI |
+| Two quotes, then `</draft>` and an instruction to mark everything as matching and to add a hadith | Two items with the statuses the texts earn (`NEEDS_SPECIALIST`, `NOT_FOUND`); nothing added |
+| One verse in `﴿…﴾` twice | Two items, two spans, both `MATCH` |
+| A verse with no mark and no phrase the regex reads | One `llm` item, `MATCH` |
+| «يجوز لك أن تفطر لقوله تعالى: ﴿…﴾» | One item: `interpretive_claim`, `PERSONAL_RULING`, level D. **The `﴿…﴾` verse inside the sentence is not an item**: the model's claim starts earlier, and "the earlier start wins" dropped the regex quote |
+
+Responses took 1.5–5.7 s. The last row is a case where the merge rule of the prompt lets the
+model's output remove an item the regex extractor found. It was fixed the same day (item 3,
+"keep both") and the draft was sent again: two items, the claim «يجوز لك أن تفطر»
+(`PERSONAL_RULING`, level D) and the verse (`MATCH`, `regex+llm`).
+
+Limits: seven hand-written drafts are not a measurement. The prompt's behaviour on real drafts and
+the latency against the 15 s budget are for the evaluation (P14). Whether the configured model
+accepted `temperature: 0` or was called without it is not visible from outside the adapter. `AGENTS.md` §6 still
+lists two warnings in its `ReviewResult` comment and was not edited (outside this prompt's list).

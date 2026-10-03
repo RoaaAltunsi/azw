@@ -2,11 +2,12 @@
 // src/app/api/v1/*/route.ts only wires them. Documented in docs/ARCHITECTURE.md ("API v1").
 //
 // Privacy (AGENTS.md §2 rule 8): nothing here stores or logs the draft, a quote or the client
-// address. A log entry holds the request id, the length, timings, item counts and statuses only;
+// address. The draft leaves the server only for the LLM provider, when one is configured (the
+// adapter in src/llm logs nothing either). A log entry holds the request id, the length, timings, item counts and statuses only;
 // an error is logged by its class, never by a message that could quote the draft.
 import { randomUUID } from "node:crypto";
 import { regexExtractor } from "../core/extract";
-import { review, searchedCoverage } from "../core/review";
+import { review, searchedCoverage, type LlmPort } from "../core/review";
 import {
   API_VERSION,
   ApiErrorSchema,
@@ -19,6 +20,7 @@ import {
   type Status,
 } from "../core/types";
 import { format } from "../i18n/ar";
+import { createLlmPort, readLlmConfig } from "../llm";
 import { readApiConfig, type ApiConfig } from "./api-config";
 import { loadCorpus, type LoadedCorpus } from "./corpus-loader";
 import { createRateLimiter, type RateLimiter } from "./rate-limit";
@@ -50,10 +52,14 @@ export interface ApiDeps {
   now: () => number; // ms
   rateLimiter: RateLimiter;
   newRequestId: () => string;
+  // The LLM port built from the LLM_* variables; undefined (or absent) = regex extraction only.
+  llm?: () => LlmPort | undefined;
 }
 
 export function defaultApiDeps(): ApiDeps {
   const now = (): number => performance.now();
+  // Built on the first request and kept: the environment does not change while the server runs.
+  let llm: { port: LlmPort | undefined } | undefined;
   return {
     loadCorpus: () => loadCorpus(),
     config: () => readApiConfig(),
@@ -61,6 +67,7 @@ export function defaultApiDeps(): ApiDeps {
     now,
     rateLimiter: createRateLimiter(now),
     newRequestId: () => randomUUID(),
+    llm: () => (llm ??= { port: createLlmPort(readLlmConfig()) }).port,
   };
 }
 
@@ -232,6 +239,7 @@ export function createReviewHandler(deps: ApiDeps = defaultApiDeps()): {
           corpusVersion: corpus.corpusVersion,
           coverage: corpus.coverage,
           extractors: [regexExtractor],
+          llm: deps.llm?.(),
           now: deps.now,
         });
       } catch (error) {

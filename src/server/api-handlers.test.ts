@@ -1,6 +1,7 @@
 // The API v1 handlers, called with Web Requests, on the real corpus.
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
+import type { LlmPort } from "../core/review";
 import { ApiErrorSchema, HealthSchema, ReviewResultSchema, type ReviewResult } from "../core/types";
 import { t } from "../i18n/ar";
 import { readApiConfig, type ApiConfig } from "./api-config";
@@ -81,6 +82,53 @@ describe("POST /api/v1/review — happy path", () => {
       // Quran records carry no grade in the data, so none is shown.
       expect("grade" in record).toBe(false);
     }
+  });
+});
+
+describe("POST /api/v1/review — the LLM port", () => {
+  const QUOTE = "إنما الأعمال بالنيات";
+  const port = (extractQuotes: LlmPort["extractQuotes"]): LlmPort => ({ extractQuotes, explainDiff: async () => null });
+
+  test("a port that answers takes part: no LLM_UNAVAILABLE_REGEX_ONLY, and the log still holds no text", async () => {
+    const seen: string[] = [];
+    const llm = port(async (draft) => {
+      seen.push(draft);
+      return {
+        items: [
+          { quote: QUOTE, kind: "hadith", claimLevel: null, citedReference: "رواه البخاري", attributionPhrase: "وقال رسول الله ﷺ:" },
+          { quote: "نص ليس في المسودة", kind: "hadith", claimLevel: null, citedReference: null, attributionPhrase: null },
+        ],
+        isDraft: true,
+      };
+    });
+    const { handler, logs } = harness({ llmConfigured: true }, { llm: () => llm });
+    const response = await handler.POST(post({ text: DRAFT }));
+    expect(response.status).toBe(200);
+    const result = ReviewResultSchema.parse(await response.json());
+    expect(seen).toEqual([DRAFT]);
+    expect(result.warnings).toEqual(["LLM_SPAN_NOT_IN_DRAFT"]);
+    expect(result.items.map((i) => [i.span.text, i.extractedBy])).toEqual([
+      ["استعينوا بالصبر والصلاة", ["regex"]],
+      [QUOTE, ["regex", "llm"]],
+    ]);
+    expect(logs[0]).toMatchObject({ outcome: "OK", items: 2, warnings: ["LLM_SPAN_NOT_IN_DRAFT"] });
+    expect(JSON.stringify(logs)).not.toMatch(/[؀-ۿ]/);
+  });
+
+  test("a port that fails → 200 on the regex-only path, with the warning", async () => {
+    const { handler, logs } = harness({ llmConfigured: true }, { llm: () => port(() => Promise.reject(new Error(`provider said: ${DRAFT}`))) });
+    const response = await handler.POST(post({ text: DRAFT }));
+    expect(response.status).toBe(200);
+    const result = ReviewResultSchema.parse(await response.json());
+    expect(result.warnings).toEqual(["LLM_UNAVAILABLE_REGEX_ONLY"]);
+    expect(result.items.map((i) => i.extractedBy)).toEqual([["regex"], ["regex"]]);
+    expect(JSON.stringify(logs)).not.toMatch(/[؀-ۿ]/);
+  });
+
+  test("a request and not a draft → 200 with zero items and NOT_A_DRAFT", async () => {
+    const { handler } = harness({ llmConfigured: true }, { llm: () => port(async () => ({ items: [], isDraft: false })) });
+    const result = ReviewResultSchema.parse(await (await handler.POST(post({ text: "أعطني حديثاً عن الصبر" }))).json());
+    expect([result.items, result.warnings]).toEqual([[], ["NOT_A_DRAFT"]]);
   });
 });
 

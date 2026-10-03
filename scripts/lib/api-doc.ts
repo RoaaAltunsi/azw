@@ -24,7 +24,10 @@ const table = (head: string[], rows: string[][]): string =>
   [`| ${head.join(" | ")} |`, `|${head.map(() => "---").join("|")}|`, ...rows.map((row) => `| ${row.join(" | ")} |`)].join("\n");
 
 const WARNING_NOTES: Readonly<Record<keyof typeof WARNINGS, string>> = {
-  LLM_UNAVAILABLE_REGEX_ONLY: "No LLM took part: the quotes were found by the regex extractor alone, and no explanation was generated.",
+  LLM_UNAVAILABLE_REGEX_ONLY:
+    "No LLM took part (none is configured, or its call failed or timed out): the quotes were found by the regex extractor alone, and no explanation was generated.",
+  LLM_SPAN_NOT_IN_DRAFT: "The LLM returned at least one quote that the draft does not hold. It was dropped and is not among the items.",
+  NOT_A_DRAFT: "The input reads as a request to the tool, not as a draft, and no quote was found in it: `items` is empty.",
   ITEM_LIMIT_REACHED: "The draft holds more quotes than the item limit. The later quotes were not reviewed.",
 };
 
@@ -63,7 +66,8 @@ export async function renderApiDoc(root: string): Promise<string> {
 source with this wording. It never grades a hadith, interprets a verse or issues a ruling.`,
 
     `## POST /api/v1/review`,
-    `Reviews one draft. The draft is not stored and not logged.`,
+    `Reviews one draft. The draft is not stored and not logged. When an LLM is configured on the server,
+the draft is sent to its provider for the extraction of the quotes (\`docs/PRIVACY.md\`).`,
     `### Request`,
     `\`Content-Type: application/json\`. The body:`,
     schemaBlock(ReviewRequestSchema),
@@ -134,7 +138,8 @@ CORS header.`,
 
     `## GET /api/v1/health`,
     `200 when the corpus loads, 503 (\`ok: false\`, \`corpusVersion: null\`) when it does not.
-\`llmConfigured\` says that the three \`LLM_*\` variables are set, not that an LLM is used.`,
+\`llmConfigured\` says that the three \`LLM_*\` variables are set, not that an LLM took part in a
+review: a result without the warning \`LLM_UNAVAILABLE_REGEX_ONLY\` says that.`,
     schemaBlock(HealthSchema),
     `Example:`,
     jsonBlock(health),

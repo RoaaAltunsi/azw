@@ -73,7 +73,8 @@ is built until it is moved into a prompt's scope.
     is dropped, except inside `﴿…﴾` (`docs/DECISIONS.md` D-20 item 7).
   - `ReviewItem` has no field for `layer` / `spelling`. A UI that wants to say "matched in another
     spelling" needs one (an API contract change).
-  - `claimLevel: "D"` must be set by the extractor (P10) for a ruling on a personal case.
+  - `claimLevel: "D"` for a ruling on a personal case is set by the LLM extractor (done in P10);
+    without an LLM no interpretive claim is detected at all.
 - Quran matcher (P5): Tanzil and quran.com Uthmani pastes were not re-measured after D-13 (the
   mushaf 2 text was: 6236 of 6236 ayat end `MATCH`).
 - Hadith matcher (P11), from `docs/DECISIONS.md` D-6 item 4: the reason sentences for
@@ -108,8 +109,8 @@ is built until it is moved into a prompt's scope.
   - Rate limit: a shared store for production; per-instance memory is the demo's limit (D-17 item 10).
   - Merge: a verse quoted inside a hadith quote is dropped as an overlapping span. Decided in P9:
     the rule stays (`docs/DECISIONS.md` D-20 item 1).
-  - `LlmPort` is declared in `src/core/review.ts`; P10 may move it to a file of its own and add a
-    timeout / abort signal (`deps.now` is there for the time budget).
+  - `LlmPort` is declared in `src/core/review.ts`; the timeout is the adapter's (D-21 item 7), and
+    `deps.now` is still not read.
 
 - UI (P7), for later prompts:
   - API gap: a `ReviewItem` has no occurrence index, so the UI reads the places of a quote from
@@ -120,7 +121,8 @@ is built until it is moved into a prompt's scope.
   - API gap: the forms the extractor reads are not in the API. The "no quotes found" sentence
     (`extract.formsNote` in `src/i18n/ar.ts`) was rewritten in P9 and is tied to
     `ATTRIBUTION_PATTERNS` by a test (D-20 item 8). The API still does not list the forms.
-  - `/privacy` must change with `docs/PRIVACY.md` (P10: the LLM provider).
+  - `/privacy` must change with `docs/PRIVACY.md` (done in P10 for the LLM provider; again when
+    a provider is added).
   - PWA files (manifest, icons, service worker) were not part of P7.
   - The home page names no source until `GET /api/v1/health` answers (about 0.8 s on a cold
     server). A server component cannot call the handler without importing `src/server`.
@@ -132,8 +134,8 @@ is built until it is moved into a prompt's scope.
     النبي», «قال الله عز وجل» without «تعالى», «رُوي», «جاء عن النبي», «كما في الصحيحين»). Each is
     one entry of `ATTRIBUTION_PATTERNS`; add them from the tune split only (P15).
   - An unmarked quote runs to the sentence end, with the writer's own words after it if there are
-    any, and a full stop inside it ends it. The LLM extractor (P10) is the answer; the merge rule
-    then decides between its span and the regex one (P10 owns it).
+    any, and a full stop inside it ends it. The LLM's span replaces it when the two share half or
+    more (D-21 item 3); with less in common the regex span is kept.
   - An unbracketed reference «سورة البقرة: 153» after an unmarked verse is not a stop: «سورة» is
     also a word of hadith texts. The extractor could take the reference parser's spans if
     `Extractor` received the aliases (a signature change).
@@ -147,6 +149,17 @@ is built until it is moved into a prompt's scope.
 
 - Normalization: more honorific phrases found in the hadith corpus and left in `searchText` —
   «عز وجل» (310), «عليه السلام» (150), «تبارك وتعالى» (57), «عليهما السلام» (17), «رضي الله عنهن» (3).
+- LLM extractor (P10), for later prompts:
+  - Not run against the provider: the model in `LLM_MODEL`, the prompt on real drafts and the
+    latency are unmeasured (P14). `EXTRACT_PROMPT_VERSION` changes with any change of the prompt.
+  - `AGENTS.md` §6 lists two warning codes in the `ReviewResult` comment; there are four now.
+  - A failed LLM call leaves only the warning code in the request log. The class of the error (a
+    fixed word, never a message) would tell a timeout from a refused key.
+  - `llmConfigured` of `GET /health` is true for a provider no adapter exists for.
+  - A regex quote without marks that shares less than half with the LLM's span keeps the long
+    regex span (D-21 item 3). Measure on the tune split before changing the rule (P15).
+  - `citedReference` and `attributionPhrase` of the model's output are dropped after validation;
+    the evaluation (P14) has to call the port itself to read them.
 - Normalization: Persian/Urdu keyboard letters (ی U+06CC, ک U+06A9), Extended Arabic-Indic digits
   (U+06F0–U+06F9), Arabic presentation forms (U+FB50–U+FEFC, e.g. ﻻ, ﷲ), marks outside the listed
   ranges (U+0610–U+061A, U+08D3–U+08FF).
