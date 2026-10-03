@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { reviewStatus, type Approvals } from "./review-status.js";
 
 const NONE: Approvals = { collections: new Set(), records: new Set() };

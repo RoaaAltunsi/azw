@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+/* Identity colors (AGENTS.md §8). Status is never conveyed by color alone: always label + icon. */
+:root {
+  --azw-ink: #0f2a2e;
+  --azw-vermilion: #c8553d;
+  --azw-tint: #eef4f2;
+
+  --azw-status-match: #2e7d5b;
+  --azw-status-differs: #c98414;
+  --azw-status-not-found: #737d82;
+  --azw-status-needs-specialist: #5358c2;
+}
+
+@theme inline {
+  --color-ink: var(--azw-ink);
+  --color-vermilion: var(--azw-vermilion);
+  --color-tint: var(--azw-tint);
+
+  --color-status-match: var(--azw-status-match);
+  --color-status-differs: var(--azw-status-differs);
+  --color-status-not-found: var(--azw-status-not-found);
+  --color-status-needs-specialist: var(--azw-status-needs-specialist);
+
+  --font-sans: var(--font-plex-arabic), ui-sans-serif, system-ui, sans-serif;
+  --font-quote: var(--font-amiri), ui-serif, serif;
+}
+
+body {
+  background-color: var(--azw-tint);
+  color: var(--azw-ink);
+}

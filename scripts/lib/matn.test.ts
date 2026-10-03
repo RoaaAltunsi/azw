@@ -1,7 +1,7 @@
 // Fixtures are real records from data/corpus; no hadith text is typed here. Failure paths are
 // produced by mutating a real record with non-Arabic filler.
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { extractMatn, MATN_MIN_WORDS } from "./matn.js";
 import { CorpusFileSchema } from "./schema.js";
 import { p, readJson } from "./util.js";

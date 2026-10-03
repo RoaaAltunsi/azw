@@ -7,3 +7,10 @@ Azw_Build_Prompts.md
 
 # Dorar API responses: cached for verification only, all rights reserved by dorar.net — never committed.
 data/raw/dorar-cache/
+
+# Next.js / tooling output
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+coverage/

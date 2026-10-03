@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { checkCases, parseCases, type EvalCase, type ExpectedItem } from "./cases.js";
 import type { SourceRecord } from "./schema.js";
 
