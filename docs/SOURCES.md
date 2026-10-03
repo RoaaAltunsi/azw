@@ -278,6 +278,7 @@ then written to `data/review/reviewed.json` (who, when, scope) and the corpus is
 | 14 | Surah alternate names | `data/aliases/surahs.json`: `spellingVariants` and `alternateNames` are editorial, not from the source (`scripts/lib/surah-alternates.ts`) | ☐ pending |
 | 15 | Dorar flagged records | Any record listed as flagged in section 4, and the 6 records held in `data/review/held-records.json` after the word-for-word comparison (`docs/HADITH_FLAGGED_INVESTIGATION.md`) | ☐ pending — the 6 held records are unresolved |
 | 16 | Grade of records Dorar does not grade «صحيح» | `bukhari:2819`: confirmed by number and matn, but Dorar's grade line is «[معلق]» while the record carries the collection grade «صحيح». Held on 2026-10-02 (7th held record), after the collection approval; text and grade unchanged. Also the wider question of the blanket Sahihayn grade — `docs/DECISIONS.md` D-5 | ☐ pending |
+| 17 | Hadith collection names | `data/aliases/collections.json`: editorial list of the names and phrases a writer cites a collection by (البخاري، صحيح مسلم، متفق عليه، الترمذي …), written by hand in P3. Used only by the reference parser; never shown as source text | ☐ pending |
 
 ### Reviewer log
 

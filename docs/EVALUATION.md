@@ -10,6 +10,13 @@ code existed (there was no `src/` directory), so the matching logic cannot have 
 
 Corpus version at labeling time: `p0-a6d2d36b84e8` (`data/corpus/manifest.json`).
 
+**Held-out exposure (2026-10-03).** While the reference parser was being built (P3), the AI
+assistant printed the text around the quotes in both `tune.jsonl` and `heldout.jsonl` to see which
+citation forms writers use. No test uses a held-out text and no rule was written for a held-out
+case, but the held-out split is no longer fully unseen for the reference parser
+(`src/core/references`). Results on reference parsing and attachment should be read with that in
+mind. The held-out drafts have not been read for any other part of the pipeline.
+
 ## 1. Status of the human review
 
 **Not reviewed by a person yet.** The cases were drafted by Claude (AI assistant) from corpus records.
