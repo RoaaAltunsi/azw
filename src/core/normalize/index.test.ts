@@ -6,6 +6,7 @@ import {
   normalizeWithMap,
   stripAttributionPreamble,
   tokenize,
+  UTHMANI_VARIANT_OPTIONS,
   type NormalizationLevel,
 } from "./index";
 
@@ -15,6 +16,7 @@ const strict = (text: string): string => normalizeWithMap(text, "strict").norm;
 interface CorpusRecord {
   id: string;
   exactText: string;
+  searchVariants?: Array<{ label: string; text: string }>;
 }
 const corpus = (collection: string): CorpusRecord[] =>
   (
@@ -28,6 +30,8 @@ const ayah = (id: string): string => {
   if (!record) throw new Error(`${id} is not in data/corpus/quran.json`);
   return record.exactText;
 };
+const uthmaniVariant = (id: string): string | undefined =>
+  quran.find((r) => r.id === id)?.searchVariants?.find((v) => v.label === "uthmani")?.text;
 
 describe('level "search": one rule per row', () => {
   const cases: Array<[string, string, string]> = [
@@ -154,6 +158,17 @@ describe("offset map", () => {
     expect(original.slice(map[start]!, map[end]! + 1)).toBe("الأَعْمَال");
   });
 
+  test("foldHamzaAlef drops the hamza of «ءا» and keeps the map aligned", () => {
+    const original = "فِى ٱلْءَاخِرَةِ جُزْءًا";
+    const { norm, map } = normalizeWithMap(original, "search", { foldHamzaAlef: true });
+    expect(norm).toBe("في الاخره جزا");
+    expect(map).toHaveLength(norm.length);
+    expect(original[map[norm.indexOf("اخره")]!]).toBe("ا");
+    // Off by default: the main search text keeps the hamza.
+    expect(search(original)).toBe("في الءاخره جزءا");
+    expect(normalizeWithMap("شيء ءامنوا سماء السماء انشقت", "search", { foldHamzaAlef: true }).norm).toBe("شيء امنوا سماء السماء انشقت");
+  });
+
   test("the map skips a removed honorific phrase", () => {
     const original = "النبي صلى الله عليه وسلم قال";
     const { norm, map } = normalizeWithMap(original, "search");
@@ -194,8 +209,27 @@ describe("samples from data/corpus/quran.json", () => {
     expect(search(ayah("quran:98:8"))).not.toContain("رضي الله عنهم");
   });
 
-  // Open decision (docs/SOURCES.md §5 item 3). These rows record what the rules do today; they
-  // are not a choice of how to bridge mushaf spellings.
+  // The "uthmani" search variant (docs/DECISIONS.md D-9): the pasted text below is eval case T-007.
+  test("an Uthmani-script paste equals the ayah's uthmani search variant, not its searchText", () => {
+    const paste = normalizeWithMap("إِنَّ ٱلْإِنسَٰنَ لَفِى خُسْرٍ", "search", UTHMANI_VARIANT_OPTIONS).norm;
+    expect(paste).toBe("ان الانسن لفي خسر");
+    expect(uthmaniVariant("quran:103:2")).toBe(paste);
+    expect(search(ayah("quran:103:2"))).toBe("ان الانسان لفي خسر");
+  });
+
+  test("both Uthmani spellings of «الآخرة» equal the uthmani search variant", () => {
+    const variant = uthmaniVariant("quran:2:4");
+    expect(variant).toContain("وبالاخره هم يوقنون");
+    // In turn: a madda on the alef, a separate hamza letter, a hamza mark on a tatweel.
+    for (const word of ["وَبِٱلۡأٓخِرَةِ", "وَبِٱلْءَاخِرَةِ", "وَبِٱلْـَٔاخِرَةِ"]) {
+      expect(normalizeWithMap(word, "search", UTHMANI_VARIANT_OPTIONS).norm).toBe("وبالاخره");
+    }
+    // Without the option the second spelling keeps its hamza and would not be found.
+    expect(normalizeWithMap("وَبِٱلْءَاخِرَةِ", "search", { keepHonorificPhrases: true }).norm).toBe("وبالءاخره");
+  });
+
+  // docs/DECISIONS.md D-9: these rows record what normalization alone does. The mushaf spellings
+  // are bridged outside it (ayah-bound variant list, uthmani search variant).
   const spellings: Array<[string, string, boolean]> = [
     ["الملأ", "الملإ", true],
     ["نبأ", "نبإ", true],

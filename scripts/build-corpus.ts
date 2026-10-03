@@ -6,7 +6,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { z } from "zod";
-import { normalizeWithMap } from "../src/core/normalize/index.js";
+import { normalizeWithMap, UTHMANI_VARIANT_OPTIONS } from "../src/core/normalize/index.js";
 import { FawazHadithApiAdapter, type HadithSourceAdapter } from "./lib/hadith-adapter.js";
 import { extractMatn } from "./lib/matn.js";
 import { reviewStatus as reviewStatusFor, type ReviewFlags } from "./lib/review-status.js";
@@ -23,6 +23,9 @@ import { fileInfo, p, readJson, replaceAutoBlock, sha256, toRanges } from "./lib
 
 const QURAN_RAW = "data/raw/quranpedia/mushafs-1.json";
 const QURAN_RAW_GZ = "data/raw/quranpedia/mushafs-1.json.gz"; // optional, fetched by verify-raw.ts
+// Search-only second text: the same riwayah in Uthmani script (docs/DECISIONS.md D-9). Never displayed.
+const QURAN_UTHMANI_RAW = "data/raw/quranpedia/mushafs-2.json";
+const QURAN_UTHMANI_RAW_GZ = "data/raw/quranpedia/mushafs-2.json.gz";
 const QURAN_MANIFEST = "data/raw/quranpedia/manifest.json";
 const QURAN_LICENSE = "data/raw/quranpedia/LICENSE.md";
 const REVIEWED = "data/review/reviewed.json";
@@ -67,11 +70,11 @@ function writeCorpus(collection: string, kind: string, records: SourceRecord[]):
 // Quran (Quranpedia mushaf 1, Hafs)
 // ---------------------------------------------------------------------------------------------
 
-const QuranRawSchema = z.object({
+const quranRawSchema = <Id extends number>(mushafId: Id) => z.object({
   license: z.object({ source: z.string(), version: z.string() }),
   schema: z.string(),
   data: z.object({
-    id: z.literal(1),
+    id: z.literal(mushafId),
     name: z.string(),
     description: z.string(),
     surahs: z.array(
@@ -90,6 +93,8 @@ const QuranRawSchema = z.object({
     ),
   }),
 });
+const QuranRawSchema = quranRawSchema(1);
+const QuranUthmaniRawSchema = quranRawSchema(2);
 
 const QuranManifestSchema = z.object({
   version: z.string(),
@@ -104,6 +109,22 @@ function buildQuran() {
   const licenseVersion =
     /Version \/ النسخة:\s*(\S+)/.exec(readFileSync(p(QURAN_LICENSE), "utf8"))?.[1] ?? "unknown";
   const fileVersion = raw.license.version;
+
+  // Uthmani-script text of the same ayat, keyed "<surah>:<ayah>". It must cover exactly the ayat
+  // of mushaf 1; a missing or extra ayah stops the build.
+  const uthmaniRaw = QuranUthmaniRawSchema.parse(readJson(p(QURAN_UTHMANI_RAW)));
+  const uthmaniText = new Map<string, string>();
+  for (const s of uthmaniRaw.data.surahs) {
+    for (const a of s.ayahs) {
+      if (String(a.surah) !== String(s.id)) throw new Error(`quran uthmani ${s.id}:${a.number}: surah field mismatch`);
+      uthmaniText.set(`${s.id}:${a.number}`, a.text);
+    }
+  }
+  // The two scripts write long vowels and hamza seats differently, so those letters are left out:
+  // a difference here is a difference in the remaining letters. Reported, not fatal.
+  const skeleton = (norm: string): string => norm.replace(/[اويء ]/g, "");
+  const uthmaniOtherLetters: string[] = [];
+  let uthmaniEqualsSearchText = 0;
 
   const records: SourceRecord[] = [];
   const surahs: Array<{ number: number; name: string; ayahCount: number }> = [];
@@ -126,12 +147,20 @@ function buildQuran() {
         markCounts.set(ch, (markCounts.get(ch) ?? 0) + 1);
       }
       const id = `quran:${s.id}:${a.number}`;
+      const searchText = searchTextOf(exactText, "quran");
+      const uthmani = uthmaniText.get(`${s.id}:${a.number}`);
+      if (uthmani === undefined) throw new Error(`${id}: no ayah in the Uthmani text (mushaf 2)`);
+      const uthmaniSearch = normalizeWithMap(uthmani, "search", UTHMANI_VARIANT_OPTIONS).norm;
+      if (uthmaniSearch === "") throw new Error(`${id}: empty Uthmani search variant`);
+      if (uthmaniSearch === searchText) uthmaniEqualsSearchText++;
+      if (skeleton(uthmaniSearch) !== skeleton(searchText)) uthmaniOtherLetters.push(`${s.id}:${a.number}`);
       records.push({
         id,
         kind: "quran",
         collection: "quran",
         exactText,
-        searchText: searchTextOf(exactText, "quran"),
+        searchText,
+        searchVariants: [{ label: "uthmani", text: uthmaniSearch }],
         citation: { display: `${s.name}، الآية ${a.number}`, surah: s.id, ayah: a.number },
         sourceName: `Quranpedia.net — ${raw.data.name} (${raw.data.description})`,
         sourceUrl: "https://quranpedia.net",
@@ -141,7 +170,12 @@ function buildQuran() {
       });
     }
   }
+  if (uthmaniText.size !== records.length) throw new Error(`quran: the Uthmani text has ${uthmaniText.size} ayat, mushaf 1 has ${records.length}`);
   writeCorpus("quran", "quran", records);
+
+  const uthmaniEntry = dumpManifest.files.find((f) => f.name === "mushafs-2.json.gz");
+  const uthmaniJson = fileInfo(QURAN_UTHMANI_RAW);
+  const uthmaniGz = existsSync(p(QURAN_UTHMANI_RAW_GZ)) ? readFileSync(p(QURAN_UTHMANI_RAW_GZ)) : null;
 
   // Upstream checksum: the manifest hashes the compressed .gz, not the JSON we hold.
   const entry = dumpManifest.files.find((f) => f.name === "mushafs-1.json.gz");
@@ -178,6 +212,11 @@ function buildQuran() {
       embeddedMarks: Object.fromEntries(
         [...markCounts].map(([ch, n]) => [`U+${ch.codePointAt(0)!.toString(16).toUpperCase().padStart(4, "0")}`, n]),
       ),
+      uthmaniVariant: {
+        ayat: uthmaniText.size,
+        equalToSearchText: uthmaniEqualsSearchText,
+        otherLettersDiffer: uthmaniOtherLetters,
+      },
     },
     source: {
       name: "Quranpedia.net — mushaf 1 (Hafs, per King Fahd Complex edition)",
@@ -189,7 +228,28 @@ function buildQuran() {
       attribution:
         "When republishing the data: credit Quranpedia.net with a link to https://quranpedia.net and state the dump version.",
       numberingScheme: "id = quran:<surah>:<ayah>; Hafs (Kufan) ayah numbering, 6236 ayat.",
-      rawFiles: [localJson, fileInfo(QURAN_MANIFEST), fileInfo(QURAN_LICENSE)],
+      rawFiles: [localJson, fileInfo(QURAN_MANIFEST), fileInfo(QURAN_LICENSE), uthmaniJson],
+      // Second text, used only to build searchVariants (label "uthmani"); it is never displayed.
+      searchVariantSource: {
+        label: "uthmani",
+        name: `Quranpedia.net — ${uthmaniRaw.data.name} (${uthmaniRaw.data.description})`,
+        downloadUrl: "https://api.quranpedia.net/dumps/mushafs-2.json.gz",
+        versions: { dumpManifest: dumpManifest.version, fileLicenseVersion: uthmaniRaw.license.version },
+        builtAt: uthmaniEntry?.built_at ?? null,
+        normalization: 'level "search" with keepHonorificPhrases and foldHamzaAlef (UTHMANI_VARIANT_OPTIONS)',
+        upstreamChecksum: {
+          file: "mushafs-2.json.gz",
+          sha256: uthmaniEntry?.sha256 ?? null,
+          bytes: uthmaniEntry?.bytes ?? null,
+          localGz: uthmaniGz && {
+            path: QURAN_UTHMANI_RAW_GZ,
+            bytes: uthmaniGz.length,
+            sha256: sha256(uthmaniGz),
+            matchesManifestSha256: sha256(uthmaniGz) === uthmaniEntry?.sha256,
+            decompressedMatchesLocalJson: sha256(gunzipSync(uthmaniGz)) === uthmaniJson.sha256,
+          },
+        },
+      },
       upstreamChecksum: {
         file: "mushafs-1.json.gz",
         sha256: entry?.sha256 ?? null,
@@ -333,8 +393,9 @@ const reviewCounts = (records: SourceRecord[]) => ({
 });
 
 const corpusFiles = ["quran", ...adapter.collections].map((c) => fileInfo(`data/corpus/${c}.json`));
-// The prefix names the corpus format: p0 = searchText empty, p1 = searchText filled.
-const corpusVersion = `p1-${sha256(corpusFiles.map((f) => f.sha256).join("")).slice(0, 12)}`;
+// The prefix names the corpus format: p0 = searchText empty, p1 = searchText filled,
+// p2 = Quran records carry the "uthmani" search variant.
+const corpusVersion = `p2-${sha256(corpusFiles.map((f) => f.sha256).join("")).slice(0, 12)}`;
 
 const manifest = {
   manifestVersion: 1,
@@ -398,6 +459,9 @@ writeFileSync(p("data/corpus/build-report.json"), `${JSON.stringify(report, null
 // ---------------------------------------------------------------------------------------------
 
 const gz = quran.source.upstreamChecksum.localGz;
+const uthmani = quran.findings.uthmaniVariant;
+const uthmaniSource = quran.source.searchVariantSource;
+const uthmaniGzCheck = uthmaniSource.upstreamChecksum.localGz;
 const lines: string[] = [
   `_Generated by \`scripts/build-corpus.ts\` — corpus version \`${corpusVersion}\`. Do not edit by hand._`,
   "",
@@ -412,6 +476,9 @@ const lines: string[] = [
   "**Quran**",
   `- ${quran.findings.ayatWithLeadingBom} ayat started with U+FEFF (BOM); ${quran.findings.bomCharsStripped} such characters were stripped (leading only). No other change to the text.`,
   "- `searchText` = `exactText` at normalization level \"search\" (`src/core/normalize`), filled for every record. Quran records keep honorific phrases (`docs/DECISIONS.md` D-7).",
+  `- \`searchVariants\` label "uthmani" = the same ayah in Quranpedia mushaf 2 (\`${QURAN_UTHMANI_RAW}\`, file version \`${uthmaniSource.versions.fileLicenseVersion}\`), normalized with \`UTHMANI_VARIANT_OPTIONS\`. Filled for ${uthmani.ayat} ayat; for search only, never displayed. Equal to \`searchText\` in ${uthmani.equalToSearchText} ayat.`,
+  `- Mushaf 2 against mushaf 1, leaving out ا و ي ء and spaces: the remaining letters differ in ${uthmani.otherLettersDiffer.length} ayat (e.g. ${uthmani.otherLettersDiffer.slice(0, 8).join(", ")}). Full list: \`data/corpus/build-report.json\`.`,
+  `- Mushaf 2 upstream sha256 \`${uthmaniSource.upstreamChecksum.sha256}\` covers \`mushafs-2.json.gz\`. Local \`.gz\`: ${uthmaniGzCheck ? `matches manifest sha256 = **${uthmaniGzCheck.matchesManifestSha256}**; decompressed content identical to local JSON = **${uthmaniGzCheck.decompressedMatchesLocalJson}**` : "not present"}.`,
   `- Marks embedded in the ayah text (kept in \`exactText\`): ${Object.entries(quran.findings.embeddedMarks).map(([k, v]) => `${k}×${v}`).join(", ")}.`,
   `- Upstream sha256 \`${quran.source.upstreamChecksum.sha256}\` covers \`mushafs-1.json.gz\` (${quran.source.upstreamChecksum.bytes} bytes), not the local JSON.`,
   gz

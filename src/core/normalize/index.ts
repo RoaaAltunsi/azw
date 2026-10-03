@@ -91,12 +91,17 @@ function collapseSpaces(chars: string[], map: number[]): Normalized {
   return { norm, map: outMap };
 }
 
-function foldCharacters(text: string): Normalized {
+function foldCharacters(text: string, foldHamzaAlef = false): Normalized {
   const chars: string[] = [];
   const map: number[] = [];
   for (let i = 0; i < text.length; i++) {
     const out = foldForSearch(text[i]!);
     if (out === "") continue;
+    // «ءا» is the decomposed spelling of «آ», which folds to «ا»: drop the hamza.
+    if (foldHamzaAlef && out === "ا" && chars[chars.length - 1] === "ء") {
+      chars.pop();
+      map.pop();
+    }
     chars.push(out);
     map.push(i);
   }
@@ -142,7 +147,14 @@ export interface NormalizeOptions {
   // Level "search" only. Keeps the HONORIFIC_PHRASES in the output. For Quran text, where
   // «رضي الله عنهم» is part of the ayah (5:119, 9:100, 58:22, 98:8) and must not be dropped.
   keepHonorificPhrases?: boolean;
+  // Level "search" only. Writes «ءا» as «ا». For comparing with a Quran record's "uthmani" search
+  // variant: Uthmani-script sources spell «الآخرة» either as «ٱلۡأٓخِرَةِ» or as «ٱلْـَٔاخِرَةِ».
+  foldHamzaAlef?: boolean;
 }
+
+// The options every Quran "uthmani" search variant is built with (scripts/build-corpus.ts). A draft
+// span compared with that variant must be normalized with the same options.
+export const UTHMANI_VARIANT_OPTIONS: Readonly<NormalizeOptions> = { keepHonorificPhrases: true, foldHamzaAlef: true };
 
 export function normalizeWithMap(
   text: string,
@@ -159,7 +171,7 @@ export function normalizeWithMap(
     }
     return { norm, map };
   }
-  const folded = foldCharacters(text);
+  const folded = foldCharacters(text, options.foldHamzaAlef);
   return options.keepHonorificPhrases ? folded : removeHonorifics(folded);
 }
 

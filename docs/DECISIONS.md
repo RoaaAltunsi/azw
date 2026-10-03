@@ -97,3 +97,34 @@ Three readings of the task that the owner may want to reverse:
 2. Level "strict" also removes the superscript alef (U+0670), which the task did not list.
 3. Invisible direction marks and zero-width characters are handled although the task did not list
    them (the hadith source is full of U+200F).
+
+## D-9 — Quran spelling: ayah-bound variant list plus a second search text (2026-10-03)
+
+Closes `docs/SOURCES.md` §5 item 3. Decided by the owner on `docs/QURAN_SPELLING_REVIEW.md`.
+
+1. **Everyday spellings** («رحمة» for «رحمت», «رؤوف» for «رءوف», «مئة» for «مائة» …) are bridged by a
+   reviewed list, `data/aliases/quran-spelling-variants.json`. No folding rule was added to
+   normalization: a rule applies to every word of the Quran and could make a wrong word equal to the
+   right one. Each pair is bound to its ayat for the same reason — «لعنت» is a noun in 3:61 and a
+   verb in 7:38.
+2. **Rejected pairs** stay unbridged: «داود», «إذن» for «إِذًا», and «يستهزؤون»-type forms. A draft
+   that uses them differs from the source in that word.
+3. **Uthmani-script pastes** are bridged by a second search text per ayah, for search only:
+   Quranpedia mushaf 2 (Hafs, Uthmani script, King Fahd Complex), stored as
+   `searchVariants: [{ label: "uthmani", text }]` on each Quran record. The owner approved it on the
+   condition that it agrees with the package's approved sources; the package's Quran row names the
+   King Fahd Complex edition and quranpedia.net (`docs/SOURCES.md` 1.1).
+   - The variant is built with one extra option, `foldHamzaAlef` («ءا» → «ا»), because Uthmani texts
+     spell «الآخرة» in two ways. This is a folding rule, limited to the variant; the main
+     `searchText` has none. The owner may want to reverse it: without it 271 more ayat of the
+     Tanzil text are not found as exact.
+   - The source calls the file «غير موافق للمطبوع». It is never displayed, so a difference from
+     the printed mushaf can cause a missed or a wrong retrieval, not a wrong displayed text. The
+     status must still be decided against `exactText`.
+4. Whoever builds the Quran matcher must treat a variant or second-text match as a spelling
+   difference only: `exactText` is still what is displayed and diffed.
+
+Effect on `D-6` item 1: `H-008` («رحمة», 7:56) can stay `MATCH` once the matcher uses the list.
+`T-007` (Uthmani paste) can stay `MATCH` once the matcher uses the "uthmani" search variant: its
+quote, normalized with `UTHMANI_VARIANT_OPTIONS`, equals the variant of `quran:103:2` (pinned in
+`src/core/normalize/index.test.ts`).

@@ -2,8 +2,8 @@
 //
 //   npx tsx scripts/verify-corpus.ts
 import { readFileSync } from "node:fs";
-import { normalizeWithMap } from "../src/core/normalize/index.js";
-import { CorpusFileSchema, HeldFileSchema, ReviewedFileSchema, type SourceRecord } from "./lib/schema.js";
+import { normalizeWithMap, tokenize, UTHMANI_VARIANT_OPTIONS } from "../src/core/normalize/index.js";
+import { CorpusFileSchema, HeldFileSchema, QuranSpellingVariantsSchema, ReviewedFileSchema, type SourceRecord } from "./lib/schema.js";
 import { p, readJson, sha256 } from "./lib/util.js";
 
 const EXPECTED_SURAHS = 114;
@@ -82,6 +82,30 @@ const tally = (collection: string, records: SourceRecord[]): void => {
     aliases.surahs.length === EXPECTED_SURAHS && aliases.surahs.every((s) => bySurah.get(s.number)?.length === s.ayahCount),
     "aliases: surahs.json lists 114 surahs with ayah counts equal to the corpus",
   );
+
+  // The "uthmani" search variant is recomputed from the raw Uthmani text (Quranpedia mushaf 2).
+  const uthmaniRaw = readJson(p("data/raw/quranpedia/mushafs-2.json")) as { data: { surahs: Array<{ id: number; ayahs: Array<{ number: number; text: string }> }> } };
+  const uthmani = new Map<string, string>();
+  for (const s of uthmaniRaw.data.surahs) for (const a of s.ayahs) uthmani.set(`quran:${s.id}:${a.number}`, normalizeWithMap(a.text, "search", UTHMANI_VARIANT_OPTIONS).norm);
+  const staleVariant = records
+    .filter((r) => r.searchVariants?.length !== 1 || r.searchVariants[0]!.label !== "uthmani" || r.searchVariants[0]!.text !== uthmani.get(r.id))
+    .map((r) => r.id);
+  check(uthmani.size === records.length && staleVariant.length === 0, `quran: every record has one "uthmani" search variant equal to the normalized mushaf-2 ayah (${uthmani.size} ayat)`, sample(staleVariant));
+
+  // Spelling variants are tied to ayat: the source form must be a word of that ayah, and the
+  // everyday form must be one the general normalization does not already bridge.
+  const spelling = QuranSpellingVariantsSchema.safeParse(readJson(p("data/aliases/quran-spelling-variants.json")));
+  check(spelling.success, "aliases: quran-spelling-variants.json matches its schema");
+  if (spelling.success) {
+    const words = new Map(records.map((r) => [`${r.citation.surah}:${r.citation.ayah}`, new Set(tokenize(normalizeWithMap(r.exactText, "strict").norm))]));
+    const search = (s: string): string => normalizeWithMap(s, "search", { keepHonorificPhrases: true }).norm;
+    const { variants } = spelling.data;
+    const absent = variants.flatMap((v) => v.ayat.filter((a) => !words.get(a)?.has(v.sourceForm)).map((a) => `${v.sourceForm}@${a}`));
+    check(absent.length === 0, `aliases: the source form of every spelling variant is a word of each listed ayah (${variants.length} forms)`, sample(absent));
+    const bridged = variants.filter((v) => search(v.sourceForm) === search(v.everydayForm)).map((v) => v.sourceForm);
+    check(bridged.length === 0, "aliases: every everyday form differs from its source form after normalization", sample(bridged));
+    check(new Set(variants.map((v) => v.sourceForm)).size === variants.length, "aliases: spelling-variant source forms are unique");
+  }
   tally("quran", records);
 }
 
@@ -132,6 +156,7 @@ for (const collection of ["bukhari", "muslim"]) {
   check(nullNotPending.length === 0, `${collection}: records without a citation number are pending`, sample(nullNotPending));
   check(badGrade.length === 0, `${collection}: grade present (صحيح, attributed) exactly when a citation number exists`, sample(badGrade));
   check(badMatn.length === 0, `${collection}: every matnText is a verbatim substring of exactText`, sample(badMatn));
+  check(records.every((r) => r.searchVariants === undefined), `${collection}: no record has search variants`);
 
   if (collection === "muslim") {
     const subs = records.map((r) => r.citation.subNumber).filter((s): s is string => s !== undefined);

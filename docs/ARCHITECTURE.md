@@ -60,6 +60,13 @@ option `keepHonorificPhrases: true` turns rule 14 off; the corpus build uses it 
 and whoever compares a draft span with a Quran record must normalize the span the same way.
 Recorded as `docs/DECISIONS.md` D-7.
 
+**Option `foldHamzaAlef` (off by default).** Writes «ءا» as «ا». «ءا» is the decomposed spelling of
+«آ», which rule 6 already turns into «ا». Uthmani-script sources disagree on it: the King Fahd
+Complex text writes «ٱلۡأٓخِرَةِ», the Tanzil text writes «ٱلْءَاخِرَةِ». The option is used only for
+the Quran "uthmani" search variant (below), through the exported `UTHMANI_VARIANT_OPTIONS`. It is not
+part of the main search text: there «ءا» also occurs where the alef carries a tanwin
+(«جُزْءًا», «سُوءًا»), and folding it would turn «سوءا» into «سوا».
+
 **Known limit of rule 14 in hadith.** The same words inside a matn (a hadith quoting one of those
 ayat, for example) are removed from the hadith record's `searchText` and from the draft alike.
 Retrieval is unaffected; a status must not be decided on `searchText` equality alone (see "strict").
@@ -84,10 +91,12 @@ normalized when the module loads, matched as whole words, longest first, and rep
 «في الحديث: قال رسول الله ﷺ: …» loses both). The formula says who the text is attributed to; it is
 not part of the quoted wording, so it must not count as a difference from the source.
 
-### What normalization does not bridge (open decision)
+### What normalization does not bridge
 
-`docs/SOURCES.md` §5 item 3 — how to bridge the Quran source's mushaf spellings — is still the
-owner's decision. Nothing was added for it. Measured with the rules above
+Normalization itself adds nothing for the Quran source's mushaf spellings. The owner decided on
+2026-10-03 (`docs/DECISIONS.md` D-9) to bridge them outside normalization: an ayah-bound variant
+list (`data/aliases/quran-spelling-variants.json`) for everyday spellings, and a second,
+Uthmani-script search text for pastes (next section). Measured with the rules above
 (pinned in the tests under "samples from data/corpus/quran.json"):
 
 | Writer's form | Source form | Equal at level "search" |
@@ -96,16 +105,46 @@ owner's decision. Nothing was added for it. Measured with the rules above
 | رحمة، امرأة | رحمت، امرأت | No |
 | رؤوف | رءوف | No |
 | مسؤولا | مسئولا | No |
-| داود | داوود | No |
+| داود | داوود | No — and not in the variant list: the owner writes «داوود» |
 | مئة | مائة | No |
 | Uthmani paste «ٱلْعَـٰلَمِينَ» | «الْعَالَمِينَ» | No — Uthmani script writes this alef as U+0670, which rule 2 removes |
 
-An Uthmani-script paste is equal to the source only where the two differ in marks and wasla
-(e.g. al-Fatiha 1, al-Ikhlas 1). Until item 3 is decided, such quotations reach the matcher as
-close candidates, not exact ones.
+An Uthmani-script paste is equal to `searchText` only where the two differ in marks and wasla
+(e.g. al-Fatiha 1, al-Ikhlas 1). The other ayat are found through the "uthmani" search variant.
+
+### The Quran "uthmani" search variant
+
+Every Quran record carries `searchVariants: [{ label: "uthmani", text }]`. `text` is the same ayah
+in Uthmani script (Quranpedia mushaf 2, `docs/SOURCES.md` 1.1) normalized with
+`normalizeWithMap(ayah, "search", UTHMANI_VARIANT_OPTIONS)`. It exists so that an ayah copied from a
+mushaf site or app is found. Rules for whoever uses it (the Quran matcher):
+
+- **For retrieval only.** It is never displayed and never the text of a diff. What the user sees,
+  and what the word diff runs against, is `exactText`.
+- **Same options on both sides.** Compare the variant with the draft span normalized with
+  `UTHMANI_VARIANT_OPTIONS`; compare `searchText` with the span normalized with
+  `{ keepHonorificPhrases: true }`. A span is found when either comparison succeeds.
+- **A match through the variant is a spelling match**, not a wording difference: the two texts are
+  the same ayah of the same riwayah (Hafs) in two scripts.
+- A quotation that spans several ayat must be compared with the variants of those ayat joined in
+  order, not with a mix of variant and `searchText`.
+
+Measured on 2026-10-03 against whole-ayah pastes from two widely used Uthmani texts (test input
+only; neither is a source of Azw):
+
+| Pasted text | Ayat found (of 6236) | Through `searchText` | Through the variant | Not found |
+|---|---|---|---|---|
+| quran.com `text_uthmani` | 6234 | 2250 | 3984 | 2:72, 15:7 |
+| Tanzil Uthmani (as served by api.alquran.cloud) | 6230 | 2189 | 4041 | 2:72, 8:6, 12:39, 12:41, 13:37, 15:7 |
+
+The ayat not found differ from mushaf 2 in one word's spelling or word division («فَٱدَّٰرَْٰٔتُمْ» in
+2:72, «يَٰصَىٰحِبَىِ» in 12:39 and 12:41, «بَعْدَمَا» for «بَعۡدَ مَا» in 8:6 and 13:37, «لَّوْ مَا» for
+«لَّوۡمَا» in 15:7). They reach the matcher as close candidates. Other Uthmani encodings were
+not measured.
 
 ### Use in the corpus
 
 `scripts/build-corpus.ts` fills `searchText = normalizeWithMap(exactText, "search").norm` for every
-record (Quran records with `keepHonorificPhrases`). `scripts/verify-corpus.ts` recomputes it and
-fails if a record's `searchText` is empty or stale. Corpus versions built this way start with `p1-`.
+record (Quran records with `keepHonorificPhrases`), and the "uthmani" search variant for every Quran
+record. `scripts/verify-corpus.ts` recomputes both and fails if either is empty or stale. Corpus
+versions start with `p1-` when only `searchText` is filled and with `p2-` once the variant exists.

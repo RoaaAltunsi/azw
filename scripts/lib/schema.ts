@@ -26,6 +26,8 @@ export const SourceRecordSchema = z.strictObject({
   collection: z.string().min(1),
   exactText: z.string().min(1),
   searchText: z.string(), // exactText at normalization level "search"
+  // Other normalized spellings of the same text, for retrieval only (Quran: label "uthmani").
+  searchVariants: z.array(z.strictObject({ label: z.string().min(1), text: z.string().min(1) })).optional(),
   matnText: z.string().min(1).optional(),
   citation: CitationSchema,
   sourceName: z.string().min(1),
@@ -84,3 +86,21 @@ export const HeldFileSchema = z.strictObject({
     }),
   ),
 });
+
+// data/aliases/quran-spelling-variants.json — owner-approved everyday spellings of mushaf spellings.
+// A pair applies only in its listed ayat ("<surah>:<ayah>"); forms carry no diacritics.
+export const QuranSpellingVariantsSchema = z.strictObject({
+  note: z.string().optional(),
+  approvedBy: z.string().min(1),
+  approvedAt: z.string().min(1),
+  reviewSheet: z.string().optional(),
+  variants: z.array(
+    z.strictObject({
+      group: z.string().min(1),
+      sourceForm: z.string().min(1),
+      everydayForm: z.string().min(1),
+      ayat: z.array(z.string().regex(/^\d+:\d+$/)).min(1),
+    }),
+  ),
+});
+export type QuranSpellingVariants = z.infer<typeof QuranSpellingVariantsSchema>;

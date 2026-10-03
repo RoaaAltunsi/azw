@@ -1,0 +1,620 @@
+{
+  "note": "Everyday spellings of words that the Quran source text writes in a mushaf spelling. Each pair applies ONLY in the listed ayat (e.g. «لعنت» in 7:38 is a verb and is not listed). Forms are written without diacritics. sourceForm is a word of exactText in every listed ayah (checked by scripts/verify-corpus.ts); everydayForm is editorial, approved by the project owner, and is used only to find the ayah — it is never shown as source text.",
+  "approvedBy": "Project owner",
+  "approvedAt": "2026-10-03",
+  "reviewSheet": "docs/QURAN_SPELLING_REVIEW.md",
+  "variants": [
+    {
+      "group": "open-ta",
+      "sourceForm": "نعمت",
+      "everydayForm": "نعمة",
+      "ayat": [
+        "2:231",
+        "3:103",
+        "5:11",
+        "14:28",
+        "14:34",
+        "16:83",
+        "16:114",
+        "35:3"
+      ]
+    },
+    {
+      "group": "open-ta",
+      "sourceForm": "بنعمت",
+      "everydayForm": "بنعمة",
+      "ayat": [
+        "31:31",
+        "52:29"
+      ]
+    },
+    {
+      "group": "open-ta",
+      "sourceForm": "وبنعمت",
+      "everydayForm": "وبنعمة",
+      "ayat": [
+        "16:72"
+      ]
+    },
+    {
+      "group": "open-ta",
+      "sourceForm": "رحمت",
+      "everydayForm": "رحمة",
+      "ayat": [
+        "2:218",
+        "7:56",
+        "11:73",
+        "19:2",
+        "30:50",
+        "43:32"
+      ]
+    },
+    {
+      "group": "open-ta",
+      "sourceForm": "ورحمت",
+      "everydayForm": "ورحمة",
+      "ayat": [
+        "43:32"
+      ]
+    },
+    {
+      "group": "open-ta",
+      "sourceForm": "امرأت",
+      "everydayForm": "امرأة",
+      "ayat": [
+        "3:35",
+        "12:30",
+        "12:51",
+        "28:9",
+        "66:10",
+        "66:11"
+      ]
+    },
+    {
+      "group": "open-ta",
+      "sourceForm": "وامرأت",
+      "everydayForm": "وامرأة",
+      "ayat": [
+        "66:10"
+      ]
+    },
+    {
+      "group": "open-ta",
+      "sourceForm": "كلمت",
+      "everydayForm": "كلمة",
+      "ayat": [
+        "6:115",
+        "7:137",
+        "10:33",
+        "10:96",
+        "40:6"
+      ]
+    },
+    {
+      "group": "open-ta",
+      "sourceForm": "سنت",
+      "everydayForm": "سنة",
+      "ayat": [
+        "8:38",
+        "35:43",
+        "40:85"
+      ]
+    },
+    {
+      "group": "open-ta",
+      "sourceForm": "لسنت",
+      "everydayForm": "لسنة",
+      "ayat": [
+        "35:43"
+      ]
+    },
+    {
+      "group": "open-ta",
+      "sourceForm": "مرضات",
+      "everydayForm": "مرضاة",
+      "ayat": [
+        "2:207",
+        "2:265",
+        "4:114",
+        "66:1"
+      ]
+    },
+    {
+      "group": "open-ta",
+      "sourceForm": "ومعصيت",
+      "everydayForm": "ومعصية",
+      "ayat": [
+        "58:8",
+        "58:9"
+      ]
+    },
+    {
+      "group": "open-ta",
+      "sourceForm": "غيابت",
+      "everydayForm": "غيابة",
+      "ayat": [
+        "12:10",
+        "12:15"
+      ]
+    },
+    {
+      "group": "open-ta",
+      "sourceForm": "بقيت",
+      "everydayForm": "بقية",
+      "ayat": [
+        "11:86"
+      ]
+    },
+    {
+      "group": "open-ta",
+      "sourceForm": "قرت",
+      "everydayForm": "قرة",
+      "ayat": [
+        "28:9"
+      ]
+    },
+    {
+      "group": "open-ta",
+      "sourceForm": "فطرت",
+      "everydayForm": "فطرة",
+      "ayat": [
+        "30:30"
+      ]
+    },
+    {
+      "group": "open-ta",
+      "sourceForm": "بينت",
+      "everydayForm": "بينة",
+      "ayat": [
+        "35:40"
+      ]
+    },
+    {
+      "group": "open-ta",
+      "sourceForm": "شجرت",
+      "everydayForm": "شجرة",
+      "ayat": [
+        "44:43"
+      ]
+    },
+    {
+      "group": "open-ta",
+      "sourceForm": "وجنت",
+      "everydayForm": "وجنة",
+      "ayat": [
+        "56:89"
+      ]
+    },
+    {
+      "group": "open-ta",
+      "sourceForm": "ابنت",
+      "everydayForm": "ابنة",
+      "ayat": [
+        "66:12"
+      ]
+    },
+    {
+      "group": "open-ta",
+      "sourceForm": "جمالت",
+      "everydayForm": "جمالة",
+      "ayat": [
+        "77:33"
+      ]
+    },
+    {
+      "group": "open-ta",
+      "sourceForm": "لعنت",
+      "everydayForm": "لعنة",
+      "ayat": [
+        "3:61",
+        "24:7"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "وباءوا",
+      "everydayForm": "وباؤوا",
+      "ayat": [
+        "2:61",
+        "3:112"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "فباءوا",
+      "everydayForm": "فباؤوا",
+      "ayat": [
+        "2:90"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "لرءوف",
+      "everydayForm": "لرؤوف",
+      "ayat": [
+        "2:143",
+        "16:7",
+        "16:47",
+        "22:65",
+        "57:9"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "تبرءوا",
+      "everydayForm": "تبرؤوا",
+      "ayat": [
+        "2:167"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "رءوسكم",
+      "everydayForm": "رؤوسكم",
+      "ayat": [
+        "2:196",
+        "48:27"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "رءوف",
+      "everydayForm": "رؤوف",
+      "ayat": [
+        "2:207",
+        "3:30",
+        "9:117",
+        "9:128",
+        "24:20",
+        "59:10"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "فاءوا",
+      "everydayForm": "فاؤوا",
+      "ayat": [
+        "2:226"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "رءوس",
+      "everydayForm": "رؤوس",
+      "ayat": [
+        "2:279",
+        "37:65"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "فادرءوا",
+      "everydayForm": "فادرؤوا",
+      "ayat": [
+        "3:168"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "جاءوا",
+      "everydayForm": "جاؤوا",
+      "ayat": [
+        "3:184",
+        "24:11",
+        "24:13",
+        "25:4",
+        "27:84",
+        "59:10"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "جاءوك",
+      "everydayForm": "جاؤوك",
+      "ayat": [
+        "4:62",
+        "4:64",
+        "5:42",
+        "6:25",
+        "58:8"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "جاءوكم",
+      "everydayForm": "جاؤوكم",
+      "ayat": [
+        "4:90",
+        "5:61",
+        "33:10"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "يراءون",
+      "everydayForm": "يراؤون",
+      "ayat": [
+        "4:142",
+        "107:6"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "برءوسكم",
+      "everydayForm": "برؤوسكم",
+      "ayat": [
+        "5:6"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "مذءوما",
+      "everydayForm": "مذؤوما",
+      "ayat": [
+        "7:18"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "وجاءوا",
+      "everydayForm": "وجاؤوا",
+      "ayat": [
+        "7:116",
+        "12:16",
+        "12:18"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "بدءوكم",
+      "everydayForm": "بدؤوكم",
+      "ayat": [
+        "9:13"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "فجاءوهم",
+      "everydayForm": "فجاؤوهم",
+      "ayat": [
+        "10:74",
+        "30:47"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "يقرءون",
+      "everydayForm": "يقرؤون",
+      "ayat": [
+        "10:94",
+        "17:71"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "ويدرءون",
+      "everydayForm": "ويدرؤون",
+      "ayat": [
+        "13:22",
+        "28:54"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "رءوسهم",
+      "everydayForm": "رؤوسهم",
+      "ayat": [
+        "14:43",
+        "17:51",
+        "21:65",
+        "22:19",
+        "32:12",
+        "63:5"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "يشاءون",
+      "everydayForm": "يشاؤون",
+      "ayat": [
+        "16:31",
+        "25:16",
+        "39:34",
+        "42:22",
+        "50:35"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "ليسوءوا",
+      "everydayForm": "ليسوؤوا",
+      "ayat": [
+        "17:7"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "مبرءون",
+      "everydayForm": "مبرؤون",
+      "ayat": [
+        "24:26"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "أساءوا",
+      "everydayForm": "أساؤوا",
+      "ayat": [
+        "30:10",
+        "53:31"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "جاءوها",
+      "everydayForm": "جاؤوها",
+      "ayat": [
+        "39:71",
+        "39:73",
+        "41:20"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "تبوءوا",
+      "everydayForm": "تبوؤوا",
+      "ayat": [
+        "59:9"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "اقرءوا",
+      "everydayForm": "اقرؤوا",
+      "ayat": [
+        "69:19"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "فاقرءوا",
+      "everydayForm": "فاقرؤوا",
+      "ayat": [
+        "73:20"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "تشاءون",
+      "everydayForm": "تشاؤون",
+      "ayat": [
+        "76:30",
+        "81:29"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "الموءودة",
+      "everydayForm": "الموؤودة",
+      "ayat": [
+        "81:8"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "مسئولا",
+      "everydayForm": "مسؤولا",
+      "ayat": [
+        "17:34",
+        "17:36",
+        "25:16",
+        "33:15"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "مسئولون",
+      "everydayForm": "مسؤولون",
+      "ayat": [
+        "37:24"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "يئوسا",
+      "everydayForm": "يؤوسا",
+      "ayat": [
+        "17:83"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "ليئوس",
+      "everydayForm": "ليؤوس",
+      "ayat": [
+        "11:9"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "فيئوس",
+      "everydayForm": "فيؤوس",
+      "ayat": [
+        "41:49"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "يئوده",
+      "everydayForm": "يؤوده",
+      "ayat": [
+        "2:255"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "يطئون",
+      "everydayForm": "يطؤون",
+      "ayat": [
+        "9:120"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "تطئوها",
+      "everydayForm": "تطؤوها",
+      "ayat": [
+        "33:27"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "تطئوهم",
+      "everydayForm": "تطؤوهم",
+      "ayat": [
+        "48:25"
+      ]
+    },
+    {
+      "group": "hamza-on-waw",
+      "sourceForm": "اخسئوا",
+      "everydayForm": "اخسؤوا",
+      "ayat": [
+        "23:108"
+      ]
+    },
+    {
+      "group": "mia",
+      "sourceForm": "مائة",
+      "everydayForm": "مئة",
+      "ayat": [
+        "2:259",
+        "2:261",
+        "8:65",
+        "8:66",
+        "18:25",
+        "24:2",
+        "37:147"
+      ]
+    },
+    {
+      "group": "mia",
+      "sourceForm": "مائتين",
+      "everydayForm": "مئتين",
+      "ayat": [
+        "8:65",
+        "8:66"
+      ]
+    },
+    {
+      "group": "ayyuha",
+      "sourceForm": "أيه",
+      "everydayForm": "أيها",
+      "ayat": [
+        "24:31",
+        "43:49",
+        "55:31"
+      ]
+    }
+  ]
+}

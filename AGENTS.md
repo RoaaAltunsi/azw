@@ -68,16 +68,26 @@ It never proves authenticity.
 
 | Kind | Display text | Search text | Notes |
 |---|---|---|---|
-| Quran | Quranpedia "Hafs" mushaf (id 1, publisher: King Fahd Complex), from the official versioned dump (`mushafs-1.json`, dump version 2026-10-02). Quranpedia is named in the package itself | The same text, normalized (diacritics removed). This is NOT enough on its own: the text is in everyday spelling but keeps some mushaf spellings (see "Quran spelling" below) | 114 surahs / 6236 ayat, verified. Leading BOM (U+FEFF) stripped. Credit «Quranpedia.net» with a link and the dump version wherever the data is republished |
+| Quran | Quranpedia "Hafs" mushaf (id 1, publisher: King Fahd Complex), from the official versioned dump (`mushafs-1.json`, dump version 2026-10-02). Quranpedia is named in the package itself | The same text, normalized (diacritics removed). This is NOT enough on its own: the text is in everyday spelling but keeps some mushaf spellings (see "Quran spelling" below). Plus a search-only "uthmani" variant from Quranpedia mushaf 2 (see "Uthmani-script pastes" below) | 114 surahs / 6236 ayat, verified. Leading BOM (U+FEFF) stripped. Credit «Quranpedia.net» with a link and the dump version wherever the data is republished |
 | Hadith | Sahih al-Bukhari, Sahih Muslim from fawazahmed0/hadith-api (Unlicense), editions ara-bukhari / ara-muslim, pinned to commit `df57907`. The repository does not state which printed edition the Arabic text was digitized from | Normalized copy of the same text | Bukhari record id = `bukhari:<hadithnumber>`; displayed number = integer part of `hadithnumber` (1–7563). Muslim record id = `muslim:<hadithnumber>` (source running number); the displayed citation number = integer part of `arabicnumber` (Fuad Abd al-Baqi, 1–3033), NOT `hadithnumber`, with the full value kept in `citation.subNumber`. Samples verified against dorar.net |
 
 ### Findings from P0.1 (facts about the data; do not assume otherwise)
 
-- **Quran spelling (decision still open).** Removing diacritics and the dagger alif bridges most words,
-  but not these mushaf spellings: open ta (رحمت، نعمت، امرأت), hamza forms (رءوف، مسئولا، الملإ),
-  داوود, مائة. A writer's «رحمة» will not match «رحمت» by diacritic removal alone. How to bridge them
-  (folding rules, a reviewed variant list, or a second text) is the owner's decision — `docs/SOURCES.md`
-  section 5 item 3. P2 must not pick one silently.
+- **Quran spelling (decided 2026-10-03, `docs/DECISIONS.md` D-9).** Removing diacritics and the dagger
+  alif bridges most words, but not these mushaf spellings: open ta (رحمت، نعمت، امرأت), hamza forms
+  (رءوف، مسئولا), مائة. A writer's «رحمة» will not match «رحمت» by diacritic removal alone. They are
+  bridged by the owner-approved list `data/aliases/quran-spelling-variants.json`; each pair applies
+  ONLY in its listed ayat. Do not add folding rules to normalization and do not add pairs without the
+  owner's approval. «داود» and «إذن» were rejected and stay unbridged.
+- **Uthmani-script pastes (decided 2026-10-03, D-9).** Every Quran record carries
+  `searchVariants: [{ label: "uthmani", text }]`: the same ayah from Quranpedia mushaf 2 (Hafs,
+  Uthmani script, King Fahd Complex), normalized with `UTHMANI_VARIANT_OPTIONS` from
+  `src/core/normalize`. It is for retrieval only: never displayed, never diffed, never cited. Compare
+  it with the draft span normalized with the same options; compare `searchText` with the span
+  normalized with `{ keepHonorificPhrases: true }`. A match through the variant or through the
+  spelling list is a spelling match of the same ayah. The Quran matcher must use both, and still
+  display and diff `exactText`. Rules and measured coverage: `docs/ARCHITECTURE.md`,
+  "The Quran uthmani search variant".
 - **The Quran text is not in Uthmani script.** It is everyday (imla'i) spelling with full diacritics
   and embedded pause marks, plus the signs ۞ and ۩.
 - **Bukhari gaps and split entries.** 9 source entries are empty, so those numbers are absent from the
@@ -173,6 +183,7 @@ interface SourceRecord {
   collection: string;            // "quran" | "bukhari" | "muslim" | …
   exactText: string;             // unmodified display text
   searchText: string;            // normalized, for retrieval only
+  searchVariants?: Array<{ label: string; text: string }>;  // other normalized spellings, retrieval only (Quran: "uthmani")
   matnText?: string;             // verbatim part of exactText, only when reliably separable
   // number: null = no citation number in the source data. subNumber: full source value (e.g. "1907.01")
   citation: { display: string; surah?: number; ayah?: number; number?: string | null; subNumber?: string; book?: string; chapter?: string };

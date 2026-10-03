@@ -81,6 +81,12 @@ test("apiVersion is pinned to 1", () => {
   expect(ReviewResultSchema.safeParse({ ...result, apiVersion: "2" }).success).toBe(false);
 });
 
+test("SourceRecord accepts labeled search variants and rejects malformed ones", () => {
+  expect(SourceRecordSchema.safeParse({ ...record, searchVariants: [{ label: "uthmani", text: "نص" }] }).success).toBe(true);
+  expect(SourceRecordSchema.safeParse({ ...record, searchVariants: [{ label: "uthmani", text: "" }] }).success).toBe(false);
+  expect(SourceRecordSchema.safeParse({ ...record, searchVariants: ["نص"] }).success).toBe(false);
+});
+
 test("SourceRecord rejects unknown fields and an invalid review status", () => {
   expect(SourceRecordSchema.safeParse({ ...record, confidence: 0.9 }).success).toBe(false);
   expect(SourceRecordSchema.safeParse({ ...record, reviewStatus: "approved" }).success).toBe(false);

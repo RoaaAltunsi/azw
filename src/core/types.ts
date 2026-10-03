@@ -45,6 +45,9 @@ export const SourceRecordSchema = z.strictObject({
   collection: z.string().min(1),
   exactText: z.string().min(1), // unmodified display text
   searchText: z.string(), // normalized, for retrieval only
+  // Other normalized spellings of the same text, for retrieval only and never displayed.
+  // Quran records carry one, label "uthmani" (built with UTHMANI_VARIANT_OPTIONS).
+  searchVariants: z.array(z.strictObject({ label: z.string().min(1), text: z.string().min(1) })).optional(),
   matnText: z.string().min(1).optional(), // verbatim part of exactText, only when reliably separable
   citation: CitationSchema,
   sourceName: z.string().min(1),

@@ -43,6 +43,17 @@ check(gz.length === entry.bytes, "quran: .gz byte size equals manifest");
 check(sha256(gz) === entry.sha256, "quran: .gz sha256 equals manifest sha256");
 check(sha256(gunzipSync(gz)) === sha256(localJson), "quran: decompressed .gz is byte-identical to local mushafs-1.json");
 
+// Mushaf 2 (Uthmani script, search only): same checks against the same manifest.
+const entry2 = manifest.files.find((f) => f.name === "mushafs-2.json.gz");
+if (!entry2) throw new Error("mushafs-2.json.gz missing from the local Quranpedia manifest");
+const gz2 = await download("https://api.quranpedia.net/dumps/mushafs-2.json.gz");
+const localJson2 = readFileSync(p("data/raw/quranpedia/mushafs-2.json"));
+console.log(`quran: manifest lists mushafs-2.json.gz     sha256 ${entry2.sha256} (${entry2.bytes} bytes)`);
+console.log(`quran: downloaded mushafs-2.json.gz       sha256 ${sha256(gz2)} (${gz2.length} bytes)`);
+check(gz2.length === entry2.bytes, "quran: mushafs-2 .gz byte size equals manifest");
+check(sha256(gz2) === entry2.sha256, "quran: mushafs-2 .gz sha256 equals manifest sha256");
+check(sha256(gunzipSync(gz2)) === sha256(localJson2), `quran: decompressed mushafs-2 .gz is byte-identical to local mushafs-2.json (sha256 ${sha256(localJson2)})`);
+
 const liveManifest = JSON.parse((await download("https://api.quranpedia.net/dumps/manifest.json")).toString("utf8")) as typeof manifest;
 const liveEntry = liveManifest.files.find((f) => f.name === "mushafs-1.json.gz");
 check(
