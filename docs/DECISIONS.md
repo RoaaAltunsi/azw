@@ -587,7 +587,7 @@ and were tested on the corpus.
    extractor in `deps.extractors` wins). Overlapping spans: the earlier start wins, then the longer
    span; the other is dropped. So a place of the draft belongs to one item, and
    `item-<start>-<end>` is a unique, deterministic id. A verse quoted inside a hadith quote is
-   therefore not a separate item; P9 owns a finer rule.
+   therefore not a separate item; P9 owns a finer rule. (Closed: D-20 item 1, the rule stays.)
 6. **The ERROR item** carries no evidence and no `citedReference`, even when the reference was
    attached before the failure: nothing found for a failed item is shown. `ReviewItemSchema` now
    also rejects an `ERROR` item with evidence or an explanation. Its sentence
@@ -630,7 +630,7 @@ and were tested on the corpus.
 14. **`GET /health` answers 503** with `ok: false` when the corpus does not load, so that a
     monitor needs no body parsing.
 15. **The temporary extractor** takes `«…»` only when «قال رسول الله» is at most 60 characters
-    before it in the same sentence. Other formulas («قال النبي», «عن النبي ﷺ أنه قال») are P9.
+    before it in the same sentence. Other formulas («قال النبي», «عن النبي ﷺ أنه قال») are P9. (Replaced by the regex extractor: D-20.)
 
 Limits of this entry: the routes were tested through their handlers with Web `Request` objects, by
 `next build`, and with `curl` against `next start` on the build machine (health, a review, a refused
@@ -759,7 +759,7 @@ left to P7. Items 2–4 decide what a writer is shown of a source; the rest are 
    accent. Vermilion is not used for text or for the main button (white on it gives about 4.1:1).
 9. **The "no quotes found" state names the two forms the temporary extractor reads**
    (`extract.formsNote`) and says that this does not mean the draft holds no quotes. The sentence
-   must change with the extractor (P9).
+   must change with the extractor (P9). (Done: D-20 item 8.)
 10. **`/privacy`** carries the sections of `docs/PRIVACY.md` in its order, without the table of
     code and tests, which names files and is of no use to a writer. It says nothing that file does
     not say.
@@ -769,3 +769,113 @@ element is wider than the viewport on five screens (home, a result with the comp
 three pages); Lighthouse accessibility 100 on the four pages and on the home page with a result
 (a Lighthouse snapshot). Limits: one browser engine (Chrome), no screen reader was run, and no
 phone was used.
+
+## D-20 — Regex extractor: choices the prompt did not settle (2026-10-03)
+
+Made while replacing the temporary extractor (`docs/ARCHITECTURE.md`, "Regex extractor"). They
+decide which words of a draft become an item and what the writer is taken to claim about them;
+none decides a status, a text or a grade. They follow from `AGENTS.md` §2 (rules 3 and 9) and from
+the writer's own words, and were tested on hand-written drafts (`src/core/extract/index.test.ts`)
+and on the real corpus (`src/server/quran-review.integration.test.ts`). Items 2 and 9 rest on
+what the phrases mean in the discipline; the sources read for them are under "Sources" below.
+
+1. **A `﴿…﴾` inside a hadith quote is not a separate item** (the question D-17 item 5 and
+   `docs/BACKLOG.md` left to P9). The merge rule stays: the earlier start wins, then the longer
+   span. The extractor applies the same rule to its own output, so `review()` receives spans that
+   do not overlap. Reason: a place of the draft belongs to one item, and the ayah inside a hadith
+   is part of what the hadith's source must contain. Limit: the verse inside is not checked
+   against the Quran text on its own. For an unmarked quote the end is a guess while `﴿` is
+   certain, so an unmarked quote stops before `﴿` and the verse is its own item.
+2. **Two phrases before one quote give one item with the weaker claim.** «يُروى عن النبي ﷺ أنه
+   قال: «…»» holds «يروى» (unclear) and «عن النبي … قال» (hadith) before the same words.
+
+   | Option | Result |
+   |---|---|
+   | The phrase nearest the quote | «يُروى عن النبي ﷺ أنه قال: «…»» is `hadith`: the writer's «يُروى» is lost, and the words could end `MATCH` |
+   | The first phrase | `unclear_attribution` there, but «قال الله تعالى في الحديث القدسي: «…»» is claimed as a verse |
+   | **The weaker claim** (chosen) | `unclear_attribution` → `NEEDS_SPECIALIST`; and words the writer calls a hadith («قال رسول الله ﷺ: قال الله تعالى: …», «… في الحديث القدسي») are `hadith`, never `quran` |
+
+   The order is `unclear_attribution`, then any other kind, then `quran`. It reads only what the
+   writer wrote: it says nothing about what the text is. A second phrase written with «و» or «ف»
+   starts a new clause and is not chained; the first phrase then takes no quote from beyond it.
+
+   *Evidence.* (a) «يُروى» is a form that does not assert: Ibn al-Salah tells the one who relates
+   a weak hadith without its chain not to say «قال رسول الله ﷺ» but «رُوي عن رسول الله ﷺ كذا»
+   and the like (Sources 1, 2). A writer who puts «يُروى» before «عن النبي ﷺ أنه قال» has
+   therefore not asserted the attribution, and reading the item as a plain `hadith` claim would
+   say more than the writer did. (b) A hadith qudsi is cited in two forms, «قال رسول الله ﷺ فيما
+   يرويه عن ربه» and «قال الله تعالى» directly, and it is not Quran (Source 3). So «قال الله
+   تعالى» beside a hadith phrase is a hadith citation, and `hadith` over `quran` is the reading
+   the discipline gives. (c) «الأثر» does not say whose words they are: the jurists of Khurasan
+   use it for a Companion's saying (الموقوف), the hadith scholars for both (Source 2). «في
+   الأثر» as `unclear_attribution` (the prompt's choice) agrees with that.
+3. **Unmarked quotes: a colon is required after a phrase that is not a verb of speech**
+   («في الحديث», «ورد عنه», «في الأثر», «قال بعض السلف», «يروى», «يقال إن النبي»). The prompt asks
+   for "the text up to the sentence end when there are no quotation marks" after every hadith
+   phrase. «في الحديث عن الصبر فوائد كثيرة» and «يروى في كتب الأدب كثير من هذا» would then become
+   items. After a verb of speech («قال رسول الله», «قال النبي», «قال ﷺ», «عن النبي … قال», and the
+   five Quran phrases) the text is taken without a colon as well, as the prompt says. The choice
+   is a field of each pattern (`unmarked`).
+4. **Where an unmarked quote ends**, beyond the sentence end and the reference the prompt names:
+   any quotation mark, any opening bracket, and the next attribution phrase. A reference is
+   recognised without the alias lists (an extractor receives the draft only): an opening bracket,
+   or «رواه», «أخرجه», «خرجه», «متفق عليه». A gloss in brackets inside an unmarked quote therefore
+   ends it; the fragment before it is still the draft's own words.
+5. **Marks.** "Quotation marks" are `«…»`, `“…”` and `"…"` for every phrase. `(…)` is a quote
+   only for the Quran phrases, only right after the phrase or its colon, and not when it holds a
+   digit or opens with «سورة» or a reference word. `{…}` is not read (the prompt names round
+   brackets only; `docs/BACKLOG.md`).
+6. **The lead.** At most 60 characters of the same sentence between the phrase and the quote, as
+   in D-17 item 15, now for every phrase; honorifics of the Prophet and of God are skipped there.
+   «قال ﷺ» also reads the honorific written out («قال صلى الله عليه وسلم»): it is the same form.
+7. **The one-word rule counts words that hold a letter**; it applies to marked and unmarked
+   quotes, and not to `﴿…﴾`.
+8. **The "no quotes found" sentence** (`extract.formsNote`, D-19 item 9) now names `﴿ ﴾` and every
+   phrase of `ATTRIBUTION_PATTERNS`; a test in `src/components/ui.test.ts` fails if a phrase is
+   added to the list and not to the sentence.
+9. **Two kinds the prompt fixed, checked against the sources and kept.**
+   - *«ورد عنه» is `hadith`.* Ibn al-Salah lists «ورد عنه» and «جاء عنه» beside «رُوي» among
+     the forms for a weak hadith (Source 1), so it could be read as `unclear_attribution`.
+     Weighed: `unclear_attribution` ends `NEEDS_SPECIALIST` whatever the text, also when the
+     words stand verbatim in a covered source; `hadith` makes the tool search, and ends `MATCH`
+     only on a reviewed record and `NOT_FOUND` otherwise. Neither outcome asserts anything the
+     data does not hold, and the writer does name the Prophet («عنه ﷺ»). Kept as `hadith`.
+   - *Text after «قال الله تعالى» in marks other than `﴿ ﴾` is `quran`.* Because «قال الله
+     تعالى» is also a form of citing a hadith qudsi (Source 3), such a text may be a hadith the
+     writer cited properly. Today nothing follows from it: the hadith collections are not
+     searched, and the item ends `NOT_FOUND` with a sentence that names the Quran only. Once the
+     hadith matcher is registered (P11), `decide()` would give `DIFFERS` / `KIND_MISMATCH` («يخالف
+     نسبته في المسودة») to a correctly cited hadith qudsi. The kind stays `quran` here, since the
+     extractor has no kind for "God's words, verse or hadith qudsi" and `ClaimedKind` and the
+     status rules are outside this prompt; the rule P11 must add is in `docs/BACKLOG.md`. `﴿…﴾`
+     is not affected: the ornate brackets claim a verse.
+
+Sources (read on 2026-10-03):
+
+1. Ibn al-Salah, «معرفة أنواع علوم الحديث» (المقدمة): «إذا أردت رواية الحديث الضعيف بغير إسناد
+   فلا تقل فيه قال رسول الله صلى الله عليه وسلم كذا وكذا، وما أشبه هذا من الألفاظ الجازمة بأنه
+   صلى الله عليه وسلم قال ذلك، وإنما تقول فيه روي عن رسول الله صلى الله عليه وسلم كذا وكذا، أو
+   بلغنا عنه كذا وكذا، أو ورد عنه، أو جاء عنه، أو روى بعضهم، وما أشبه ذلك». Read as quoted in
+   ʿAbd al-ʿAziz al-ʿUthaym, «تحقيق القول بالعمل بالحديث الضعيف», p. 24
+   (<https://shamela.ws/book/10050/19>).
+2. Al-Nawawi, «التقريب والتيسير» (<https://shamela.ws/book/5586>, text read at
+   <https://islamicbook.ws/hadeth/alum/altqrib.html>): «وإذا أردت رواية الضعيف بغير إسناد فلا تقل
+   قال رسول الله صلى الله عليه وسلم كذا وما أشبهه من صيغ الجزم، بل قل: روى كذا أو بلغنا كذا أو
+   ورد أو جاء أو نقل أو ما أشبهه»; and, under النوع السابع (الموقوف): «وعند فقهاء خراسان تسمية
+   الموقوف بالأثر، والمرفوع بالخبر».
+3. Mannaʿ al-Qattan, «مباحث في علوم القرآن», pp. 22–23, as set out in
+   <https://www.alukah.net/sharia/0/130420/>: the hadith qudsi is related either «قال رسول الله
+   ﷺ فيما يرويه عن ربه» or «قال الله تعالى»; the Quran is attributed to God alone, the hadith
+   qudsi to God or to the Prophet; and al-Jurjani («التعريفات», p. 83): «من حيث المعنى من عند
+   الله تعالى، ومن حيث اللفظ من عند رسول الله».
+
+Closed by this entry: D-17 item 5 (its last sentence), D-17 item 15, D-19 item 9.
+
+Limits: the extractor was tested on drafts written for the tests, not measured on the evaluation
+cases (that is the evaluation's task), and the limits of the unmarked form are listed in
+`docs/ARCHITECTURE.md`. Of the sources: Sources 1 and 2 are one witness, not two, because
+al-Nawawi's book abridges Ibn al-Salah's; Ibn al-Salah's words were read in a later book that
+quotes them, not in an edition of the Muqaddima; Source 3 was read in an article that sets out
+al-Qattan's chapter, because the page of the book itself did not load, so its points are given
+here in summary and not as his words. This is an AI tool's documented source check, not a
+scholar's review (`AGENTS.md` §9).

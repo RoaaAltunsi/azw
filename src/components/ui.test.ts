@@ -2,6 +2,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "vitest";
+import { ATTRIBUTION_PATTERNS } from "@/core/extract";
 import { STATUSES, type ReviewResult } from "@/core/types";
 import { t } from "@/i18n/ar";
 import { ResultsView } from "./ResultsView";
@@ -193,6 +194,13 @@ test("results: no quotes found is said plainly, with no summary row", () => {
   expect(html).toContain(t("extract.formsNote"));
   expect(html).toContain(t("state.stale"));
   expect(html).not.toContain("0 مطابق");
+});
+
+test("the forms note names every phrase the regex extractor reads", () => {
+  const note = t("extract.formsNote");
+  expect(note).toContain("﴿ ﴾");
+  for (const { phrase } of ATTRIBUTION_PATTERNS) expect(note).toContain(`«${phrase}»`);
+  expect(note.match(/«/g)).toHaveLength(ATTRIBUTION_PATTERNS.length);
 });
 
 test("no source is named unless the API says it is searched", () => {

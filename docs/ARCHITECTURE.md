@@ -720,9 +720,91 @@ without a name is shown by its id), joined with «، ».
 The sentences themselves never contain «صحيح» (tested; the book titles in `{coverage}` are names), the `NOT_FOUND` sentence never judges the text, and
 the `WORDING_DIFF` sentence points to the source without repeating the altered words.
 
+## Regex extractor
+
+Code: `src/core/extract/index.ts`. Tests: `src/core/extract/index.test.ts` (hand-written drafts).
+
+`regexExtractor` is an `Extractor` (`draft → ExtractedQuote[]`, `extractedBy: "regex"`). It is the
+fallback when no LLM takes part and the baseline the LLM extractor (P10) is compared with. It reads
+the draft only: no corpus, no alias list, no LLM. It decides no status; a quote it returns is a
+claim of the writer that the matchers then check.
+
+### Forms
+
+1. **`﴿…﴾`, anywhere**: always `quran`, whatever stands before it, and also when it is one word.
+2. **The text after an attribution phrase.** The phrases are `ATTRIBUTION_PATTERNS`, an exported
+   list; `createRegexExtractor(patterns)` builds an extractor from an extended list.
+
+| Kind | Phrases | Marks | Without marks |
+|---|---|---|---|
+| `quran` | «قال تعالى», «قال الله تعالى», «قال سبحانه», «يقول الله», «قوله تعالى» | `«…»`, `“…”`, `"…"`, and `(…)` right after the phrase | up to the sentence end |
+| `hadith` | «قال رسول الله», «قال النبي», «قال ﷺ», «عن النبي … قال» | `«…»`, `“…”`, `"…"` | up to the sentence end |
+| `hadith` | «في الحديث», «ورد عنه» | the same | only after a colon |
+| `unclear_attribution` | «في الأثر», «قال بعض السلف», «يروى», «يقال إن النبي» | the same | only after a colon |
+
+- **A phrase is matched as whole words**, whatever the diacritics, the hamza on an alef, «ى/ي» and
+  «ة/ه»; also after «و» or «ف» and a prefix «ك», «ل», «ب» («وقال تعالى», «لقوله تعالى»). In
+  «قال ﷺ» the sign stands for any of `PROPHET_HONORIFICS` («قال صلى الله عليه وسلم»). In
+  «عن النبي … قال» the gap is at most `MAX_PHRASE_GAP_CHARS` (40) characters of the same sentence
+  («عن النبي ﷺ أنه قال»).
+- **Between the phrase and the quote**: honorifics (`PROPHET_HONORIFICS`, `DIVINE_HONORIFICS`:
+  «ﷺ», «صلى الله عليه وسلم», «عز وجل» …) and at most `MAX_LEAD_CHARS` (60) characters of the same
+  sentence («قال رسول الله ﷺ لمعاذ: «…»»), with no other quotation mark. A bracket there is
+  stepped over («قال تعالى (البقرة: 153): …»).
+- **Where the quote starts.** After the first colon, if there is one: marks there give a marked
+  quote, otherwise the text runs unmarked. Without a colon, the first quotation mark within the
+  60 characters. Without either, and only for the phrases that are a verb of speech, the text
+  right after the phrase and its honorifics. «في الحديث عن الصبر …» is ordinary prose, so the
+  phrases that are not a verb of speech need marks or a colon.
+- **Where an unmarked quote ends**: before the first sentence end (`. ! ? ؟ …` or a line break),
+  quotation mark or `﴿`, opening bracket `( [ {`, reference word (`REFERENCE_WORDS`: «رواه»,
+  «أخرجه», «خرجه», «متفق عليه», also after «و» / «ف»), or next attribution phrase. So a cited
+  reference is not part of the quote, and `attachReference` still finds it after the span.
+- **A round bracket is a quote** only for the Quran phrases, only right after the phrase or its
+  colon, and not when it holds a digit or opens with «سورة» or a reference word (it is a
+  reference then).
+- **Kind.** Text in marks takes the kind of its phrase, also when it is really a verse: the
+  matchers search every kind and the status rules report the wrong kind (`KIND_MISMATCH`).
+- **Two phrases before one quote** («يُروى عن النبي ﷺ أنه قال: «…»», «قال رسول الله ﷺ: قال الله
+  تعالى: «…»», «قال الله تعالى في الحديث القدسي: «…»»): one quote, with the weaker claim.
+  `unclear_attribution` wins over both; `hadith` wins over `quran`. A second phrase written with
+  «و» or «ف» («… وقال تعالى: «…»») is a new clause: its quote is its own, and the first phrase
+  takes nothing from beyond it.
+
+### The span
+
+The quoted words only, trimmed: no marks, no phrase, no honorific; for an unmarked quote also no
+comma, dash or colon at either end. `draft.slice(start, end) === text`, always.
+
+- A quote of one word is dropped, except inside `﴿…﴾` (a one-word quote is an exact hit in
+  thousands of ayat).
+- A mark that is never closed, or `«` inside `«…»`, gives nothing. `"…"` and `(…)` do not run over
+  a line break.
+- The spans do not overlap and come in draft order: the earlier start wins, then the longer span
+  (the merge rule of the orchestrator). A `﴿…﴾` inside a marked hadith quote is therefore part of
+  that quote and not an item of its own. An unmarked quote stops before `﴿`, so there the verse is
+  its own item.
+
+### Limits
+
+- Without marks the extractor cannot tell narration from quotation: «قال رسول الله كلاماً كثيراً.»
+  gives «كلاماً كثيراً» as a hadith quote, and an unmarked quote runs to the sentence end even
+  when the writer's own words follow it. The extractor only proposes the span; the matchers and
+  the status rules decide what it ends as.
+- Without a colon, words between the phrase and an unmarked quote are part of the span
+  («قال النبي ﷺ لمعاذ اتق الله»). A colon inside the first 60 characters of an unmarked quote that
+  has no colon before it is taken as its start.
+- A full stop inside an unmarked quote ends it. A quote in marks that opens more than 60
+  characters after the phrase is not read as marked.
+- Marks with no phrase before them are never a quote (a book title, a term). Phrases outside the
+  list («يقول النبي», «قال الله عز وجل» without «تعالى», «رُوي»), `{…}` and single quotes are not
+  read (`docs/BACKLOG.md`).
+- An unbracketed «سورة البقرة: 153» after an unmarked verse is inside the span.
+- Interpretive claims and personal rulings are not detected: that is the LLM extractor's (P10).
+
 ## Orchestrator
 
-Code: `src/core/review.ts`, `src/core/extract/index.ts` (the temporary extractor). Tests:
+Code: `src/core/review.ts`, `src/core/extract/index.ts` (see "Regex extractor"). Tests:
 `src/core/review.test.ts` (fixture records), `src/core/extract/index.test.ts`, and
 `src/server/quran-review.integration.test.ts` (real corpus).
 
@@ -764,9 +846,7 @@ typed by `ParsedReferenceSchema` (`docs/DECISIONS.md` D-17).
 **Item ids** are `item-<start>-<end>`: the position of the span in the draft. Step 3 leaves at most
 one item per place, so they are unique.
 
-**The temporary extractor** (`temporaryRegexExtractor`) reads two forms: `﴿…﴾` as `quran`, and
-`«…»` as `hadith` when «قال رسول الله» stands at most 60 characters before it in the same sentence
-with no other quotation mark between them. The span is the words inside the marks. P9 replaces it.
+**The extractor** the API passes in is `regexExtractor` ("Regex extractor" above).
 
 ### Coverage
 

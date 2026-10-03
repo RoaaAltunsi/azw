@@ -5,7 +5,7 @@
 // address. A log entry holds the request id, the length, timings, item counts and statuses only;
 // an error is logged by its class, never by a message that could quote the draft.
 import { randomUUID } from "node:crypto";
-import { temporaryRegexExtractor } from "../core/extract";
+import { regexExtractor } from "../core/extract";
 import { review, searchedCoverage } from "../core/review";
 import {
   API_VERSION,
@@ -231,7 +231,7 @@ export function createReviewHandler(deps: ApiDeps = defaultApiDeps()): {
           aliases: corpus.aliases,
           corpusVersion: corpus.corpusVersion,
           coverage: corpus.coverage,
-          extractors: [temporaryRegexExtractor],
+          extractors: [regexExtractor],
           now: deps.now,
         });
       } catch (error) {

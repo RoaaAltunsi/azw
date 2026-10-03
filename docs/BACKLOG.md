@@ -69,7 +69,8 @@ is built until it is moved into a prompt's scope.
   - A one-word quote such as «الله» is an exact hit in 2155 ayat (about 80 ms). Done in P6: the
     orchestrator returns at most 5 occurrences per item. The matcher still builds every candidate
     (340 ms for that one quote on the first request of a running server), and a draft may hold 40
-    items, so the extractor (P9) should not produce one-word quotes.
+    items, so the extractor (P9) should not produce one-word quotes. Done in P9: a one-word quote
+    is dropped, except inside `﴿…﴾` (`docs/DECISIONS.md` D-20 item 7).
   - `ReviewItem` has no field for `layer` / `spelling`. A UI that wants to say "matched in another
     spelling" needs one (an API contract change).
   - `claimLevel: "D"` must be set by the extractor (P10) for a ruling on a personal case.
@@ -105,7 +106,8 @@ is built until it is moved into a prompt's scope.
     in `ReviewDeps` that reports the class of the exception would help operations, as long as it
     never carries a message.
   - Rate limit: a shared store for production; per-instance memory is the demo's limit (D-17 item 10).
-  - Merge: a verse quoted inside a hadith quote is dropped as an overlapping span. P9 decides.
+  - Merge: a verse quoted inside a hadith quote is dropped as an overlapping span. Decided in P9:
+    the rule stays (`docs/DECISIONS.md` D-20 item 1).
   - `LlmPort` is declared in `src/core/review.ts`; P10 may move it to a file of its own and add a
     timeout / abort signal (`deps.now` is there for the time budget).
 
@@ -116,8 +118,8 @@ is built until it is moved into a prompt's scope.
   - API gap: `MAX_DRAFT_CHARS` is not in `GET /api/v1/health`, so the UI cannot show a character
     count against the limit; it shows the API's `DRAFT_TOO_LONG` sentence after the request.
   - API gap: the forms the extractor reads are not in the API. The "no quotes found" sentence
-    (`extract.formsNote` in `src/i18n/ar.ts`) names the two forms of the temporary extractor and
-    must be rewritten with P9.
+    (`extract.formsNote` in `src/i18n/ar.ts`) was rewritten in P9 and is tied to
+    `ATTRIBUTION_PATTERNS` by a test (D-20 item 8). The API still does not list the forms.
   - `/privacy` must change with `docs/PRIVACY.md` (P10: the LLM provider).
   - PWA files (manifest, icons, service worker) were not part of P7.
   - The home page names no source until `GET /api/v1/health` answers (about 0.8 s on a cold
@@ -125,6 +127,22 @@ is built until it is moved into a prompt's scope.
   - Not run in P7: a screen reader, Firefox and Safari, a real phone.
   - A copy of the matched fragment only was left out: the prompt allows `exactText` +
     `citation.display` (D-19 item 4).
+- Regex extractor (P9), for later prompts:
+  - Forms not read: `{…}` around a verse, single quotes, and phrases outside the list («يقول
+    النبي», «قال الله عز وجل» without «تعالى», «رُوي», «جاء عن النبي», «كما في الصحيحين»). Each is
+    one entry of `ATTRIBUTION_PATTERNS`; add them from the tune split only (P15).
+  - An unmarked quote runs to the sentence end, with the writer's own words after it if there are
+    any, and a full stop inside it ends it. The LLM extractor (P10) is the answer; the merge rule
+    then decides between its span and the regex one (P10 owns it).
+  - An unbracketed reference «سورة البقرة: 153» after an unmarked verse is not a stop: «سورة» is
+    also a word of hadith texts. The extractor could take the reference parser's spans if
+    `Extractor` received the aliases (a signature change).
+  - A verse inside a marked hadith quote is not checked on its own (D-20 item 1).
+  - Hadith matcher (P11), from D-20 item 9: «قال الله تعالى» is also a form of citing a hadith
+    qudsi. A text claimed `quran` through an attribution phrase (not through `﴿…﴾`) that is found
+    only in a hadith record must not end `DIFFERS` / `KIND_MISMATCH`. Either the extractor gives
+    such a quote a kind of its own, or `decide()` treats it as a hadith claim; test with
+    «قال الله تعالى: «أنا عند ظن عبدي بي»».
 ## Ideas for after the challenge
 
 - Normalization: more honorific phrases found in the hadith corpus and left in `searchText` —

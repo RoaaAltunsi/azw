@@ -5,7 +5,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
-import { temporaryRegexExtractor, type Extractor } from "../core/extract";
+import { regexExtractor, type Extractor } from "../core/extract";
 import { hasUthmaniSigns, matchAll, type MatchCandidate } from "../core/matchers";
 import { normalizeWithMap } from "../core/normalize";
 import { review as runReview, REVIEW_LIMITS } from "../core/review";
@@ -351,8 +351,8 @@ describe("contracts", () => {
 });
 
 // The orchestrator with the extractor the API uses, on the real corpus.
-describe("the pipeline with the temporary extractor", () => {
-  const deps = { ...corpus, extractors: [temporaryRegexExtractor], now: () => 0 };
+describe("the pipeline with the regex extractor", () => {
+  const deps = { ...corpus, extractors: [regexExtractor], now: () => 0 };
 
   test("two quotes in one draft, each with its own reference", async () => {
     const draft =
@@ -367,6 +367,17 @@ describe("the pipeline with the temporary extractor", () => {
     expect(result.items.map((i) => i.citedReference?.raw)).toEqual(["[البقرة: 153]", undefined, "[الأعراف: 55]"]);
     expect(result.summary).toEqual({ MATCH: 1, DIFFERS: 2, NOT_FOUND: 0, NEEDS_SPECIALIST: 0, ERROR: 0 });
     expect(await runReview(draft, deps)).toEqual(result);
+  });
+
+  test("a verse without marks, a verse given as a hadith, and an unclear attribution", async () => {
+    const draft =
+      "قال تعالى: إن مع العسر يسرا [الشرح: 6].\nوقال النبي ﷺ: «إن مع العسر يسرا».\nويُروى عن النبي ﷺ أنه قال: «إن مع العسر يسرا».";
+    const result = await runReview(draft, deps);
+    expect(result.items.map((i) => [i.claimedKind, i.span.text, i.status, i.reasonCode, i.citedReference?.raw])).toEqual([
+      ["quran", "إن مع العسر يسرا", "MATCH", "MATCH_REF_OK", "[الشرح: 6]"],
+      ["hadith", "إن مع العسر يسرا", "DIFFERS", "KIND_MISMATCH", undefined],
+      ["unclear_attribution", "إن مع العسر يسرا", "NEEDS_SPECIALIST", "UNCLEAR_ATTRIBUTION", undefined],
+    ]);
   });
 
   // AGENTS.md §2 rules 1 and 3: the corpus holds Sahih al-Bukhari, but no matcher searches it until

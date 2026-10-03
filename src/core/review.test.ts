@@ -4,7 +4,7 @@ import { describe, expect, test } from "vitest";
 import { t } from "../i18n/ar";
 import { buildCorpusIndex, createHadithAdapter, createQuranAdapter } from "./corpus";
 import { ALPHA_FIXTURE, QURAN_FIXTURE, SPELLING_FIXTURE } from "./corpus/test-fixtures";
-import { temporaryRegexExtractor, type ExtractedQuote, type Extractor } from "./extract";
+import { regexExtractor, type ExtractedQuote, type Extractor } from "./extract";
 import { matchers, quranMatcher, type Matcher } from "./matchers";
 import { review, searchedCoverage, type ReviewDeps } from "./review";
 import { ReviewResultSchema, STATUSES } from "./types";
@@ -15,7 +15,7 @@ const aliases = {
   surahs: [{ number: 113, bareName: "الفلق", spellingVariants: [], alternateNames: [] }],
   collections: [],
 };
-const deps: ReviewDeps = { index, aliases, corpusVersion: "fixture-1", coverage: ["quran", "alpha"], extractors: [temporaryRegexExtractor], now: () => 0 };
+const deps: ReviewDeps = { index, aliases, corpusVersion: "fixture-1", coverage: ["quran", "alpha"], extractors: [regexExtractor], now: () => 0 };
 
 const manual = (draft: string, text: string, claimedKind = "quran", extractedBy: ExtractedQuote["extractedBy"] = "manual"): ExtractedQuote => {
   const start = draft.indexOf(text);
@@ -150,11 +150,11 @@ describe("validation and merge of extracted spans", () => {
 
   test("the same span from two extractors is one item that names both; the first extractor's kind is kept", async () => {
     const second: Extractor = (d) => [manual(d, "قل أعوذ برب الفلق", "hadith", "llm")];
-    const result = await review(draft, { ...deps, extractors: [temporaryRegexExtractor, second] });
+    const result = await review(draft, { ...deps, extractors: [regexExtractor, second] });
     expect(result.items).toHaveLength(2);
     expect(result.items[0]!.extractedBy).toEqual(["regex", "llm"]);
     expect(result.items[0]!.claimedKind).toBe("quran");
-    const reversed = await review(draft, { ...deps, extractors: [second, temporaryRegexExtractor] });
+    const reversed = await review(draft, { ...deps, extractors: [second, regexExtractor] });
     expect(reversed.items[0]!.extractedBy).toEqual(["regex", "llm"]);
     expect(reversed.items[0]!.claimedKind).toBe("hadith");
   });

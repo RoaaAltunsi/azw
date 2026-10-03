@@ -83,12 +83,15 @@ export const ar = {
   "home.guide.1": "الصق مسودتك",
   "home.guide.2": "راجع النقول",
   "home.guide.3": "قارن بنص المصدر",
-  // The demo draft uses the two forms the temporary extractor reads: ﴿…﴾, and «…» after «قال رسول الله».
+  // The demo draft uses forms the regex extractor reads (src/core/extract): ﴿…﴾ after a Quran
+  // phrase, and «…» after «قال رسول الله».
   "home.example.draft":
     "الصبر من أعظم ما يتزود به المؤمن. قال الله تعالى: ﴿يا أيها الذين آمنوا استعينوا بالصبر والصلاة إن الله مع الصابرين﴾ [البقرة: 153].\nوقال سبحانه: ﴿إن مع العسر يسرا﴾ [الشرح: 7].\nوقال تعالى: ﴿الذين إذا أصابتهم مصيبة قالوا إنا لله وإنا له راجعون﴾ [البقرة: 156].\nوقال رسول الله ﷺ: «إنما الأعمال بالنيات».",
 
-  // The forms the extractor reads today (src/core/extract). To be updated with the extractor (P9).
-  "extract.formsNote": "تتعرف الأداة حالياً على صيغتين: نص بين القوسين ﴿ ﴾، ونص بين « » بعد عبارة «قال رسول الله».",
+  // The forms the regex extractor reads (ATTRIBUTION_PATTERNS in src/core/extract). A test checks
+  // that every phrase of that list is named here.
+  "extract.formsNote":
+    "تتعرف القواعد الآلية على النص بين القوسين ﴿ ﴾ أينما ورد، وعلى النص الذي يلي إحدى هذه العبارات، بين علامتي تنصيص أو بعد نقطتين حتى نهاية الجملة: «قال تعالى»، «قال الله تعالى»، «قال سبحانه»، «يقول الله»، «قوله تعالى»، «قال رسول الله»، «قال النبي»، «قال ﷺ»، «عن النبي … قال»، «في الحديث»، «ورد عنه»، «في الأثر»، «قال بعض السلف»، «يروى»، «يقال إن النبي».",
 
   // States.
   "state.empty": "الصق مسودتك ثم اضغط «راجع النقول»، أو جرّب «مثال».",
