@@ -288,9 +288,10 @@ draft
 - Colors: ink `#0F2A2E` (dominant), vermilion accent `#C8553D`, light tint `#EEF4F2`.
   Status colors: MATCH `#2E7D5B`, DIFFERS `#C98414`, NOT_FOUND `#737D82`, NEEDS_SPECIALIST `#5358C2`.
   Status is never conveyed by color alone (always label + icon).
-- Fonts: IBM Plex Sans Arabic (UI), Amiri (quotes), and the KFGQPC Hafs font for Quran text
-  if its terms allow web embedding AND it renders our text correctly (otherwise Amiri). Our Quran
-  text is not in Uthmani script (section 5), so check the rendering on real ayat before adopting it.
+- Fonts: IBM Plex Sans Arabic (UI), Amiri (quotes and Quran text). The KFGQPC Hafs font is not
+  used (decided 2026-10-03, `docs/DECISIONS.md` D-19): it has no glyph for «آ» (U+0622), which our
+  everyday-spelling text (section 5) has in 1286 ayat, and its licence forbids modifying the file.
+  The Quran font is one CSS token, `--font-quran` in `src/app/globals.css`; do not set it elsewhere.
 - Motif: a dashed "trace" line from a quote to its source card.
 - Wording: the tool's own sentences and labels never use «صحيح» for a text or a reference, because
   it reads as a judgment on authenticity (`docs/DECISIONS.md` D-12 item 10, D-18). The source's

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Amiri, IBM_Plex_Sans_Arabic } from "next/font/google";
 import type { ReactNode } from "react";
+import { AiBanner, SiteFooter } from "@/components/SiteChrome";
 import { t } from "@/i18n/ar";
 import "./globals.css";
 
@@ -19,7 +20,7 @@ const amiri = Amiri({
 });
 
 export const metadata: Metadata = {
-  title: t("app.name"),
+  title: { default: t("app.name"), template: `%s — ${t("app.name")}` },
   description: t("app.description"),
 };
 
@@ -30,7 +31,17 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="ar" dir="rtl" className={`${plexArabic.variable} ${amiri.variable}`}>
-      <body className="min-h-dvh font-sans antialiased">{children}</body>
+      <body className="flex min-h-dvh flex-col font-sans antialiased">
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:absolute focus:start-2 focus:top-2 focus:z-10 focus:rounded focus:bg-white focus:px-3 focus:py-2 focus:text-ink"
+        >
+          {t("a11y.skipToContent")}
+        </a>
+        <AiBanner />
+        <div className="flex-1">{children}</div>
+        <SiteFooter />
+      </body>
     </html>
   );
 }

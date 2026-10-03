@@ -864,3 +864,47 @@ does not say that an LLM is used. When the corpus does not load: 503 with `ok: f
 `loadCorpus` reads `data/corpus` and `data/aliases` from `process.cwd()` with paths taken from the
 manifest, which the build cannot trace. `next.config.ts` lists `data/corpus/*.json` and
 `data/aliases/*.json` in `outputFileTracingIncludes` for both routes.
+
+## UI
+
+Code: `src/app` (pages), `src/components` (components), `src/components/lib` (pure functions, no
+React). Strings: `src/i18n/ar.ts` only. Tests: `src/components/lib/*.test.ts` and
+`src/components/ui.test.ts` (components rendered to static markup). Choices: `docs/DECISIONS.md`
+D-19.
+
+The UI is a client of API v1 and of nothing else. It imports the schemas and types of
+`src/core/types.ts` and never `src/server`, the corpus or a matcher.
+
+| Route | |
+|---|---|
+| `/` | `ReviewApp`: scope note and sources line from `GET /api/v1/health`, the draft form, the states, the result |
+| `/privacy` | What `docs/PRIVACY.md` says, in Arabic |
+| `/sources` | `SourcesRegister`: the sources of `docs/SOURCES.md` whose collections are in the API's coverage |
+| `/how-it-works` | The steps, the statuses, what the tool does not do |
+
+The layout (`src/app/layout.tsx`) carries the banner «أداة مدعومة بالذكاء الاصطناعي، وليست بديلاً
+عن المختص.», a skip link and the footer on every page.
+
+| `src/components/lib` | |
+|---|---|
+| `api-client.ts` | `requestReview`, `fetchHealth`: fetch, then validation against the zod schemas. A result comes only from a 200 that parses |
+| `segments.ts` | From diff ops (ranges) to the pieces of a text: `draftSegments`, `sourceSegments`, `alignedSourceSegments`, and `draftPieces` for the highlighted draft |
+| `occurrences.ts` | `groupOccurrences` (evidence → places), `occurrenceCitation`, `sourceCopyText` |
+| `labels.ts` | Names for ids from the API (`collection.<id>`, `kind.<id>`, `warning.<CODE>`), and the summary row |
+| `kind-ui.ts` | Per kind: the marks around its source text and its font. The only place the UI names a kind |
+
+States of the home screen (`Phase` in `ReviewApp.tsx`): `idle` (the empty state), `loading`
+(skeleton), `error` (the API's `error.message`, or a fixed sentence when there is no API answer),
+`done` (a result; with no item, the "no quotes found" state). A `role="status"` line announces the
+loading and the summary; after a result the focus moves to its heading.
+
+A card (`ReviewCard`): the status pill (label + icon), the quote as written with the diff marks,
+the dashed trace line, the source block (`ScriptureBlock`: `exactText` only, the citation, a grade
+only when the record has one with its `by`, the source link when the record has a `sourceUrl`),
+`reasonAr`, «قارن النصين», «انسخ نص المصدر مع المرجع», and `ExplanationBox` under «شرح مولّد آلياً»
+when an item carries an explanation (none does until P12). An `ERROR` item shows its `reasonAr`
+and nothing from a source.
+
+Status styling is driven by data: an element carries `data-status`, and `globals.css` sets the
+color, the text color and the underline style from it. The icon registry in `StatusPill.tsx` is
+typed over `Status`, so a new status does not compile without an icon.

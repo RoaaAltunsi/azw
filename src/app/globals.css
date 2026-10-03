@@ -24,9 +24,142 @@
 
   --font-sans: var(--font-plex-arabic), ui-sans-serif, system-ui, sans-serif;
   --font-quote: var(--font-amiri), ui-serif, serif;
+  /* Quran text. Amiri, not the KFGQPC Hafs font: docs/DECISIONS.md D-19. */
+  --font-quran: var(--font-amiri), ui-serif, serif;
 }
 
 body {
   background-color: var(--azw-tint);
   color: var(--azw-ink);
+}
+
+/* Text colors derived from the status colors, dark enough for AA contrast on white and on the tint.
+   The identity colors above are used for borders, bars and underlines. */
+[data-status="MATCH"] {
+  --status: var(--azw-status-match);
+  --status-ink: #1e6045;
+  --status-line: solid;
+}
+[data-status="DIFFERS"] {
+  --status: var(--azw-status-differs);
+  --status-ink: #8a5a00;
+  --status-line: wavy;
+}
+[data-status="NOT_FOUND"] {
+  --status: var(--azw-status-not-found);
+  --status-ink: #4a5459;
+  --status-line: dotted;
+}
+[data-status="NEEDS_SPECIALIST"] {
+  --status: var(--azw-status-needs-specialist);
+  --status-ink: #4045a8;
+  --status-line: dashed;
+}
+[data-status="ERROR"] {
+  --status: var(--azw-vermilion);
+  --status-ink: #9a3324;
+  --status-line: double;
+}
+
+:focus-visible {
+  outline: 3px solid var(--azw-vermilion);
+  outline-offset: 2px;
+}
+/* A heading that receives the focus from a script, to place the reader; it is not a control. */
+.quiet-focus:focus-visible {
+  outline: none;
+}
+
+/* Status: label + icon, and a border in the status color. Never color alone. */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border: 1.5px solid var(--status);
+  border-radius: 9999px;
+  background: #fff;
+  color: var(--status-ink);
+  padding: 0.125rem 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.status-card {
+  border-inline-start: 4px solid var(--status);
+}
+
+/* A detected span in the draft view: status color + an underline style of its own per status. */
+.draft-mark {
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--status) 14%, transparent);
+  color: inherit;
+  text-decoration: underline var(--status-line) var(--status-ink);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 6px;
+}
+.draft-mark:hover {
+  background: color-mix(in srgb, var(--status) 26%, transparent);
+}
+
+/* Word diff. The marks differ in underline style as well as in color; the legend names them. */
+.diff-mark {
+  border-radius: 2px;
+  color: inherit;
+  padding-block: 1px;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 6px;
+}
+.diff-replace {
+  background: #fbe7bf;
+  text-decoration: underline solid #8a5a00;
+}
+.diff-insert {
+  background: #fbe7bf;
+  text-decoration: underline wavy #8a5a00;
+}
+.diff-delete {
+  background: #dfe3fb;
+  text-decoration: underline dashed #4045a8;
+}
+/* The part of a source record the quote does not reach: still source text, only quieter. */
+.diff-context {
+  color: color-mix(in srgb, var(--azw-ink) 72%, white);
+}
+
+/* The "trace" motif: a dashed line from a quote to its source. */
+.trace-line {
+  border-inline-start: 2px dashed var(--azw-vermilion);
+  height: 1.5rem;
+  margin-inline-start: 1.5rem;
+}
+
+.btn-primary,
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-primary {
+  background: var(--azw-ink);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: color-mix(in srgb, var(--azw-ink) 88%, white);
+}
+.btn-primary[aria-disabled="true"] {
+  cursor: progress;
+  opacity: 0.85;
+}
+.btn-secondary {
+  border: 1.5px solid var(--azw-ink);
+  background: #fff;
+  color: var(--azw-ink);
+  font-size: 0.875rem;
+}
+.btn-secondary:hover {
+  background: var(--azw-tint);
 }

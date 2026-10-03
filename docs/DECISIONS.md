@@ -667,3 +667,105 @@ published notice, and the UI's footer links to it). It must be updated when the 
 
 Limits: the prompt pack (`Azw_Build_Prompts.md`) is a local file outside the repository; its P7–P13
 prompts were edited to match, and the prompts already run (P0–P6) were left as they were written.
+
+## D-19 — The UI: the Quran font, and choices the prompt did not settle (2026-10-03)
+
+Made while building the screens (`docs/ARCHITECTURE.md`, "UI"). Item 1 is the check D-18 item 4
+left to P7. Items 2–4 decide what a writer is shown of a source; the rest are engineering choices.
+
+1. **Quran text is set in Amiri, not in the KFGQPC Hafs font.** `AGENTS.md` §8 allowed the Hafs
+   font only if its terms permit web embedding *and* it renders our everyday-spelling text
+   correctly on real ayat. Both were checked; the second fails. §8 now states the result (edited
+   on the owner's instruction).
+
+   *The font.* Downloaded on 2026-10-03 from the King Fahd Complex's own font site,
+   <https://fonts.qurancomplex.gov.sa/ten-readings> → <https://fonts.qurancomplex.gov.sa/hafs-reading>
+   («الخط الحاسوبي لرواية حفص عن عاصم الكوفي»): `KFGQPC-Hafs-V30.zip` (Version 3.0, marked «أحدث
+   إصدار»; zip sha256 `ddf52d0f…295a324c`, the TTF inside `c9dd7e71…3aeec47a`) and
+   `UthmanicHafs_v2-1.zip` (Version 2.1; zip sha256 `10551625…d73e50b3`).
+
+   *Terms.* The page states none. The licence is inside the font file (`name` table, id 13,
+   "ELECTRONIC END-USER LICENSE AGREEMENT"), quoted: "Permission is hereby granted, Free of Cost, to
+   any person obtaining a copy of this Font accompanying this license, the rights to Use, Copy,
+   Distribute, subject to the following conditions: 1. The Font Software cannot be Sold, Modified,
+   Altered, Translated, Reverse Engineered, Decompiled, Disassembled, Reproduced …". The copyright
+   line (id 0): "This Font is the property of King Fahd Glorious Quran Printing Complex, and may
+   not be reproduced, modified without the express written approval of King Fahd Glorious Quran
+   Printing Complex." The embedding flags (`OS/2.fsType`) are 0, "installable embedding". Read
+   together: serving the unmodified TTF to a browser is use and distribution, which the licence
+   grants; subsetting the font or converting it to WOFF2, which web embedding normally does, is
+   "Modified, Altered", which it forbids. So embedding is permitted only as the whole, unconverted
+   file.
+
+   *Rendering, measured on all 6236 ayat of `data/corpus/quran.json`.* The corpus text uses 55
+   distinct characters. Both font versions lack one of them: **U+0622 «آ» (alef with madda above)**,
+   which stands 1511 times in **1286 ayat** (for example «آمَنُوا» in البقرة 153). The font was
+   made for the complex's Uthmani-script text, which writes that sound with other characters and
+   never uses U+0622; the sample on the font's own page and the mushaf in the bundled Word file
+   show it («ءَامَنُواْ»). In a browser the missing letter is drawn from the next font in the stack,
+   so a word of the ayah would be set in two typefaces. A mushaf font that cannot draw every
+   letter of the text it is given does not render our text correctly.
+
+   *Amiri.* The Amiri files the build serves (`next/font/google`, Version 1.002, SIL Open Font
+   License) were read the same way: every one of the 55 characters, and the brackets ﴿ ﴾ (U+FD3E,
+   U+FD3F), has a glyph. The rendering was looked at on البقرة 153 and 156 and الشرح 6 in headless
+   Chrome at 360 px and 1280 px (the pause mark «ۚ» included).
+
+   *Decision.* Amiri, through one CSS token (`--font-quran` in `src/app/globals.css`, used by the
+   `quran` entry of `src/components/lib/kind-ui.ts`), so that a later change touches one line.
+   Limits: the glyph check is of the character map, not of every mark position; the visual check
+   was three ayat; the licence was read by an AI assistant, not by a lawyer, and the complex was
+   not asked. The Hafs font would become usable if the displayed text were the Uthmani-script
+   mushaf, which is a different decision (`AGENTS.md` §5).
+2. **The sources page names a source only when the API's coverage lists its collections.** The
+   prompt asks for a page that "renders docs/SOURCES.md summary"; that file describes the two
+   hadith collections, and `AGENTS.md` §6 says a collection no matcher searches is never named in
+   the UI. Options: show the whole register with a "not searched yet" label on the hadith source;
+   or show each source only when every one of its collections is in `coverage` of
+   `GET /api/v1/health`. Chosen: the second, the conservative one. Today the page shows the Quran
+   source only; when P11 registers the hadith matcher the hadith entry (with its note on Dorar)
+   appears with no change to the page. The wording of both entries is in `src/i18n/ar.ts` and says
+   what `docs/SOURCES.md` says. Tested: `searchedSources` in `src/components/ui.test.ts`.
+3. **What stands between ﴿ ﴾.** `record.exactText`, whole and unchanged, and nothing else; the
+   brackets are outside the text. The part of an ayah the quote does not reach is shown in a
+   quieter color, never cut, so that a reader sees the ayah as the source has it. The marks of the
+   diff are styles on stretches of that text (`<mark>`, with a `title`); no character is inserted
+   into it, so selecting and copying the block gives the source text. A word of the source is
+   never struck through. The side-by-side view («قارن النصين») shows only the stretch the quote
+   was aligned to, under the heading «نص المصدر», with the same citation.
+4. **The copy button** puts on the clipboard `exactText` (between the marks of its kind) and, on a
+   second line, `citation.display`; for a quote over several ayat, each ayah's text and the «من …
+   إلى …» form the reason sentences use. It copies the whole ayah, not the quoted fragment: the
+   prompt names `exactText`, and a fragment cut by the tool would be the tool's own text.
+5. **An occurrence is read from the order of the evidence.** A `ReviewItem` has no occurrence
+   index (`docs/BACKLOG.md`), so `groupOccurrences` takes an entry and the following entries that
+   share its `ayahRange` and collection, up to the number of ayat in the range, as one place. A
+   quote that stands in several places gets one button per place; the chosen place drives the
+   source block and the marks in both texts. An entry without `ayahRange` is a place of its own.
+6. **The client validates every response** against `ReviewResultSchema` / `ApiErrorSchema`
+   (`src/components/lib/api-client.ts`). A body that is neither, a result under a failed HTTP
+   status, and a network failure show a fixed sentence of the UI and never a result. An empty
+   draft is refused in the page with the API's own sentence (`api.error.EMPTY_DRAFT`), without a
+   request.
+7. **The draft stays in memory.** It is component state only: no `localStorage`, no cookie, no
+   URL parameter. The result view shows the text that was reviewed; if the writer edits the
+   textarea afterwards, a notice says the result belongs to the earlier text. Nothing rewrites the
+   draft, and there is no "fix all".
+8. **Status colors and contrast.** The four identity colors of `AGENTS.md` §8 are used for
+   borders, bars and underlines. As text on white, the DIFFERS color `#C98414` gives about 3:1 and
+   fails AA, so each status has a darker text color derived from it (`--status-ink` in
+   `globals.css`). A status is always a label and an icon; in the draft view each status also has
+   its own underline style (solid, wavy, dotted, dashed, double). `ERROR` uses the vermilion
+   accent. Vermilion is not used for text or for the main button (white on it gives about 4.1:1).
+9. **The "no quotes found" state names the two forms the temporary extractor reads**
+   (`extract.formsNote`) and says that this does not mean the draft holds no quotes. The sentence
+   must change with the extractor (P9).
+10. **`/privacy`** carries the sections of `docs/PRIVACY.md` in its order, without the table of
+    code and tests, which names files and is of no use to a writer. It says nothing that file does
+    not say.
+
+Checked: `npm run lint`, `typecheck`, `test`, `build`; in headless Chrome at 360 px and 1280 px no
+element is wider than the viewport on five screens (home, a result with the comparison open, the
+three pages); Lighthouse accessibility 100 on the four pages and on the home page with a result
+(a Lighthouse snapshot). Limits: one browser engine (Chrome), no screen reader was run, and no
+phone was used.

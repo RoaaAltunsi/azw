@@ -109,6 +109,22 @@ is built until it is moved into a prompt's scope.
   - `LlmPort` is declared in `src/core/review.ts`; P10 may move it to a file of its own and add a
     timeout / abort signal (`deps.now` is there for the time budget).
 
+- UI (P7), for later prompts:
+  - API gap: a `ReviewItem` has no occurrence index, so the UI reads the places of a quote from
+    the order of the evidence and `ayahRange` (`groupOccurrences`, `docs/DECISIONS.md` D-19
+    item 5). The field asked for above would replace that rule.
+  - API gap: `MAX_DRAFT_CHARS` is not in `GET /api/v1/health`, so the UI cannot show a character
+    count against the limit; it shows the API's `DRAFT_TOO_LONG` sentence after the request.
+  - API gap: the forms the extractor reads are not in the API. The "no quotes found" sentence
+    (`extract.formsNote` in `src/i18n/ar.ts`) names the two forms of the temporary extractor and
+    must be rewritten with P9.
+  - `/privacy` must change with `docs/PRIVACY.md` (P10: the LLM provider).
+  - PWA files (manifest, icons, service worker) were not part of P7.
+  - The home page names no source until `GET /api/v1/health` answers (about 0.8 s on a cold
+    server). A server component cannot call the handler without importing `src/server`.
+  - Not run in P7: a screen reader, Firefox and Safari, a real phone.
+  - A copy of the matched fragment only was left out: the prompt allows `exactText` +
+    `citation.display` (D-19 item 4).
 ## Ideas for after the challenge
 
 - Normalization: more honorific phrases found in the hadith corpus and left in `searchText` —
