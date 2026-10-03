@@ -285,3 +285,151 @@ brackets are part of its `raw` and `span`.
 
 When in doubt it attaches nothing: a missing reference is never reported as a wrong one.
 `quoteSpan` may include the quotation marks or not.
+
+## Corpus index
+
+Code: `src/core/corpus/` (`adapter.ts`, `corpus-index.ts`, `kind-meta.ts`, `schema.ts`) and
+`src/server/corpus-loader.ts`. Tests beside each file. Benchmark: `npm run bench:index`.
+
+The index answers two questions about a normalized quote: where exactly it occurs in the sources,
+and which records are closest to it. It does not score beyond bigram containment, align, diff,
+decide a status or give a reason code; those belong to the matchers. It never logs or stores a
+query, and its error messages never contain one (a query is draft content, `AGENTS.md` §2 rule 8).
+
+### Adapters, units and layers
+
+A `SourceAdapter` describes one collection, so that the index never branches on a kind or a
+collection:
+
+| Member | Meaning |
+|---|---|
+| `kind`, `collection` | As on the records |
+| `load()` | The records. Core does no I/O: the adapter was given them already loaded |
+| `units(records)` | The records grouped into units, in reading order. The index joins the records of one unit with a space, so a quote that runs over several records of a unit is one hit. Two units are never joined |
+| `layers` | The search layers: `{ name, options, text(record) }` |
+
+A **layer** is one normalized text per record plus the `NormalizeOptions` a query must be
+normalized with (level "search") to be compared with it. Layer texts are for retrieval only: never
+displayed, never diffed, never cited.
+
+| Adapter | Units | Layers |
+|---|---|---|
+| `createQuranAdapter(records, spellingVariants)` | One per surah, ayat in ayah order (whatever order the records arrive in) | `default` = `searchText`, options `{ keepHonorificPhrases: true }`. `uthmani` = the `searchVariants` entry with that label, options `UTHMANI_VARIANT_OPTIONS`. `everyday` = see below, options as `default` |
+| `createHadithAdapter(collection, records)` | One per record | `default` = `searchText`, no options |
+
+**The "everyday" layer** is derived when the Quran adapter is created, from
+`data/aliases/quran-spelling-variants.json`. It is not written to `data/corpus` and does not change
+`corpusVersion`. For each ayah the list names, the words of `searchText` equal to a normalized
+`sourceForm` are replaced by the normalized `everydayForm`: whole words only («برحمت» is not touched
+by the pair for «رحمت»), and only in the listed ayat («لعنت» stays in 7:38). Every other ayah keeps
+its `searchText`, so a surah is still one continuous text on this layer. Consequences:
+
+- A quote with no listed word is found on `default` and on `everyday` alike. Only a hit on
+  `everyday` that `default` does not have went through the spelling list.
+- In a listed ayah the layer holds the everyday form only. A quote that writes one listed word in
+  the mushaf spelling and another in the everyday spelling is not an exact hit on any layer
+  (`docs/BACKLOG.md`).
+- The adapter throws if the list names an ayah, or a word of an ayah, that the records do not have.
+
+The index reports which layer produced a hit and nothing more. Whether a hit on `uthmani` or
+`everyday` may end `MATCH` is a status rule (`docs/DECISIONS.md` D-9), decided by the matcher.
+
+### API
+
+`buildCorpusIndex(adapters)` takes the adapters of all kinds and returns a `CorpusIndex`. It throws
+on a record id held twice, on a unit grouping that loses or repeats records, and on a duplicate layer.
+
+A layer is addressed by `LayerRef = { collection, layer }`, not by its name alone: Quran "default"
+and hadith "default" are normalized with different options (D-7), so one normalized query cannot
+serve both. To search every source, loop over `index.layers`.
+
+| Member | Result |
+|---|---|
+| `layers` | Every layer: `{ collection, kind, layer, options }`, in adapter order |
+| `normalizeFor(layer, text)` | `normalizeWithMap(text, "search", <the layer's options>)`: `{ norm, map }`. The way to normalize a query for a layer |
+| `findExact(normQuery, layer)` | Every occurrence, as `ExactHit[]`, in text order |
+| `candidates(normQuery, layer, k = 10)` | The `k` closest records, as `Candidate[]`, best first |
+| `record(id)` | The `SourceRecord`, or `undefined` |
+| `layerText(layer, recordId)` | The record's text on that layer: what a hit's offsets point into |
+| `recordCount` | Number of records over all adapters |
+
+**Exact lookup.** An occurrence must start and end on word boundaries: «من الله» is not found
+inside «المؤمن الله». All occurrences are returned, including overlapping ones, several in one
+record, the same text under several numbers and in several collections (one call per collection
+layer). Pending records are indexed like any other; the hit carries the records, so the caller sees
+`reviewStatus`. Whitespace in the query is collapsed; nothing else is changed, so a query that was
+not normalized with `normalizeFor` simply misses. An empty query returns `[]`.
+
+```ts
+interface ExactHit {
+  collection: string;
+  layer: string;
+  recordIds: string[];      // the records the occurrence runs over, in unit order
+  records: SourceRecord[];  // the same records
+  start: number;            // offset in the layer text of the first record
+  end: number;              // offset (exclusive) in the layer text of the last record
+}
+```
+
+From this the matcher derives an ayah range (first and last record) and tells a whole record from a
+part of one (`start === 0` and `end === layerText(layer, lastId).length`). The offsets are in layer
+text, not in `exactText`; mapping to `exactText` is the matcher's alignment step.
+
+**Fuzzy candidates.** Each layer has an inverted index from word bigram to the records holding it
+(Quran: ayat). `score = |distinct query bigrams the record holds| / |distinct query bigrams|`. Ties
+are broken by record id (code-unit order), so the order is the same on every run and does not
+depend on the order of the records. Limits:
+
+- A query of fewer than two words has no bigrams: the result is `[]`.
+- Bigrams do not cross record boundaries. A quote spanning two ayat gets each ayah as a separate
+  candidate with a score below 1.
+- A record that holds the query exactly is also a candidate (score 1).
+
+### Implementation
+
+Per layer: one string holding every unit (records joined by a space, units by a line break, which
+normalized text never contains), an array of record start offsets, and the bigram map. Exact lookup
+is `indexOf` over that string, a boundary check, and a binary search for the first and last record.
+
+### Loader
+
+`loadCorpus(root = process.cwd())` in `src/server/corpus-loader.ts` is the only runtime code that
+reads files, and `src/core` may not import it (lint rule, `src/core/boundary.test.ts`). It returns
+`{ index, corpusVersion, coverage, aliases: { surahs, collections } }`, built once per root and
+server instance. It reads `data/corpus/manifest.json`, the corpus files the manifest lists and the
+three alias files, and throws if: a file is missing or is not JSON; a file fails its zod schema; a
+corpus file's sha256 differs from the manifest; `recordCount`, the number of records and the
+manifest's count are not all equal; a file's kind or collection differs from the manifest, or a
+record's from its file; `coverage` and the corpus files differ; a kind has no adapter factory. A
+failed load is not cached. `reviewStatus` is read from the records; `data/review/` is not read.
+
+The steps are exported separately (`readCorpus`, `validateCorpus`, `buildCorpus`) so that the
+benchmark can time them. The file schemas live in `src/core/corpus/schema.ts`;
+`scripts/lib/schema.ts` re-exports them, and the record schema from `src/core/types.ts`.
+
+### kindMeta
+
+`kindMeta` / `getKindMeta(kind)` in `src/core/corpus/kind-meta.ts`: `{ labelAr, citationFormatter }`
+per kind, so that the UI and the status rules do not branch on a kind. "quran" and "hadith" are
+registered; the labels come from `src/i18n/ar.ts` (`kind.quran`, `kind.hadith`). Both formatters
+return `record.citation.display`, which the corpus build writes from the source data: a record with
+`citation.number = null` is shown without a number and none is ever composed at runtime.
+
+### Measured
+
+`npm run bench:index` on 2026-10-03 (Node 22.16, Windows 11 laptop; 21,176 records, 5 layers):
+
+| Step | Result | Budget |
+|---|---|---|
+| Read + parse (42 MB of JSON, with sha256) | 250–270 ms | — |
+| zod validation | about 105 ms | — |
+| Index build | 400–640 ms cold over five runs; 360–840 ms on repeats, depending on what else the machine is doing (one repeat under heavy load took 2.5 s) | < 1.5 s |
+| Heap used | 80 MB after read + parse, 88 MB after validation, 170 MB after the build (highest sample of one load); 157 MB retained after gc | — |
+| `findExact`, 300-word draft with 5 quotes, each on all 5 layers | median 0.2 ms, max 0.8 ms | < 50 ms |
+| `candidates`, same draft | median 0.2 ms, max 2.2 ms | < 50 ms |
+| The whole draft: 25 × (normalize + exact + candidates) | 19 ms | — |
+| Worst case, `findExact` of the one word «الله» | 14 ms on `muslim` (14,373 hits), 12 ms on `bukhari` (15,572 hits), 2 ms on a Quran layer | < 50 ms |
+
+Heap is sampled at the end of each phase, so a higher transient peak inside a phase is not seen.
+The retained figure includes the parsed files the benchmark script keeps; the records themselves
+(`exactText` included) are shared with the index, not copied.

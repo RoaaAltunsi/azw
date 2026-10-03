@@ -23,6 +23,9 @@ const forbidden = [
   "../app/layout",
   "./../../llm",
   "next/font/google",
+  "@/server/corpus-loader",
+  "../server",
+  "../../server/corpus-loader",
 ];
 
 test.each(forbidden)("src/core may not import %s", async (source) => {
@@ -30,7 +33,7 @@ test.each(forbidden)("src/core may not import %s", async (source) => {
   expect(ids).toContain("no-restricted-imports");
 }, 30_000);
 
-const allowed = ["zod", "../types", "../diff", "./rules", "@/core/types"];
+const allowed = ["zod", "../types", "../diff", "./rules", "@/core/types", "../../i18n/ar"];
 
 test.each(allowed)("src/core may import %s", async (source) => {
   const ids = await ruleIds(`import "${source}";\n`, "src/core/status/sample.ts");

@@ -138,3 +138,41 @@ Effect on `D-6` item 1: `H-008` («رحمة», 7:56) can stay `MATCH` once the m
 `T-007` (Uthmani paste) can stay `MATCH` once the matcher uses the "uthmani" search variant: its
 quote, normalized with `UTHMANI_VARIANT_OPTIONS`, equals the variant of `quran:103:2` (pinned in
 `src/core/normalize/index.test.ts`).
+
+## D-10 — Corpus index: choices the prompt did not settle (2026-10-03)
+
+Made while building the search layer (`docs/ARCHITECTURE.md`, "Corpus index"). For the owner's review.
+
+1. **A layer is addressed by collection and name**, not by name alone. The prompt's
+   `candidates(normQuery, layer)` reads as one lookup over every collection that has the layer, but
+   Quran "default" is normalized with `keepHonorificPhrases` and hadith "default" without it (D-7).
+   One normalized query for both would compare a text with a query normalized differently, which the
+   prompt forbids. The caller loops over `index.layers` and normalizes per layer.
+2. **The "everyday" layer covers every ayah.** Ayat the list does not name keep their `searchText`,
+   so that a quote running over a listed and an unlisted ayah is still one hit. A hit on "everyday"
+   therefore proves a spelling bridge only when "default" has no hit for the same quote. In a listed
+   ayah every listed word is replaced; the mushaf spelling is found on "default" only.
+3. **The Quran adapter refuses a spelling list that is out of step with the records** (an ayah or
+   a word that is not there) instead of skipping the pair. A silent skip would turn a reviewed
+   bridge into a missed quote with no sign of it.
+4. **Bigram containment counts distinct bigrams, per record.** A bigram repeated in the query counts
+   once. Bigrams do not cross ayah boundaries, so a multi-ayah quote has no single candidate with
+   score 1; the matcher must combine neighbours.
+5. **Kind labels**: «آية قرآنية» and «حديث نبوي» (`src/i18n/ar.ts`). Editorial wording; the owner
+   may change it.
+6. **`citationFormatter` returns `citation.display` unchanged** for both kinds. The display string is
+   written by the corpus build from the source data and already omits a missing number. Composing a
+   citation at runtime from `citation.number` would add a second place where a number could be
+   invented. Formatting an ayah range («الآيتان 153–154») is not built; it needs the matcher's range.
+7. **`src/core/corpus/kind-meta.ts` imports `src/i18n/ar.ts`.** The prompt wants the label text to
+   come from the i18n file. `src/i18n` is pure TypeScript with no dependency, so core stays pure;
+   the boundary test now lists it as an allowed import.
+8. **A hit carries the records as well as their ids**, so that the caller reads `reviewStatus`
+   without a second lookup.
+9. **Loader details.** The root defaults to `process.cwd()` and the cache is per root. The adapter
+   for a corpus file is chosen by its `kind` from a table in the loader; a kind without an entry
+   stops the load. The manifest schema checks only the fields the runtime uses.
+10. **One record schema.** `scripts/lib/schema.ts` held a second copy of `SourceRecordSchema`. It
+    now re-exports the one in `src/core/types.ts` (same rules), together with the corpus-file and
+    spelling-list schemas moved to `src/core/corpus/schema.ts`. `npm run verify:corpus` passes
+    against the unchanged corpus.

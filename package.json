@@ -17,7 +17,8 @@
     "verify:raw": "tsx scripts/verify-raw.ts",
     "verify:dorar": "tsx scripts/verify-hadith-dorar.ts",
     "check:cases": "tsx scripts/check-cases.ts",
-    "probe:quran-spelling": "tsx scripts/probe-quran-spelling.ts"
+    "probe:quran-spelling": "tsx scripts/probe-quran-spelling.ts",
+    "bench:index": "node --expose-gc --import tsx scripts/bench-index.ts"
   },
   "dependencies": {
     "next": "^16.3.8",

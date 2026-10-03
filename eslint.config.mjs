@@ -3,7 +3,7 @@ import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 
 // src/core must stay pure TypeScript, reusable by any client (AGENTS.md §6):
-// no Next.js, no React, no fetch, and nothing from the app, component or LLM layers.
+// no Next.js, no React, no fetch, and nothing from the app, component, LLM or server layers.
 const coreBoundary = {
   files: ["src/core/**/*.{ts,tsx}"],
   rules: {
@@ -22,8 +22,8 @@ const coreBoundary = {
           },
           {
             // "@/app/…", "src/app/…", "../llm/…", "./../../components/…" and the bare folders.
-            regex: "^(@/|src/|(\\.{1,2}/)*\\.\\./)(app|components|llm)(/|$)",
-            message: "src/core must not import from src/app, src/components or src/llm.",
+            regex: "^(@/|src/|(\\.{1,2}/)*\\.\\./)(app|components|llm|server)(/|$)",
+            message: "src/core must not import from src/app, src/components, src/llm or src/server.",
           },
         ],
       },

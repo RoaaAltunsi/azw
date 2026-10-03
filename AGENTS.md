@@ -151,6 +151,7 @@ azw/
 │  │  ├─ status/              # deterministic status rules (the only place statuses are decided)
 │  │  └─ review.ts            # orchestrator: draft → ReviewResult (takes an injected LLM port)
 │  ├─ llm/                    # provider adapter(s) + prompt templates (implements the LLM port)
+│  ├─ server/                 # server-only loaders (fs); never imported by core
 │  ├─ app/                    # Next.js App Router: UI pages + /api/v1/review route
 │  ├─ components/
 │  └─ i18n/                   # UI strings (ar now; keys ready for other languages)

@@ -43,6 +43,28 @@ is built until it is moved into a prompt's scope.
 - References (P3): `ReviewItem.citedReference.parsed` is still `unknown` in `src/core/types.ts`.
   Decide in P6 whether the API schema uses `ParsedReferenceSchema` from `src/core/references`.
 
+- Corpus index (P4): a quote that mixes a mushaf spelling and an everyday spelling of two listed
+  words («رحمت» as in the mushaf, «نعمة» in everyday spelling, in one ayah or over neighbouring
+  ayat) is not an exact hit on any single layer. It reaches the matcher as a close candidate only.
+  Not solved, by instruction.
+- Corpus index (P4), for the matchers (P5, P11):
+  - A hit on "everyday" means a spelling bridge only if "default" has no hit for the same quote
+    (`docs/DECISIONS.md` D-10 item 2).
+  - `candidates()` returns nothing for a one-word quote, and scores each ayah of a multi-ayah quote
+    separately. A helper that searches every layer of every collection for one draft span could
+    live in the index if P5 ends up repeating that loop.
+  - Hit offsets are in layer text. For "default" they map to `exactText` through
+    `normalizeWithMap` on the record with the layer's options. The "uthmani" and "everyday" texts
+    are not a normalization of `exactText`, so there the matcher must align on words.
+- Corpus index (P4), deployment (P6/P14): `loadCorpus` reads `data/corpus` and `data/aliases` from
+  `process.cwd()`. The Next.js build must be told to ship those files with the API route
+  (`outputFileTracingIncludes`), and the first request pays about 0.8 s of load.
+- Corpus index (P4), memory: about 160 MB retained. The index keeps every `SourceRecord` whole, and
+  the "everyday" layer repeats the text and bigrams of "default" for unlisted ayat. Reduce only if
+  the host's memory limit requires it.
+- Core boundary: the lint rule forbids `fetch`, Next.js, React and the app layers in `src/core`,
+  but not `node:fs` or other Node built-ins.
+
 ## Ideas for after the challenge
 
 - Normalization: more honorific phrases found in the hadith corpus and left in `searchText` —

@@ -12,6 +12,9 @@ export const ar = {
   "status.ERROR": "تعذّر إكمال التحقق",
 
   "explanation.generatedLabel": "شرح مولّد آلياً",
+
+  "kind.quran": "آية قرآنية",
+  "kind.hadith": "حديث نبوي",
 } as const;
 
 export type MessageKey = keyof typeof ar;
