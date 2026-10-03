@@ -71,13 +71,15 @@ is built until it is moved into a prompt's scope.
   - `ReviewItem` has no field for `layer` / `spelling`. A UI that wants to say "matched in another
     spelling" needs one (an API contract change).
   - `claimLevel: "D"` must be set by the extractor (P10) for a ruling on a personal case.
-- Quran matcher (P5), needs the owner: 32 ayat of mushaf 2 pasted as they are end `DIFFERS`
-  («فَبِأَيِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ» ×31, 53:55): no Uthmani-only sign and no superscript alef.
-- Quran matcher (P5), needs the owner: a search variant that keeps the superscript alef as its own
-  character would turn the "spelt-out alef" inference into a plain comparison. It needs a corpus
-  rebuild (new `corpusVersion`) and a re-measurement against Tanzil and quran.com pastes
-  (`docs/DECISIONS.md` D-13).
-- Quran matcher (P5): Tanzil and quran.com Uthmani pastes were not re-measured after D-13.
+- Quran matcher (P5): Tanzil and quran.com Uthmani pastes were not re-measured after D-13 (the
+  mushaf 2 text was: 6236 of 6236 ayat end `MATCH`).
+- Hadith matcher (P11), from `docs/DECISIONS.md` D-6 item 4: the reason sentences for
+  `REF_MISMATCH_COLLECTION` and `REF_NOT_AGREED_UPON` must say the text was not found in the
+  tool's copy of the other book, never that the book does not contain it (the corpus has gaps).
+- Hadith records (D-5): 250 Bukhari and 30 Muslim records are pending because their text does not
+  open with a formula of direct transmission. One can be released with an entry in
+  `data/review/reviewed.json` that quotes a source naming it as connected under its number. A
+  script that reads Dorar's grade line for each of them would do this in bulk.
 - Status rules (P5): an `unclear_attribution` whose words are in a source could show that record
   as evidence without changing the status.
 - Fuzzy alignment (P5): a wrong word at the very start or end of a quote is outside the local

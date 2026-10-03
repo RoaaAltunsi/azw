@@ -281,7 +281,7 @@ for (const [collection, r] of Object.entries(report)) {
   }
   const gradeFlags = r.findings.filter((f) => f.gradeDiffers);
   md.push("", `**${collection} — confirmed, but Dorar's grade line is not our record's grade (${gradeFlags.length}):**${gradeFlags.length ? "" : " none"}`);
-  for (const f of gradeFlags) md.push(`- \`${f.id}\` (citation no. ${f.citationNumber}) — Dorar: «${f.dorarGrade}». Needs the owner's review.`);
+  for (const f of gradeFlags) md.push(`- \`${f.id}\` (citation no. ${f.citationNumber}) — Dorar: «${f.dorarGrade}». See docs/DECISIONS.md D-5.`);
 }
 const wroteDocs = replaceAutoBlock("docs/SOURCES.md", "DORAR", md.join("\n"));
 

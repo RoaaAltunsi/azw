@@ -1,5 +1,6 @@
 // The only rule that turns a record's reviewStatus into "reviewed". Default: pending.
-// Approvals come from data/review/reviewed.json (human approvals only).
+// Approvals come from data/review/reviewed.json: the owner's, or a documented source comparison
+// made under the owner's delegation (AGENTS.md §9). Each entry says which.
 
 export interface Approvals {
   collections: ReadonlySet<string>;

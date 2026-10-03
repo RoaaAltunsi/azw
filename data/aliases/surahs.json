@@ -1,5 +1,5 @@
 {
-  "note": "name and ayahCount come from the Quranpedia mushaf-1 dump. bareName is name without the leading «سورة ». spellingVariants and alternateNames are editorial (scripts/lib/), pending human review; they are used only to resolve a cited surah, never shown as source text.",
+  "note": "name and ayahCount come from the Quranpedia mushaf-1 dump. bareName is name without the leading «سورة ». spellingVariants and alternateNames are editorial (scripts/lib/), reviewed on 2026-10-03 (docs/DECISIONS.md D-15); they are used only to resolve a cited surah, never shown as source text.",
   "source": "Quranpedia.net (https://quranpedia.net), dump mushafs-1",
   "surahs": [
     {
@@ -546,6 +546,7 @@
       "ayahCount": 12,
       "spellingVariants": [],
       "alternateNames": [
+        "النساء القصرى",
         "النساء الصغرى"
       ]
     },

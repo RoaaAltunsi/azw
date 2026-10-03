@@ -2,6 +2,8 @@
 
 > Read this file before every task. It is the single source of truth for scope, rules and architecture.
 > If a task prompt conflicts with this file, stop and ask; do not guess.
+> A question the prompt leaves open is not a conflict: research it, decide it and document it
+> (section 9, "Decisions on religious content").
 
 ## 1. What we are building
 
@@ -77,8 +79,10 @@ It never proves authenticity.
   alif bridges most words, but not these mushaf spellings: open ta (رحمت، نعمت، امرأت), hamza forms
   (رءوف، مسئولا), مائة. A writer's «رحمة» will not match «رحمت» by diacritic removal alone. They are
   bridged by the owner-approved list `data/aliases/quran-spelling-variants.json`; each pair applies
-  ONLY in its listed ayat. Do not add folding rules to normalization and do not add pairs without the
-  owner's approval. «داود» and «إذن» were rejected and stay unbridged.
+  ONLY in its listed ayat. Do not add folding rules to normalization. A new pair is added only
+  after the check of section 9 (the mushaf's word and the everyday form, read in the source text,
+  bound to its ayat) and is recorded in `docs/DECISIONS.md`. «داود» and «إذن» were rejected by the
+  owner and stay unbridged.
 - **Uthmani-script pastes (decided 2026-10-03, D-9).** Every Quran record carries
   `searchVariants: [{ label: "uthmani", text }]`: the same ayah from Quranpedia mushaf 2 (Hafs,
   Uthmani script, King Fahd Complex), normalized with `UTHMANI_VARIANT_OPTIONS` from
@@ -90,7 +94,7 @@ It never proves authenticity.
   MATCH. A span in everyday script that equals only the variant (e.g. it writes «الرحمان») is a
   spelling error: the variant may produce MATCH only for words actually written as the mushaf writes
   them (decided 2026-10-03, D-13). A word that differs from `searchText` must be in Uthmani script
-  (the span carries a sign only Uthmani texts have: ٱ U+0671, U+0656–U+065F, or U+06DF–U+06ED
+  (the span carries a sign only Uthmani texts have: ٱ U+0671, U+0653–U+065F, or U+06DF–U+06ED
   without ۩; or the word itself carries the superscript alef U+0670) and must not spell out an alef
   the mushaf writes above the line. The superscript alef and the pause marks alone do not make a
   span Uthmani script: our own Quran text carries them;
@@ -106,15 +110,20 @@ It never proves authenticity.
   are not in the corpus. A quote from one of them ends NOT_FOUND although it is in Sahih Muslim;
   NOT_FOUND wording must therefore never imply the text is absent from the book.
 - **Records that stay pending.** Both hadith collections were approved by the owner on 2026-10-02 on
-  sample checks (6940 Bukhari and 7169 Muslim records reviewed). A collection approval never covers:
-  records with damaged text (U+FFFD/U+FFFC), split entries, records whose text the source repeats
-  under several numbers, records without a citation number, and the records in
-  `data/review/held-records.json`. These remain `pending` and can never produce MATCH.
+  sample checks. After the review of 2026-10-03, 6701 Bukhari and 7145 Muslim records are reviewed.
+  A collection approval never covers: records with damaged text (U+FFFD/U+FFFC), split entries,
+  records whose text the source repeats under several numbers, records without a citation number,
+  records whose text does not open with a formula of direct transmission (حدثنا، حدثني، أخبرنا،
+  أخبرني، سمعت — such a record may be a suspended report, معلّق: `docs/DECISIONS.md` D-5), and the
+  records in `data/review/held-records.json`. These remain `pending`, carry no grade, and can
+  never produce MATCH.
 - **What "reviewed" means.** The owner accepted the collection after automated checks and a sample
   comparison; it does not mean each record was compared with a printed edition. Limits are recorded in
   `data/review/reviewed.json` and `docs/SOURCES.md`.
 - **Quranpedia checksum.** The published sha256 covers the `.gz` and does not match the file served,
-  although its content is identical to the local JSON. Unresolved; see `docs/SOURCES.md` section 3.1.
+  although its content is identical to the local JSON. Accepted (`docs/DECISIONS.md` D-15): the
+  decompressed JSON is the integrity anchor, and all 6236 ayat equal the Tanzil "simple" text letter
+  for letter once diacritics and marks are removed.
 
 **Dorar** (الدرر السنية, named in the package) is NOT the matching corpus and never a runtime
 dependency of MATCH. Its API (`https://dorar.net/dorar_api.json?skey=…`) is a live keyword search
@@ -170,8 +179,9 @@ azw/
   plus a `Matcher`, and nothing else. The UI and the status rules must not branch on specific kinds,
   except through a `kindMeta` registry (label, icon, citation formatter).
 - **Grades from other books**: `SourceRecord.grade?: { text: string; by: string; sourceRef: string }`.
-  Shown only if present in the data. Sahihayn records carry `{ text: "صحيح", by: "<collection>", … }`
-  as the package treats them as approved.
+  Shown only if present in the data. Reviewed Sahihayn records carry
+  `{ text: "صحيح", by: "<collection>", … }` as the package treats them as approved; a pending record
+  carries no grade (`docs/DECISIONS.md` D-2, D-5).
 - **New clients** (browser extension, Android share target, WordPress plugin, mobile keyboard): all call
   the stable versioned API `POST /api/v1/review`. The response schema is defined once with zod in
   `src/core/types.ts` and exported. CORS is configured by an env allowlist (empty in the MVP).
@@ -274,8 +284,45 @@ draft
 - No secrets in the repo. `.env.example` lists the variables. Never commit `.env*`.
 - Never silently rewrite the user's draft.
 - Never add features outside the current prompt's scope. List ideas in `docs/BACKLOG.md` instead.
-- When unsure about a religious-content decision, choose the more conservative status and note it in
-  `docs/DECISIONS.md` for human review.
+- A religious-content decision the prompt leaves open is researched, decided and documented by the
+  agent, as set out below. It is never left open for the owner.
+
+### Decisions on religious content (decided by the owner, 2026-10-03, `docs/DECISIONS.md` D-16)
+
+When a task leaves open a question about religious content or about how a source is handled (which
+text is shown, how a reference is cited, which records may produce `MATCH`, a spelling or an alias,
+a label of an evaluation case), **do not stop and do not hand the question to the owner.** Work as a
+specialist in the Islamic sciences works: no decision without first examining the evidence.
+
+1. **Research first.** Read the question in the sources the scientific package approves: the Quran
+   text of the King Fahd Complex and quranpedia.net; dorar.net (hadith, tafsir, aqeedah, fiqh,
+   history); the editions of the books of the Sunnah on shamela.ws; and the recognised works of the
+   discipline concerned (for example Ibn al-Salah's «المقدمة» for hadith terminology, al-Suyuti's
+   «الإتقان» for the sciences of the Quran). Fetch the text; never rely on memory for a wording, a
+   number, a grade or a scholar's statement (section 2, rule 9).
+2. **Test where a test is possible.** Compare with a second edition, measure on the corpus, run the
+   check on every record it touches. One digital copy is one witness: before two sources are
+   counted as two, check that one does not copy the other.
+3. **Decide, implement, and test.** Choose the option the evidence supports. When the evidence is
+   not enough to choose, the decision is the conservative one (abstain, keep the record pending,
+   `NEEDS_SPECIALIST`), and it is recorded as a decision, not left as a question.
+4. **Document it in `docs/DECISIONS.md` as closed**: the question, the options weighed, the
+   decision, the sources with links and the words quoted from them, what was measured, and the
+   limits of the check. No entry is written as "open", "pending" or "for the owner's review".
+5. **Report it** in the summary of the task: one line per decision, with its D-number.
+
+What this does not change:
+
+- Section 2 stays non-negotiable. The agent decides how the tool handles texts and references. It
+  never grades a hadith, never interprets a verse, never issues a ruling, never edits a source text,
+  and never states a grade that is not quoted from a source with its attribution.
+- Honest labels. A decision made this way is an AI tool's documented source check, not a scholar's
+  review. An approval is recorded in `data/review/reviewed.json` under the agent's name with its
+  evidence, never under the owner's name.
+- Decisions the owner has already made stay as they are unless the owner changes them (for example
+  D-9: a spelling error never ends `MATCH`; «داود» and «إذن» stay unbridged).
+- What only the owner can do stays with the owner: accounts, keys and deployment, the code licence,
+  screenshots, and the submission itself.
 
 ## 10. Out of scope (MVP)
 

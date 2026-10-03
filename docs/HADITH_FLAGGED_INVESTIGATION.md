@@ -7,6 +7,12 @@ text was changed.**
 
 > Update, later on 2026-10-02: the owner approved both collections (reviewer log in
 > `docs/SOURCES.md` section 5). The six unresolved records below are still held and pending.
+>
+> Update, 2026-10-03: the six were compared with a second edition on shamela.ws and are settled
+> (`docs/DECISIONS.md` D-14). The five Muslim records agree word for word with «صحيح مسلم، ط
+> التركية» and were released; Dorar's "book text" turned out to have the wording of one digital
+> copy, slips included. `bukhari:2075` stays held: «ط السلطانية» also ends at «أحبله». The tables
+> below are kept as they were written on 2026-10-02.
 
 ## Method
 

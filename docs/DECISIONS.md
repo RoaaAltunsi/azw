@@ -1,7 +1,29 @@
-# Decisions for human review
+# Decision log
 
-Conservative choices made where the instructions did not settle a religious-content question
-(AGENTS.md §9). Each stays open until the owner confirms or reverses it.
+Choices made where the instructions did not settle a question about religious content or about how
+the sources are handled (AGENTS.md §9).
+
+**Every entry below is closed.** On 2026-10-03 the owner delegated these decisions to the AI
+assistant, on the condition that each one is researched in the sources the scientific package
+approves and recorded with its evidence (D-16). The entries D-1 to D-13 were closed in one review
+on that date; each carries a "Closed" paragraph with the decision and what it rests on. The owner
+can reverse any of them; nothing here waits for an answer.
+
+What "closed" does not mean: no entry grades a hadith, interprets a verse or issues a ruling. The
+decisions are about which text the tool shows, which reference it cites, and when it abstains.
+They were made by an AI assistant from published sources, not by a qualified scholar.
+
+Sources consulted in the review of 2026-10-03 (named in «المرجعية والحزمة العلمية», or classical
+works of the discipline):
+
+| Source | Used for |
+|---|---|
+| shamela.ws — «صحيح البخاري، ط السلطانية» (book 1681) | `bukhari:2075`, `bukhari:2819` (D-5, D-14) |
+| shamela.ws — «صحيح مسلم، ط التركية» (book 711) and «ت عبد الباقي» (book 1727) | The five held Muslim records (D-14) |
+| dorar.net — الموسوعة الحديثية (API and «أصول الحديث») | Grade line of `bukhari:2819`; the three single-collection claims (D-6) |
+| ابن الصلاح، «معرفة أنواع علوم الحديث» (المقدمة)، النوع الأول، الفائدة السادسة — read on ar.wikisource.org | Suspended reports in the Sahihayn (D-5) |
+| السيوطي، «الإتقان في علوم القرآن»، النوع السابع عشر — shamela.ws book 11728, pages 171–194 | Alternate surah names (D-15) |
+| Quranpedia mushaf 1 and mushaf 2 (the corpus sources) and the Tanzil "simple" text (api.alquran.cloud) | Quran text integrity (D-15), Uthmani signs (D-13) |
 
 ## D-1 — Bukhari split entries cite the integer number (2026-10-02)
 
@@ -10,12 +32,27 @@ number that no printed edition uses. `citation.number` is therefore the integer 
 full source value is kept in `citation.subNumber`, and the id stays `bukhari:402.2`. These records
 are excluded from a collection-level approval.
 
+**Closed 2026-10-03 — confirmed.** The citation number stays the integer part. Checked on
+shamela.ws «ط السلطانية»: the edition numbers hadith with whole numbers only (e.g. `2075 -`,
+`2819 -`); a decimal is an artefact of the digital source, which split one numbered entry in two.
+The 26 split records stay pending: each holds part of the text of its number, so a quote found
+there cannot be shown as "the text of hadith 402". A quote found only in one of them ends
+`NEEDS_SPECIALIST` / `SOURCE_NOT_REVIEWED`.
+
 ## D-2 — No grade without a citation number (2026-10-02)
 
 AGENTS.md §6 gives every Sahihayn record the grade «صحيح» attributed to its collection. For the 148
 Muslim records with no `arabicnumber` the grade is withheld: there is no reference to attribute it
 to, and three of them belong to Muslim's introduction, which is not under the Sahih's condition.
 They stay pending and cannot be approved until a citation number exists.
+
+**Closed 2026-10-03 — confirmed and widened.** The rule is now: **a hadith record carries the
+collection grade only when it is reviewed.** A pending record has no `grade` field at all
+(`scripts/build-corpus.ts`; checked by `scripts/verify-corpus.ts`). Basis: the package's rule
+«لا ينسب حديث دون مصدر وحكم معتمد في البيانات» — a grade stated of a text nobody approved, or of a
+text with no reference, is not an approved grade. The 148 records without a number stay pending and
+can never be approved. Muslim's introduction is outside the Sahih proper; Ibn al-Salah's statement
+of what the two authors judged sound covers «ما أسنده البخاري ومسلم في كتابيهما بالإسناد المتصل».
 
 ## D-3 — Records excluded from a collection-level approval (2026-10-02)
 
@@ -24,11 +61,24 @@ needs its own approval: records with damaged text (U+FFFD/U+FFFC), Bukhari split
 records whose text block the source repeats under several numbers (the block cannot be tied to a
 single hadith number). Records without a citation number can never be marked reviewed.
 
+**Closed 2026-10-03 — confirmed.** These classes stay pending for the whole MVP; no per-record
+approval is planned. A fifth class was added by D-5: records whose text does not open with a
+formula of direct transmission. Counts after the rebuild (corpus `p2-e2bfaf5a3ad2`): Bukhari 6701
+reviewed / 879 pending, Muslim 7145 / 215. The cost is abstention, never a wrong positive: a quote
+found only in a pending record ends `NEEDS_SPECIALIST` / `SOURCE_NOT_REVIEWED`. Many of these
+texts are also in a reviewed record (repeated narrations); how many quotes are affected was not
+measured.
+
 ## D-4 — `matnText` is quoted speech only (2026-10-02)
 
 `matnText` is stored only when the source text holds exactly one quoted segment, introduced by an
 explicit attribution of speech to the Prophet ﷺ and followed by nothing. Narratives, multiple quotes
 and unterminated quotes get no `matnText`. The value is copied verbatim from `exactText`.
+
+**Closed 2026-10-03 — confirmed.** `matnText` is a search aid only. It is never displayed in place
+of `exactText`, never decides a status, and is always a verbatim substring of `exactText`
+(checked by `scripts/verify-corpus.ts`). A wrong boundary can only cost a retrieval, so the
+narrow rule (one quoted segment, explicit attribution) is kept.
 
 ## D-5 — `bukhari:2819` held: Dorar grades it «[معلق]», our record says «صحيح» (2026-10-02)
 
@@ -42,7 +92,7 @@ What was done (conservative, AGENTS.md §9): the record is in `data/review/held-
 is pending and cannot produce MATCH. Its text and its grade field are unchanged — the tool does not
 grade, and removing or changing a grade is not its decision either.
 
-Open for the owner (needs a qualified reviewer, not a script):
+The three questions this entry left open (closed below):
 
 1. Whether the collection grade may be shown for this record at all.
 2. The wider question: the Sahihayn policy gives «صحيح» to every numbered record, including any
@@ -53,10 +103,44 @@ Open for the owner (needs a qualified reviewer, not a script):
    against it, and only because it happened to be in the 30-record sample.
 3. Whether a grade may be displayed for pending records in any status other than MATCH.
 
+**Closed 2026-10-03.**
+
+Evidence. Ibn al-Salah, المقدمة، النوع الأول، الفائدة السادسة: «ما أسنده البخاري ومسلم - رحمهما
+الله - في كتابيهما بالإسناد المتصل فذلك الذي حكما بصحته بلا إشكال. وأما المعلق - وهو الذي حُذف من
+مبتدأ إسناده واحد أو أكثر - وأغلب ما وقع ذلك في كتاب البخاري وهو في كتاب مسلم قليل جدا، ففي بعضه
+نظر». He adds that a suspended report in a decisive form («قال فلان») is judged sound up to the
+person it is suspended from, that one in a non-decisive form («رُوي عن») carries no such judgment,
+and that statements about the soundness of the whole book mean «مقاصد الكتاب وموضوعه ومتون الأبواب
+دون التراجم ونحوها». So the collection grade «صحيح», by «صحيح البخاري», is not the approved grade
+of a suspended report as such. Dorar's grade line for no. 2819 is «[معلق]». shamela.ws
+«ط السلطانية» 4/22 prints it as «2819 - وَقَالَ اللَّيْثُ حَدَّثَنِي جَعْفَرُ بْنُ رَبِيعَةَ …»
+(<https://shamela.ws/book/1681/4468>): the text is right, the form is a suspension.
+
+Decisions.
+
+1. **`bukhari:2819` carries no grade and stays pending.** The tool neither grades it nor copies
+   a grade for it. The same hadith is in the corpus under five other numbers that open with
+   «حدثنا» and are reviewed (`bukhari:3424`, `5242`, `6639`, `6720`, `7469`).
+2. **The wider question: a structural rule, not a classification.** A record whose own text does
+   not open with a formula of direct transmission (حدثنا، حدثني، أخبرنا، أخبرني، سمعت, with or
+   without «و») is kept pending and carries no grade: 250 Bukhari records («وقال» 149, «قال» 50,
+   «وعن» 25, «وأن» 8, «وزاد» and others) and 30 Muslim records; 239 and 29 of them were reviewed
+   before. Such a record is either a suspended report or the continuation of the previous record's
+   chain (`bukhari:4`); the data has no field that tells them apart, and telling them apart is a
+   specialist's work (Ibn Hajar gave it a book, «تغليق التعليق»). The tool therefore abstains on
+   all of them. The rule looks at the form of the text only (`scripts/lib/transmission.ts`,
+   tested); it says nothing about any hadith. Known limits: it over-holds connected continuations,
+   and it cannot see a suspension inside a record that opens with «حدثنا».
+3. **No grade on a pending record, in any status.** Settled in the data (D-2): pending records have
+   no `grade` field, so no screen can show one.
+
+To release one of these records later: an entry in `data/review/reviewed.json` `records` that
+quotes a source naming the report as connected under that number (for example Dorar's grade line
+«[صحيح]» for the same book and number with the same text).
+
 ## D-6 — Evaluation labels that rest on an open or conservative choice (2026-10-02)
 
-Made while writing `eval/cases` (details in `docs/EVALUATION.md` section 6). None is confirmed by a
-person yet.
+Made while writing `eval/cases` (details in `docs/EVALUATION.md` section 6).
 
 1. `T-007` (Uthmani-script paste) and `H-008` («رحمة» for the mushaf's «رحمت») are labeled `MATCH`.
    The task requires orthographic variants to be `MATCH`, but how to bridge mushaf spellings is still
@@ -74,6 +158,26 @@ person yet.
 5. Four reason codes are provisional names: `MATCH_REF_OK`, `UNCLEAR_ATTRIBUTION`,
    `INTERPRETIVE_CLAIM`, `PERSONAL_RULING`.
 
+**Closed 2026-10-03.**
+
+1. `T-007` and `H-008` stay `MATCH`: settled by D-9 and D-13 and pinned by tests.
+2. Vague attribution → `NEEDS_SPECIALIST`: confirmed. The package asks the tool to
+   «يصرح بعدم كفاية المعلومات» and to refer when a specialist's judgment is needed; who said a
+   saying introduced by «في الأثر» is such a question. `NOT_FOUND` would claim a search the tool
+   could not make: it does not know what is attributed to whom.
+3. A hadith cited to a book outside the covered sources → `NOT_FOUND`: confirmed, with the fixed
+   sentence «لم نجد هذا النص في المصادر المغطاة (…). هذا لا يعني الحكم عليه؛ راجعه قبل النشر.»
+   This is the package's own expected behaviour: «بيان عدم العثور على دليل مطابق في المصادر المتاحة».
+4. The three single-collection labels stand. Checked again on dorar.net on 2026-10-03 (the API,
+   with and without the book filter): each phrase is returned when all books are searched, and
+   none of the 15 results limited to the other book contains it — «خيركم من تعلم القرآن وعلمه» and
+   «بلغوا عني ولو آية» not under صحيح مسلم, «الطهور شطر الإيمان» not under صحيح البخاري. Two
+   searches, a day apart, agree with the corpus. A search is still not proof of absence, so the
+   reason sentences for `REF_MISMATCH_COLLECTION` and `REF_NOT_AGREED_UPON` must say the text was
+   not found in the tool's copy of the other book, never that it is not in the book (a requirement
+   for P11).
+5. The four reason-code names are final.
+
 ## D-7 — Honorific phrases are not removed from Quran search text (2026-10-03)
 
 The normalization task removes «رضي الله عنه / عنها / عنهما / عنهم» at level "search". The phrase
@@ -84,6 +188,10 @@ compared with a Quran record must be normalized the same way (P2). Hadith record
 written; the same words inside a matn are removed on both sides, so `searchText` equality alone must
 not decide MATCH.
 
+**Closed 2026-10-03 — confirmed.** Words of the Quran are never removed from a Quran search text.
+For hadith the phrase is removed on both sides, and a status is never decided by `searchText`
+equality alone: the diff runs on `exactText`.
+
 ## D-8 — Normalization bridges «الملإ» / «نبإ» but adds nothing for the open spelling decision (2026-10-03)
 
 `docs/SOURCES.md` §5 item 3 stays open. The task's rule «أ إ آ ٱ → ا» makes «الملأ» equal to the
@@ -91,12 +199,17 @@ source's «الملإ» (and «نبأ» to «نبإ») as a side effect. The oth
 مسئولا، داوود، مائة) and Uthmani-script words that write an alef as U+0670 (العٰلمين) are not bridged;
 no folding rule, variant list or second text was added. Table in `docs/ARCHITECTURE.md`.
 
-Three readings of the task that the owner may want to reverse:
+Three readings of the task (all confirmed below):
 
 1. Punctuation and ﷺ become a word separator instead of being deleted, so «قال:«إنما» stays two words.
 2. Level "strict" also removes the superscript alef (U+0670), which the task did not list.
 3. Invisible direction marks and zero-width characters are handled although the task did not list
    them (the hadith source is full of U+200F).
+
+**Closed 2026-10-03 — the three readings are confirmed.** A separator keeps word boundaries where
+the source has punctuation only; level "strict" removes U+0670 because our own Quran text carries
+it as a mark, not a letter; direction marks carry no text. The spelling question the entry left
+open was closed by D-9.
 
 ## D-9 — Quran spelling: ayah-bound variant list plus a second search text (2026-10-03)
 
@@ -116,8 +229,9 @@ Closes `docs/SOURCES.md` §5 item 3. Decided by the owner on `docs/QURAN_SPELLIN
    King Fahd Complex edition and quranpedia.net (`docs/SOURCES.md` 1.1).
    - The variant is built with one extra option, `foldHamzaAlef` («ءا» → «ا»), because Uthmani texts
      spell «الآخرة» in two ways. This is a folding rule, limited to the variant; the main
-     `searchText` has none. The owner may want to reverse it: without it 271 more ayat of the
-     Tanzil text are not found as exact.
+     `searchText` has none. Kept (closed 2026-10-03): without it 271 more ayat of the
+     Tanzil text are not found as exact. It applies to the search variant only, and a match
+     through the variant is still gated word by word (D-13).
    - A second option, `superscriptAlefAsAlef`, keeps the Uthmani superscript alef as the letter «ا»
      in the variant. It was added in review on 2026-10-03: without it the variant read «الكتب» for
      «ٱلۡكِتَٰبُ» and «ملك» for «مَٰلِكِ», so an everyday-script draft with a dropped alef («ذلك الكتب لا
@@ -139,9 +253,12 @@ Effect on `D-6` item 1: `H-008` («رحمة», 7:56) can stay `MATCH` once the m
 quote, normalized with `UTHMANI_VARIANT_OPTIONS`, equals the variant of `quran:103:2` (pinned in
 `src/core/normalize/index.test.ts`).
 
+**Closed 2026-10-03.** The owner's decisions stand; the one point left to the owner
+(`foldHamzaAlef`) is kept, as noted above.
+
 ## D-10 — Corpus index: choices the prompt did not settle (2026-10-03)
 
-Made while building the search layer (`docs/ARCHITECTURE.md`, "Corpus index"). For the owner's review.
+Made while building the search layer (`docs/ARCHITECTURE.md`, "Corpus index").
 
 1. **A layer is addressed by collection and name**, not by name alone. The prompt's
    `candidates(normQuery, layer)` reads as one lookup over every collection that has the layer, but
@@ -158,8 +275,7 @@ Made while building the search layer (`docs/ARCHITECTURE.md`, "Corpus index"). F
 4. **Bigram containment counts distinct bigrams, per record.** A bigram repeated in the query counts
    once. Bigrams do not cross ayah boundaries, so a multi-ayah quote has no single candidate with
    score 1; the matcher must combine neighbours.
-5. **Kind labels**: «آية قرآنية» and «حديث نبوي» (`src/i18n/ar.ts`). Editorial wording; the owner
-   may change it.
+5. **Kind labels**: «آية قرآنية» and «حديث نبوي» (`src/i18n/ar.ts`). Editorial wording, confirmed.
 6. **`citationFormatter` returns `citation.display` unchanged** for both kinds. The display string is
    written by the corpus build from the source data and already omits a missing number. Composing a
    citation at runtime from `citation.number` would add a second place where a number could be
@@ -176,6 +292,10 @@ Made while building the search layer (`docs/ARCHITECTURE.md`, "Corpus index"). F
     now re-exports the one in `src/core/types.ts` (same rules), together with the corpus-file and
     spelling-list schemas moved to `src/core/corpus/schema.ts`. `npm run verify:corpus` passes
     against the unchanged corpus.
+
+**Closed 2026-10-03 — all ten items confirmed.** They are engineering choices. The two that touch
+religious content hold: item 3 (a reviewed spelling bridge is never skipped silently) and item 6
+(a citation is never composed at runtime, so no number can be invented).
 
 ## D-11 — A reference that was not read in full: NEEDS_SPECIALIST / REF_NOT_CHECKED (2026-10-03)
 
@@ -208,12 +328,15 @@ Two limits of the choice:
    as a verse) is also `REF_NOT_CHECKED`.
 
 The cost falls with every citation form the parser learns (`docs/BACKLOG.md`, P3: surah by number,
-lists of ayat). If the owner prefers the second option, the change is one line in `decide()` and
-one sentence.
+lists of ayat).
+
+**Closed 2026-10-03 — confirmed.** The package puts abstention first when evidence is missing
+(«عند غياب المرجع الكافي أو انخفاض الثقة، تكون الأولوية للامتناع أو التحفظ أو الإحالة»), and a
+reference the tool did not read is missing evidence for the reference.
 
 ## D-12 — Quran matcher, word diff and status rules: choices the prompt did not settle (2026-10-03)
 
-For the owner's review. Items 1–3 touch what the user is told about a Quran text.
+Items 1–3 touch what the user is told about a Quran text.
 
 1. **Closed by D-13.** As first built, one Uthmani sign anywhere made a span "Uthmani script", and
    the pause marks and superscript alef of our own `exactText` counted as such signs, so
@@ -253,6 +376,11 @@ For the owner's review. Items 1–3 touch what the user is told about a Quran te
 11. **Fuzzy search sizes**: 5 index candidates per layer, at most 5 results; alignment scoring
     +2 / −1 / −1. Not tuned.
 
+**Closed 2026-10-03 — items 2–11 confirmed** (item 1 was replaced by D-13). On item 2: a writer
+who quotes two ayat and cites one has given an incomplete reference; the sentence names the range
+in the source and blames nothing. On item 3: no statement about wording is made from a text that
+was not approved. Item 11's sizes may still be tuned in P15, on the tune split only.
+
 ## D-13 — A spelling error never ends MATCH: the Uthmani rule, word by word (2026-10-03)
 
 **Decided by the owner** on the review of P5: "we cannot consider a spelling error as match".
@@ -275,20 +403,18 @@ What changed, and why each part was needed:
    mark already written as «ا», so where the mushaf has the mark is inferred from the main text,
    letter by letter. It is an inference, not a lookup.
 
-Limits the owner should know:
+Limits (closed below):
 
 - **A plain alef that the everyday text writes too is accepted** in a span that is in Uthmani
   script, also where the mushaf writes it above the line: «ءَايَات» for «ءَايَٰت», «يَاأَيُّهَا»
   for «يَٰٓأَيُّهَا». The word is then the mushaf's letters with the everyday alef. It can only
   arise in text that already carries Uthmani signs.
-- **32 genuine mushaf pastes are refused** (two wordings, «فَبِأَيِّ ءَالَآءِ رَبِّكُمَا
+- **32 genuine mushaf pastes were refused** (two wordings, «فَبِأَيِّ ءَالَآءِ رَبِّكُمَا
   تُكَذِّبَانِ» and 53:55): no sign, no superscript alef, and «ءالاء» differs from «آلاء». They
-  end `DIFFERS`. Accepting «ءا» as proof of Uthmani script would also accept it typed in everyday
-  script; that is the owner's call.
+  ended `DIFFERS`. Fixed on 2026-10-03, see "Closed" below.
 - **An exact check needs the data to say where the mushaf has the mark.** A second search variant
   that keeps U+0670 as its own character would make rule 3 a plain comparison. It means rebuilding
-  `data/corpus` (new `corpusVersion`), which was not done here: corpus changes need the owner's
-  approval. Recorded in `docs/BACKLOG.md`.
+  `data/corpus` (new `corpusVersion`), which was not done. Decided on 2026-10-03: not adopted, see "Closed" below.
 
 Other fixes made in the same pass, each closing a way to a wrong result:
 
@@ -301,3 +427,119 @@ Other fixes made in the same pass, each closing a way to a wrong result:
   «نعمت») was compared only with the ayat that write «نعمة» and ended `REF_MISMATCH`.
 - **Ayah numbers typed between the ayat of a quote are left out of the quote's words.** Before, they
   made a correct multi-ayah quote `WORDING_DIFF`.
+
+**Closed 2026-10-03.**
+
+1. **The 32 refused pastes now end `MATCH`.** Telling a writer that a verse copied from the
+   Madinah mushaf "differs in wording" is a wrong statement about the Quran text, and the package
+   names «النص القرآني بالرسم والنص المعتمد» as the reference. The mushaf writes the word
+   «ءَالَآءِ» with a combining maddah (U+0653). Measured on the two source files: U+0653, U+0654 and
+   U+0655 occur 5652, 495 and 14 times in mushaf 2 and **never** in mushaf 1, which writes آ أ إ as
+   single characters. The three were added to the signs that mark a span as Uthmani script
+   (`hasUthmaniSigns`). «ءالاء» typed in everyday script without the maddah still ends `DIFFERS`
+   (tested).
+2. **Measured after the change**, every ayah of mushaf 2 pasted whole: 6236 of 6236 end `MATCH`
+   with their own ayah in the evidence (2248 on `default`, 3988 through `uthmani`), none refused.
+   The same ayat with every superscript alef spelt out as «ا»: unchanged — 2584 refused, 552 and
+   1231 accepted (the alefs the everyday text writes too). The owner's rule, "a spelling error
+   never ends MATCH", holds as before.
+3. Known limit: a draft whose آ أ إ arrive decomposed (Unicode NFD: alef plus a combining mark)
+   counts as Uthmani script. The effect is that a word written as the mushaf writes it is
+   accepted; a spelt-out superscript alef is still refused by rule 3.
+4. **A second variant that keeps U+0670 is not adopted.** The inference is measured on all 6236
+   ayat in both directions (item 2); a second variant would add corpus size for no measured gain.
+
+## D-14 — The held hadith records, compared with a second edition (2026-10-03)
+
+**Closed.** The six records held after the Dorar comparison (`docs/HADITH_FLAGGED_INVESTIGATION.md`)
+were unresolved because Dorar's two texts disagreed and no second witness had been read. On
+2026-10-03 each was read on shamela.ws, which the package names for «الطبعات المعتمدة لكتب السنة».
+
+Finding: Dorar's "book text" for Sahih Muslim has the same wording as the digital copy shamela.ws
+serves as «ت عبد الباقي» (book 1727), including the same slips («لتخذت», «وكيف أرضع؟», «عمر رضي
+الله عليه وسلم», «أبي موس»). The two were therefore one witness, not two. The fully vocalized
+«ط التركية» (book 711) is a separate text.
+
+| Record | No. | «ط التركية» on shamela.ws | Result |
+|---|---|---|---|
+| `muslim:6172` | 2383 | «لَاتَّخَذْتُ أَبَا بَكْرٍ خَلِيلًا» — <https://shamela.ws/book/711/7369> | Agrees with our text. Released |
+| `muslim:3600` | 1453 | «وَكَيْفَ أُرْضِعُهُ وَهُوَ رَجُلٌ كَبِيرٌ» — <https://shamela.ws/book/711/4266> | Agrees. Released |
+| `muslim:3944` | 1547 | «يُكْرِي أَرَضِيهِ», «سَمِعْتُ عَمَّيَّ، وَكَانَا قَدْ شَهِدَا بَدْرًا، يُحَدِّثَانِ» — <https://shamela.ws/book/711/4668> | Agrees. Released |
+| `muslim:2957` | 1221 | «فَقَدِمَ عُمَرُ ﵁» — <https://shamela.ws/book/711/3505> | Agrees. Released |
+| `muslim:7314` | 2912 | The whole hadith — <https://shamela.ws/book/711/8756> | Agrees. Released |
+| `bukhari:2075` | 2075 | «ط السلطانية» 3/57 ends «لَأَنْ يَأْخُذَ أَحَدُكُمْ أَحْبُلَهُ» — <https://shamela.ws/book/1681/3301> | Our text has six more words. **Stays held** |
+
+Method: each Muslim record's `exactText` and the edition's text were reduced to words (diacritics
+removed, أ إ آ and ى folded, ﷺ and ﵁ written out) and compared by a script. All five: the same
+number of words, and no word on either side without its partner (59, 92, 131, 175 and 43 words).
+The wording itself points the same way: «عمّي … يحدثان» needs the dual «وكانا قد شهدا», and «رضي
+الله عليه وسلم» is not a phrase.
+
+Decisions.
+
+1. The five Muslim records are approved one by one in `data/review/reviewed.json` (`records`,
+   with the page compared) and removed from `data/review/held-records.json`. The approval is
+   recorded under the AI assistant's name, not the owner's.
+2. `bukhari:2075` stays pending for as long as this source text is used. Two witnesses (Dorar,
+   and «ط السلطانية» on shamela.ws) end the hadith of this number at «أحبله». The record's text is
+   not edited: the tool does not rewrite a source.
+3. What this says about the rest of Sahih Muslim: the differences found in the 12-record sample
+   were slips of the copy used for comparison, not of our text. After this review 12 of 12 sampled
+   Muslim records and 11 of 12 sampled Bukhari records agree with an edition's text. It is still a
+   sample; the other records were not compared with a second text.
+
+## D-15 — The other items of the source register (2026-10-03)
+
+**Closed.** These were the rows still marked pending in `docs/SOURCES.md` section 5.
+
+1. **Quranpedia checksum mismatch (item 2): accepted, not blocking.** The `.gz` served has the
+   manifest's byte size and decompresses to exactly the local JSON, for both mushaf files; only the
+   hash of the compressed file differs. The cause was not established. The integrity anchor is the
+   sha256 of the decompressed JSON, recorded in `data/corpus/manifest.json` and re-checked by
+   `npm run verify:corpus`. A second test was made on 2026-10-03: all 6236 ayat of
+   `data/corpus/quran.json` were compared with the Tanzil "simple" text (api.alquran.cloud,
+   edition `quran-simple`). With diacritics and marks removed, **6236 of 6236 ayat are identical
+   letter for letter**, under the same surah and ayah numbers. Two texts this close probably share
+   an origin, so the test shows our copy is intact and equal to a widely used text; it is not a
+   comparison with an independent edition. Writing to Quranpedia about the manifest hash is
+   optional and changes nothing here.
+2. **The signs ۞ and ۩ (item 4): kept, in the data and on screen.** `exactText` is shown as the
+   source gives it. The signs are not words: normalization drops them, so they take no part in
+   matching or in the diff.
+3. **Empty source entries (item 11): accepted.** 9 Bukhari and 203 Muslim source entries have no
+   text. The `NOT_FOUND` sentence speaks of "the covered sources" and passes no judgment.
+4. **Alternate surah names (item 14): approved, with one addition.** Checked on 2026-10-03:
+   - No name or alternate name belongs to two surahs (script check over `data/aliases/surahs.json`).
+   - Named in al-Suyuti's «الإتقان», النوع السابع عشر: براءة؛ سبحان، بني إسرائيل؛ الملائكة؛ المؤمن؛
+     الشريعة؛ القتال؛ تبارك (الملك)؛ لم يكن؛ أرأيت؛ أم القرآن، السبع المثاني.
+   - Opening words of the surah, checked against `data/corpus/quran.json`: براءة، سبحان، تبارك، ن،
+     سأل سائل، هل أتى، عم، عم يتساءلون، ألم نشرح، اقرأ، لم يكن، لإيلاف، أرأيت، تبت.
+   - Kept as common titles, without a source check: أم الكتاب، الحمد، الم السجدة، الم تنزيل،
+     حم السجدة، حم عسق، الدهر (for al-Insan)، الانشراح، الزلزال، اللهب، التوحيد، النساء الصغرى.
+   - **Added: «النساء القصرى»** for al-Talaq. It is the form in al-Itqan and in our own corpus
+     (`bukhari:4532`, `bukhari:4910`).
+   - Noted: al-Itqan reports «الدهر» as a name of al-Jathiyah («حكاه الكرماني»). The list keeps it
+     for al-Insan. A wrong alias can cause a wrong `DIFFERS` on the reference; it cannot produce a
+     `MATCH` on a text that does not match.
+5. **Hadith collection names (item 17): approved as they are.** The list is used to recognise a
+   citation only. Books outside the corpus are listed so that a citation of them is recognised as
+   outside the coverage. The known weak spots are parser matters, in `docs/BACKLOG.md`.
+
+## D-16 — How decisions of this kind are made from now on (2026-10-03)
+
+**Decided by the owner.** Earlier prompts sent every choice about religious content back to the
+owner. From 2026-10-03 the agent decides, on these conditions (AGENTS.md §9, "Decisions on
+religious content"):
+
+1. It researches first, in the sources the package approves (the King Fahd Complex mushaf and
+   quranpedia.net; dorar.net; the editions on shamela.ws) and in the recognised works of the
+   discipline, and it tests the claim on the data where a test is possible.
+2. It decides, implements and tests, without stopping to ask.
+3. It records the decision here as closed, with the sources, what was measured, and the limits.
+4. Where the evidence is not enough, the decision is the conservative one (abstain, keep pending),
+   recorded as a decision, not as a question.
+
+The limits are unchanged: the non-negotiable rules of AGENTS.md §2. The agent decides how the tool
+handles texts and references. It never grades a hadith, never interprets a verse, never issues a
+ruling, and never edits a source text. An approval it gives is recorded in
+`data/review/reviewed.json` under its own name, not the owner's.

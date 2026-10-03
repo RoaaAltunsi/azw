@@ -539,7 +539,7 @@ text that spells such an alef out. For each word of the quote:
 
 1. If the word, normalized as for `default`, is the main text's word, it needs no bridge.
 2. Otherwise it must be **in Uthmani script**: the span carries a sign that only Uthmani texts have
-   (`hasUthmaniSigns`: ٱ U+0671, the marks U+0656–U+065F, the Quranic marks U+06DF–U+06ED without
+   (`hasUthmaniSigns`: ٱ U+0671, the marks U+0653–U+065F, the Quranic marks U+06DF–U+06ED without
    ۩), or the word itself carries a superscript alef (U+0670), which no keyboard types.
 3. And it must **not spell out a superscript alef** (`spellsOutSuperscriptAlef`). The word's letters
    are aligned with the main text's letters; a bare alef of the draft is
@@ -562,13 +562,14 @@ built from; `data/raw`, test input only) pasted whole:
 
 | Input | `default` | `uthmani`, accepted | `uthmani`, spelling error |
 |---|---|---|---|
-| The 6236 ayat as they are | 2248 | 3956 | 32 |
+| The 6236 ayat as they are | 2248 | 3988 | 0 |
 | The 4367 ayat that have a superscript alef, with every one of them spelt out as «ا» | 1231 | 552 | 2584 |
 
-- The 32 refused pastes are two wordings: «فَبِأَيِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ» (31 ayat of
-  الرحمن) and 53:55. They carry no sign that only Uthmani texts have and no superscript alef, so
-  «ءالاء» is taken as everyday script and differs from «آلاء». They end `DIFFERS`, not `MATCH`:
-  a miss in the safe direction (`docs/BACKLOG.md`).
+- Re-measured on 2026-10-03, after the combining maddah and hamza (U+0653–U+0655) were added to
+  the signs (`docs/DECISIONS.md` D-13). Before, 32 pastes were refused: «فَبِأَيِّ ءَالَآءِ رَبِّكُمَا
+  تُكَذِّبَانِ» (31 ayat of الرحمن) and 53:55, whose only Uthmani sign is the maddah of «ءَالَآءِ».
+  Mushaf 1 never carries these three marks (it writes آ أ إ as single characters); mushaf 2 carries
+  them 6161 times. The second row did not change.
 - In the second row, the 552 accepted ayat are those where every spelt-out alef is one the everyday
   text writes too («ءايات», «ياأيها», «القرءان»); the 2584 with an alef the everyday text does not
   write are all refused.

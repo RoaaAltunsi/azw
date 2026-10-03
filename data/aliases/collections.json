@@ -1,5 +1,5 @@
 {
-  "note": "Editorial list, compiled by hand and pending human review. It is used only to recognise which hadith collection a writer cites; it is never shown as source text. `names` are recognised after a narration verb (رواه، أخرجه …) or alone inside a citation bracket; `phrases` are recognised anywhere in the draft. Only the collections in data/corpus/manifest.json are covered by the corpus: the others are listed so that a citation of them is recognised as a hadith citation of a source Azw does not cover.",
+  "note": "Editorial list, compiled by hand; reviewed on 2026-10-03 (docs/DECISIONS.md D-15). It is used only to recognise which hadith collection a writer cites; it is never shown as source text. `names` are recognised after a narration verb (رواه، أخرجه …) or alone inside a citation bracket; `phrases` are recognised anywhere in the draft. Only the collections in data/corpus/manifest.json are covered by the corpus: the others are listed so that a citation of them is recognised as a hadith citation of a source Azw does not cover.",
   "entries": [
     { "collections": ["bukhari"], "names": ["البخاري"], "phrases": ["صحيح البخاري"] },
     { "collections": ["muslim"], "names": ["مسلم"], "phrases": ["صحيح مسلم"] },

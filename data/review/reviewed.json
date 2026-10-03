@@ -1,5 +1,5 @@
 {
-  "note": "Human approvals only. Add a collection or a record id here only after explicit approval by the project owner; scripts/build-corpus.ts then marks those records reviewed.",
+  "note": "Approvals only. A collection or a record id is added here after an explicit approval by the project owner, or after a documented source comparison made by the AI assistant under the owner's delegation of 2026-10-03 (AGENTS.md section 9). Each entry names who approved and on what evidence. scripts/build-corpus.ts then marks those records reviewed.",
   "collections": [
     {
       "collection": "quran",
@@ -27,26 +27,57 @@
       "collection": "bukhari",
       "approvedBy": "Project owner",
       "approvedAt": "2026-10-02",
-      "scope": "Sahih al-Bukhari collection approved for Azw's text matching. Covers only records with no reported issue. Does not cover records with damaged text, split (decimal) entries, records whose text block the source repeats under several numbers, or the records in data/review/held-records.json — those stay pending.",
+      "scope": "Sahih al-Bukhari collection approved for Azw's text matching. Covers only records with no reported issue. Does not cover records with damaged text, split (decimal) entries, records whose text block the source repeats under several numbers, records whose text does not open with a formula of direct transmission (docs/DECISIONS.md D-5), or the records in data/review/held-records.json — those stay pending.",
       "method": "Approved on the automated sample checks; the owner did not compare records with a printed edition by hand. Checks: raw file byte-identical to hadith-api commit df57907; 30 of 30 sampled records confirmed on Dorar by number and matn (docs/SOURCES.md section 4); 12 records compared word for word with Dorar's book text: 12 numbers agree, 8 no word difference, 3 spelling only, 1 real wording difference (bukhari:2075, held) — docs/HADITH_REVIEW_SAMPLE.md, docs/HADITH_FLAGGED_INVESTIGATION.md.",
       "openIssues": [
         "The approval rests on a sample (30 + 12 records); the other records were not compared with a second text.",
         "The source repository does not state which printed edition the Arabic text was digitized from.",
-        "bukhari:2075 held: wording difference from Dorar's book text, unresolved."
+        "bukhari:2075 stays held: its last six words are not in the printed text under this number (Dorar and shamela.ws ط السلطانية 3/57 both end at «أحبله»). docs/DECISIONS.md D-14."
       ]
     },
     {
       "collection": "muslim",
       "approvedBy": "Project owner",
       "approvedAt": "2026-10-02",
-      "scope": "Sahih Muslim collection approved for Azw's text matching. Covers only records with no reported issue. Does not cover records without a citation number, records with damaged text, records whose text block the source repeats under several numbers, or the records in data/review/held-records.json — those stay pending.",
+      "scope": "Sahih Muslim collection approved for Azw's text matching. Covers only records with no reported issue. Does not cover records without a citation number, records with damaged text, records whose text block the source repeats under several numbers, records whose text does not open with a formula of direct transmission (docs/DECISIONS.md D-5), or the records in data/review/held-records.json — those stay pending.",
       "method": "Approved on the automated sample checks; the owner did not compare records with a printed edition by hand. Checks: raw file byte-identical to hadith-api commit df57907; 30 of 30 sampled records confirmed on Dorar by number and matn (docs/SOURCES.md section 4); 12 records compared with Dorar: 12 numbers agree, 6 no word difference from the book text, 1 spelling only, 5 unresolved and held — docs/HADITH_REVIEW_SAMPLE.md, docs/HADITH_FLAGGED_INVESTIGATION.md.",
       "openIssues": [
         "The approval rests on a sample (30 + 12 records); the other records were not compared with a second text.",
-        "5 of the 12 records compared word for word are unresolved (muslim:2957, muslim:3600, muslim:3944, muslim:6172, muslim:7314, all held). In 4 of them Dorar's summary agrees with our text and Dorar's book text does not; which matches the printed book is not established. The rate of such differences in the rest of the collection is unknown.",
+        "The 5 records held after the word-for-word sample were compared with a second edition on 2026-10-03 and released (see records): our text agrees with صحيح مسلم ط التركية in all 5; the differences came from one digital copy.",
         "The source repository does not state which printed edition the Arabic text was digitized from."
       ]
     }
   ],
-  "records": []
+  "records": [
+    {
+      "id": "muslim:6172",
+      "approvedBy": "AI research review (Claude), under the owner's delegation of 2026-10-03",
+      "approvedAt": "2026-10-03",
+      "note": "Released from data/review/held-records.json. Compared word for word (diacritics removed) with صحيح مسلم، ط التركية on shamela.ws, no. 2383 (https://shamela.ws/book/711/7369): no word differs. Point checked: «لاتخذت». The differing wording was in one digital copy only (shamela.ws book 1727, which Dorar quotes). docs/DECISIONS.md D-14."
+    },
+    {
+      "id": "muslim:3600",
+      "approvedBy": "AI research review (Claude), under the owner's delegation of 2026-10-03",
+      "approvedAt": "2026-10-03",
+      "note": "Released from data/review/held-records.json. Compared word for word (diacritics removed) with صحيح مسلم، ط التركية on shamela.ws, no. 1453 (https://shamela.ws/book/711/4266): no word differs. Point checked: «وكيف أرضعه». The differing wording was in one digital copy only (shamela.ws book 1727, which Dorar quotes). docs/DECISIONS.md D-14."
+    },
+    {
+      "id": "muslim:3944",
+      "approvedBy": "AI research review (Claude), under the owner's delegation of 2026-10-03",
+      "approvedAt": "2026-10-03",
+      "note": "Released from data/review/held-records.json. Compared word for word (diacritics removed) with صحيح مسلم، ط التركية on shamela.ws, no. 1547 (https://shamela.ws/book/711/4668): no word differs. Point checked: «أرضيه», «عمّيّ وكانا قد شهدا بدرا». The differing wording was in one digital copy only (shamela.ws book 1727, which Dorar quotes). docs/DECISIONS.md D-14."
+    },
+    {
+      "id": "muslim:2957",
+      "approvedBy": "AI research review (Claude), under the owner's delegation of 2026-10-03",
+      "approvedAt": "2026-10-03",
+      "note": "Released from data/review/held-records.json. Compared word for word (diacritics removed) with صحيح مسلم، ط التركية on shamela.ws, no. 1221 (https://shamela.ws/book/711/3505): no word differs. Point checked: «فقدم عمر رضي الله عنه». The differing wording was in one digital copy only (shamela.ws book 1727, which Dorar quotes). docs/DECISIONS.md D-14."
+    },
+    {
+      "id": "muslim:7314",
+      "approvedBy": "AI research review (Claude), under the owner's delegation of 2026-10-03",
+      "approvedAt": "2026-10-03",
+      "note": "Released from data/review/held-records.json. Compared word for word (diacritics removed) with صحيح مسلم، ط التركية on shamela.ws, no. 2912 (https://shamela.ws/book/711/8756): no word differs. Point checked: the whole text; Dorar had no book text for it. The differing wording was in one digital copy only (shamela.ws book 1727, which Dorar quotes). docs/DECISIONS.md D-14."
+    }
+  ]
 }

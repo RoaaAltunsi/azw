@@ -19,6 +19,7 @@ import {
   type SourceRecord,
 } from "./lib/schema.js";
 import { SURAH_ALTERNATE_NAMES } from "./lib/surah-alternates.js";
+import { opensWithTransmissionFormula } from "./lib/transmission.js";
 import { fileInfo, p, readJson, replaceAutoBlock, sha256, toRanges } from "./lib/util.js";
 
 const QURAN_RAW = "data/raw/quranpedia/mushafs-1.json";
@@ -43,7 +44,8 @@ const approvedRecords = new Set(reviewed.records.map((r) => r.id));
 const heldRecords = new Set(HeldFileSchema.parse(readJson(p(HELD))).records.map((r) => r.id));
 
 // forcedPending: a collection-level approval never covers these (missing citation number,
-// damaged text, split entries, one text block repeated under several numbers, held records).
+// damaged text, split entries, one text block repeated under several numbers, a text that does not
+// open with a formula of direct transmission, held records).
 // `neverApprovable` cannot be approved per record either.
 const reviewStatus = (id: string, collection: string, flags: ReviewFlags): "reviewed" | "pending" =>
   reviewStatusFor(id, collection, { collections: approvedCollections, records: approvedRecords }, flags);
@@ -274,6 +276,7 @@ function buildHadith(adapter: HadithSourceAdapter, collection: string) {
   const nullNumber: string[] = [];
   const splitEntries: string[] = [];
   const corruptText: string[] = [];
+  const noTransmissionFormula: string[] = [];
   const matnRules = new Map<string, number>();
   // The source sometimes repeats one text block under several (mostly consecutive) numbers, so
   // the block cannot be pinned to a single citation number.
@@ -296,6 +299,14 @@ function buildHadith(adapter: HadithSourceAdapter, collection: string) {
     if (e.citationNumber === null) nullNumber.push(e.sourceKey);
     if (isSplit) splitEntries.push(e.sourceKey);
     if (isCorrupt) corruptText.push(e.sourceKey);
+    // Possibly a suspended report (معلّق): docs/DECISIONS.md D-5.
+    const opensWithFormula = opensWithTransmissionFormula(e.text);
+    if (!opensWithFormula) noTransmissionFormula.push(e.sourceKey);
+    const status = reviewStatus(id, collection, {
+      forcedPending:
+        e.citationNumber === null || isCorrupt || isSplit || sharedTextIds.has(id) || !opensWithFormula || heldRecords.has(id),
+      neverApprovable: e.citationNumber === null,
+    });
 
     const display =
       e.citationNumber === null
@@ -321,13 +332,10 @@ function buildHadith(adapter: HadithSourceAdapter, collection: string) {
       sourceUrl: info.sourceUrl,
       edition: info.edition,
       license: info.license,
-      reviewStatus: reviewStatus(id, collection, {
-        forcedPending: e.citationNumber === null || isCorrupt || isSplit || sharedTextIds.has(id) || heldRecords.has(id),
-        neverApprovable: e.citationNumber === null,
-      }),
-      // AGENTS.md §6 Sahihayn policy. Withheld when there is no citation number to attribute
-      // the grade to (see docs/DECISIONS.md).
-      ...(e.citationNumber !== null
+      reviewStatus: status,
+      // AGENTS.md §6 Sahihayn policy, for reviewed records only: the grade is the collection's and
+      // is stated only of a text approved under a citation number (docs/DECISIONS.md D-2, D-5).
+      ...(status === "reviewed" && e.citationNumber !== null
         ? { grade: { text: "صحيح", by: info.displayNameAr, sourceRef: display } }
         : {}),
     });
@@ -344,6 +352,7 @@ function buildHadith(adapter: HadithSourceAdapter, collection: string) {
       nullCitationNumber: nullNumber,
       splitEntries,
       corruptText,
+      noTransmissionFormula,
       sharedTextGroups,
       heldAfterSampleCheck: records.filter((r) => heldRecords.has(r.id)).map((r) => r.id),
       withMatnText: records.filter((r) => r.matnText).length,
@@ -364,8 +373,8 @@ function writeSurahAliases(surahs: Array<{ number: number; name: string; ayahCou
   const out = {
     note:
       "name and ayahCount come from the Quranpedia mushaf-1 dump. bareName is name without the " +
-      "leading «سورة ». spellingVariants and alternateNames are editorial (scripts/lib/), pending " +
-      "human review; they are used only to resolve a cited surah, never shown as source text.",
+      "leading «سورة ». spellingVariants and alternateNames are editorial (scripts/lib/), reviewed " +
+      "on 2026-10-03 (docs/DECISIONS.md D-15); they are used only to resolve a cited surah, never shown as source text.",
     source: "Quranpedia.net (https://quranpedia.net), dump mushafs-1",
     surahs: surahs.map((s) => ({
       number: s.number,
@@ -440,7 +449,7 @@ const manifest = {
         attribution: "None required by the license; the source is credited in docs/SOURCES.md.",
         numberingScheme: h.info.numberingScheme,
         gradePolicy:
-          "AGENTS.md §6: Sahihayn records carry grade {text: \"صحيح\", by: <collection name>}; withheld when citation.number is null.",
+          "AGENTS.md §6: reviewed Sahihayn records carry grade {text: \"صحيح\", by: <collection name>}; pending records carry no grade (docs/DECISIONS.md D-2, D-5).",
         rawFiles: h.info.rawFiles,
       },
     })),
@@ -490,9 +499,10 @@ const lines: string[] = [
     "",
     `**${h.info.collection}** (${h.info.edition})`,
     `- Skipped empty texts (${h.findings.skippedEmpty.length}), source hadithnumber: ${toRanges(h.findings.skippedEmpty) || "none"}.`,
-    `- Records without a citation number (${h.findings.nullCitationNumber.length}), kept pending, no grade: ${toRanges(h.findings.nullCitationNumber) || "none"}.`,
+    `- Records without a citation number (${h.findings.nullCitationNumber.length}), kept pending: ${toRanges(h.findings.nullCitationNumber) || "none"}.`,
     `- Split (decimal) source entries (${h.findings.splitEntries.length}): ${h.findings.splitEntries.join(", ") || "none"}.`,
     `- Records containing U+FFFD/U+FFFC (text damaged upstream) (${h.findings.corruptText.length}): ${h.findings.corruptText.join(", ") || "none"}.`,
+    `- Records whose text does not open with a formula of direct transmission (${h.findings.noTransmissionFormula.length}), kept pending (\`docs/DECISIONS.md\` D-5): ${toRanges(h.findings.noTransmissionFormula) || "none"}.`,
     `- Same text block repeated under several numbers: ${h.findings.sharedTextGroups.length} groups covering ${h.findings.sharedTextGroups.flat().length} records (e.g. ${h.findings.sharedTextGroups.slice(0, 5).map((g) => g.join(" = ")).join("; ")}). Full list: \`data/corpus/build-report.json\`.`,
     `- Held outside a collection approval after the sample check (${h.findings.heldAfterSampleCheck.length}): ${h.findings.heldAfterSampleCheck.join(", ") || "none"} — reasons in \`data/review/held-records.json\`.`,
     `- Distinct citation numbers: ${h.findings.distinctCitationNumbers}. matnText stored for ${h.findings.withMatnText} records (${Object.entries(h.findings.matnRules).map(([k, v]) => `${k}: ${v}`).join(", ")}).`,

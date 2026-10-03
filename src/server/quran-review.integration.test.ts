@@ -213,6 +213,20 @@ describe("spelling (D-9)", () => {
     expect([r.best!.layer, r.best!.spelling]).toEqual(["uthmani", "bridged"]);
   });
 
+  // docs/DECISIONS.md D-13: the mushaf writes «ءَالَآءِ» with a combining maddah, a sign the everyday
+  // text never carries, so the paste is Uthmani script and the mushaf's own spelling matches.
+  test("a mushaf paste whose only sign is the combining maddah → MATCH", () => {
+    const quote = "فَبِأَيِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ";
+    const r = review(`﴿${quote}﴾ [الرحمن: 13]`, quote);
+    expect(outcome(r)).toBe("MATCH/MATCH_REF_OK");
+    expect(r.best!.recordIds).toEqual(["quran:55:13"]);
+  });
+
+  test("the same word typed in everyday script without the maddah («ءالاء») → DIFFERS", () => {
+    const quote = "فبأي ءالاء ربكما تكذبان";
+    expect(outcome(review(`﴿${quote}﴾ [الرحمن: 13]`, quote))).toBe("DIFFERS/WORDING_DIFF");
+  });
+
   // hasUthmaniSigns rests on this: the signs it accepts are in no record of the everyday-script
   // source, so text copied from our own Quran text can never count as Uthmani script.
   test("no Quran record's exactText carries a sign that counts as Uthmani script", () => {

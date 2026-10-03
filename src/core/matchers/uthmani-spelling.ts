@@ -9,13 +9,15 @@
 import { alignTokens } from "../diff";
 import { normalizeWithMap, UTHMANI_VARIANT_OPTIONS } from "../normalize";
 
-// Signs that only Uthmani-script texts carry: ٱ (U+0671), the marks U+0656–U+065F (the mushaf's
-// tanwin and small-letter forms) and the Quranic marks U+06DF–U+06ED without ۩ (U+06E9). The
+// Signs that only Uthmani-script texts carry: ٱ (U+0671), the combining maddah and hamza
+// U+0653–U+0655 (the everyday text writes آ أ إ as one character; docs/DECISIONS.md D-13), the marks
+// U+0656–U+065F (the mushaf's tanwin and small-letter forms) and the Quranic marks U+06DF–U+06ED
+// without ۩ (U+06E9). The
 // superscript alef (U+0670), the pause marks (U+06D6–U+06DC) and ۞ (U+06DE) are left out on
 // purpose: the everyday-script source text carries them too, and so does text copied from it
 // (checked against the corpus in src/server/quran-review.integration.test.ts).
 const isUthmaniSign = (c: number): boolean =>
-  c === 0x0671 || (c >= 0x0656 && c <= 0x065f) || (c >= 0x06df && c <= 0x06ed && c !== 0x06e9);
+  c === 0x0671 || (c >= 0x0653 && c <= 0x065f) || (c >= 0x06df && c <= 0x06ed && c !== 0x06e9);
 
 export function hasUthmaniSigns(text: string): boolean {
   for (let i = 0; i < text.length; i++) {

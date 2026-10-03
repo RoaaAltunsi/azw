@@ -3,6 +3,7 @@
 //   npx tsx scripts/verify-corpus.ts
 import { readFileSync } from "node:fs";
 import { normalizeWithMap, tokenize, UTHMANI_VARIANT_OPTIONS } from "../src/core/normalize/index.js";
+import { opensWithTransmissionFormula } from "./lib/transmission.js";
 import { CorpusFileSchema, HeldFileSchema, QuranSpellingVariantsSchema, ReviewedFileSchema, type SourceRecord } from "./lib/schema.js";
 import { p, readJson, sha256 } from "./lib/util.js";
 
@@ -142,7 +143,8 @@ for (const collection of ["bukhari", "muslim"]) {
     } else {
       if (!/^[1-9]\d*$/.test(number) || Number(number) < min || Number(number) > max) badNumber.push(r.id);
       if (subNumber !== undefined && (!/^\d+(\.\d+)?$/.test(subNumber) || subNumber.split(".")[0] !== number)) badSub.push(r.id);
-      if (!r.grade || r.grade.text !== "صحيح" || r.grade.sourceRef !== r.citation.display) badGrade.push(r.id);
+      const graded = r.grade !== undefined && r.grade.text === "صحيح" && r.grade.sourceRef === r.citation.display;
+      if (r.reviewStatus === "reviewed" ? !graded : r.grade !== undefined) badGrade.push(r.id);
       // Bukhari: the id carries the source hadithnumber, whose integer part is the citation number.
       if (collection === "bukhari" && (subNumber ?? number) !== key) badSub.push(r.id);
       // Muslim: the id is the source running number; every numbered record keeps its full arabicnumber.
@@ -156,7 +158,7 @@ for (const collection of ["bukhari", "muslim"]) {
   check(badNumber.length === 0, `${collection}: citation.number is null or an integer within ${min}–${max}`, sample(badNumber));
   check(badSub.length === 0, `${collection}: citation.subNumber is consistent with citation.number and the id`, sample(badSub));
   check(nullNotPending.length === 0, `${collection}: records without a citation number are pending`, sample(nullNotPending));
-  check(badGrade.length === 0, `${collection}: grade present (صحيح, attributed) exactly when a citation number exists`, sample(badGrade));
+  check(badGrade.length === 0, `${collection}: grade present (صحيح, attributed) exactly on reviewed records`, sample(badGrade));
   check(badMatn.length === 0, `${collection}: every matnText is a verbatim substring of exactText`, sample(badMatn));
   check(records.every((r) => r.searchVariants === undefined), `${collection}: no record has search variants`);
 
@@ -220,6 +222,7 @@ for (const collection of ["bukhari", "muslim"]) {
       /[￼�]/.test(r.exactText) ||
       r.id.includes(".") ||
       textCount.get(`${r.collection}\n${r.exactText}`)! > 1 ||
+      !opensWithTransmissionFormula(r.exactText) ||
       heldIds.has(r.id));
   const wronglyReviewed = allRecords
     .filter((r) => r.reviewStatus === "reviewed")
@@ -231,7 +234,7 @@ for (const collection of ["bukhari", "muslim"]) {
     .map((r) => r.id);
   check(
     wronglyReviewed.length === 0,
-    "review: every reviewed record is approved in data/review/reviewed.json and not excluded (no number, damaged, split, shared text, held)",
+    "review: every reviewed record is approved in data/review/reviewed.json and not excluded (no number, damaged, split, shared text, no transmission formula, held)",
     sample(wronglyReviewed),
   );
 

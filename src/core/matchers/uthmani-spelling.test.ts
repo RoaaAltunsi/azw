@@ -7,6 +7,10 @@ describe("hasUthmaniSigns", () => {
     ["the mushaf's sukun (U+06E1)", "الۡحَمۡدُ", true],
     ["the mushaf's tanwin (U+0657)", "عِظَٰمٗا", true],
     ["a small waw (U+06E5)", "لَهُۥ", true],
+    ["a combining maddah on an alef (U+0653)", "ءَالَآءِ", true],
+    ["a combining hamza above (U+0654)", "ٱلۡأَفِۡٔدَةِ", true],
+    // The everyday text writes the same sounds as one character each: no sign.
+    ["precomposed آ أ إ", "آلَاءِ أَإِنَّا", false],
     // Marks the everyday-script source text carries too: they prove nothing.
     ["a superscript alef alone", "الرَّحْمَٰنِ", false],
     ["a pause mark alone", "الصلاة ۚ إن", false],

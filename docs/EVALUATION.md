@@ -19,18 +19,19 @@ mind. The held-out drafts have not been read for any other part of the pipeline.
 
 ## 1. Status of the human review
 
-**Not reviewed by a person yet.** The cases were drafted by Claude (AI assistant) from corpus records.
-The same assistant then checked them against outside sources (section 7). That check is not a
+**Not reviewed by a person.** The cases were drafted by Claude (AI assistant) from corpus records.
+The same assistant then checked them against outside sources (section 7) and, on 2026-10-03, closed
+the points of section 6 under the owner's delegation (`docs/DECISIONS.md` D-6, D-16). That is not a
 specialist review: an AI tool is not a qualified scholar, and it checked its own work. No person has
-read the cases, and no specialist has seen the critical ones. Until the two human rows below are
-filled in, the labels are a draft and results measured on them should be reported as such.
+read the cases. Results measured on them must be reported with that sentence. The two human rows
+below are not open decisions; they are checks a person can still add.
 
 | Step | Scope | Reviewer | Date | Result |
 |---|---|---|---|---|
 | AI source check | All 50 cases, against Tanzil, dorar.net and published fatwa pages | Claude (AI assistant), at the owner's request | 2026-10-02 | Done. No label changed; 7 notes extended. Findings in section 7 |
-| Read all 50 cases | `tune.jsonl`, `heldout.jsonl` | — | — | ☐ pending |
-| Specialist review of the critical cases | 21 cases: WORDING_ERROR, WRONG_REFERENCE, ADVERSARIAL | — | — | ☐ pending (if a specialist is available) |
-| Points in section 6 | 9 points | — | — | ☐ pending |
+| Points in section 6 | 9 points | Claude (AI assistant), under the owner's delegation | 2026-10-03 | Closed. No label changed. Decisions in `docs/DECISIONS.md` D-6 and below each point |
+| Read all 50 cases | `tune.jsonl`, `heldout.jsonl` | — | — | Not done by a person |
+| Specialist review of the critical cases | 21 cases: WORDING_ERROR, WRONG_REFERENCE, ADVERSARIAL | — | — | Not done (no specialist was available) |
 
 Record here who reviewed, on what date, against which printed or online reference, and every label
 that was changed.
@@ -149,6 +150,16 @@ The labeling search is not product code and is not in the repository. No matchin
 written for this task.
 
 ## 6. Points for the reviewer
+
+All nine points were closed on 2026-10-03 (`docs/DECISIONS.md` D-6). No label changed. In short:
+(1) the altered Quran texts live only in `eval/cases` as draft input and are never served as
+source text; (2) `T-007` and `H-008` are `MATCH` by D-9 and D-13, pinned by tests; (3) the three
+single-collection labels stand after a second Dorar search, and the reason sentence must speak of
+the tool's copy of the book; (4) `NOT_FOUND` keeps the fixed sentence that passes no judgment;
+(5) the three claims are real points of disagreement (section 7) and suit levels C and D;
+(6) vague attributions stay `NEEDS_SPECIALIST`; (7) a middle-band result on `T-015` or `H-020`
+counts as a miss, as written; (8) a misquoted verse inside a question is still reviewed and the
+question is not answered; (9) the listed gaps are limits of the set, to be stated with the results.
 
 1. **Altered Quran text is in these files on purpose** (`T-008`, `T-010`, `T-020`, `H-010`, `H-011`).
    Please confirm each note states the alteration correctly and that the files are never shown as

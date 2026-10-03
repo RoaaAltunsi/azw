@@ -1,7 +1,7 @@
 {
   "manifestVersion": 1,
-  "corpusVersion": "p2-0790f19e4c07",
-  "generatedAt": "2026-10-03T09:29:36.666Z",
+  "corpusVersion": "p2-e2bfaf5a3ad2",
+  "generatedAt": "2026-10-03T14:13:54.661Z",
   "coverage": [
     "quran",
     "bukhari",
@@ -105,8 +105,8 @@
       "kind": "hadith",
       "file": {
         "path": "data/corpus/bukhari.json",
-        "bytes": 18058857,
-        "sha256": "aaf0aca4b6533ae454f3d4f739fc7f45137e732efa78e246764560493567c463"
+        "bytes": 17953229,
+        "sha256": "a2d000c0b467e17727b28fe119f0803296bbd931bf7bb276a72fbee72e7603c4"
       },
       "counts": {
         "rawEntries": 7589,
@@ -118,8 +118,8 @@
       },
       "reviewStatus": {
         "collectionApproved": true,
-        "reviewed": 6940,
-        "pending": 640
+        "reviewed": 6701,
+        "pending": 879
       },
       "source": {
         "name": "fawazahmed0/hadith-api — ara-bukhari",
@@ -131,7 +131,7 @@
         "licenseUrl": "https://github.com/fawazahmed0/hadith-api/blob/df57907be35291c91ad6a6691180e22ca9920784/LICENSE",
         "attribution": "None required by the license; the source is credited in docs/SOURCES.md.",
         "numberingScheme": "id = bukhari:<hadithnumber>. citation.number = integer part of hadithnumber (1–7563). The source splits a few hadith into decimal entries (e.g. 402.2); for those, citation.subNumber keeps the full source value.",
-        "gradePolicy": "AGENTS.md §6: Sahihayn records carry grade {text: \"صحيح\", by: <collection name>}; withheld when citation.number is null.",
+        "gradePolicy": "AGENTS.md §6: reviewed Sahihayn records carry grade {text: \"صحيح\", by: <collection name>}; pending records carry no grade (docs/DECISIONS.md D-2, D-5).",
         "rawFiles": [
           {
             "path": "data/raw/hadith-api/ara-bukhari.min.json",
@@ -151,8 +151,8 @@
       "kind": "hadith",
       "file": {
         "path": "data/corpus/muslim.json",
-        "bytes": 16309506,
-        "sha256": "4ac85ad9d4b32de720b14ced2ca3c2748f28922f90faed29c704df3caf93d1ee"
+        "bytes": 16302268,
+        "sha256": "953406faffe85773429df3edf141a82d34176164b7cf2e3506e1094328cbe0f2"
       },
       "counts": {
         "rawEntries": 7563,
@@ -164,8 +164,8 @@
       },
       "reviewStatus": {
         "collectionApproved": true,
-        "reviewed": 7169,
-        "pending": 191
+        "reviewed": 7145,
+        "pending": 215
       },
       "source": {
         "name": "fawazahmed0/hadith-api — ara-muslim",
@@ -177,7 +177,7 @@
         "licenseUrl": "https://github.com/fawazahmed0/hadith-api/blob/df57907be35291c91ad6a6691180e22ca9920784/LICENSE",
         "attribution": "None required by the license; the source is credited in docs/SOURCES.md.",
         "numberingScheme": "id = muslim:<hadithnumber> (source running number 1–7563, NOT a citation number). citation.number = integer part of arabicnumber (Fuad Abd al-Baqi); citation.subNumber = full arabicnumber as in the source (e.g. \"8.01\"). Entries without arabicnumber have citation.number = null and stay pending.",
-        "gradePolicy": "AGENTS.md §6: Sahihayn records carry grade {text: \"صحيح\", by: <collection name>}; withheld when citation.number is null.",
+        "gradePolicy": "AGENTS.md §6: reviewed Sahihayn records carry grade {text: \"صحيح\", by: <collection name>}; pending records carry no grade (docs/DECISIONS.md D-2, D-5).",
         "rawFiles": [
           {
             "path": "data/raw/hadith-api/ara-muslim.min.json",

@@ -1,47 +1,17 @@
 {
-  "note": "Records kept outside any collection-level approval because a sample check left a question open. scripts/build-corpus.ts never marks these reviewed through a collection approval; each needs its own decision by the project owner. The source text is not changed. Evidence: docs/HADITH_FLAGGED_INVESTIGATION.md.",
+  "note": "Records kept outside any collection-level approval. scripts/build-corpus.ts never marks these reviewed through a collection approval. The source text is not changed. Both entries are decided (docs/DECISIONS.md D-5, D-14): they stay pending for as long as this source text is used. Evidence: docs/HADITH_FLAGGED_INVESTIGATION.md.",
   "records": [
     {
       "id": "bukhari:2819",
       "heldAt": "2026-10-02",
-      "category": "grade not confirmed",
-      "reason": "Our text opens with «وقال الليث حدثني» and the record carries the collection grade «صحيح». Dorar confirms the number and the matn under صحيح البخاري 2819, but its grade line for that entry reads «[معلق]», not «[صحيح]» (data/review/dorar-verification.json). Whether the collection grade may be shown for this record is the owner's decision — docs/DECISIONS.md D-5."
+      "category": "suspended report (معلّق)",
+      "reason": "The text opens «وقال الليث حدثني», without a formula of transmission from al-Bukhari's own shaykh. Dorar's grade line for صحيح البخاري 2819 is «[معلق]». A suspended report is not under the condition of the Sahih (Ibn al-Salah, Muqaddima, type 1, point 6), so the collection grade is not stated of it and the record stays pending. The same hadith is in the corpus with connected chains (bukhari:3424, 5242, 6639, 6720, 7469). Decided 2026-10-03, docs/DECISIONS.md D-5."
     },
     {
       "id": "bukhari:2075",
       "heldAt": "2026-10-02",
-      "category": "real wording difference",
-      "reason": "Our text ends with «خير له من أن يسأل الناس»; Dorar's book text and summary for صحيح البخاري 2075 both stop at «لأن يأخذ أحدكم أحبله». No second witness found."
-    },
-    {
-      "id": "muslim:6172",
-      "heldAt": "2026-10-02",
-      "category": "still unclear",
-      "reason": "Ours «لاتخذت»; Dorar's book text for صحيح مسلم 2383 has «لتخذت», while Dorar's own summary for the same number has «لاتخذت»."
-    },
-    {
-      "id": "muslim:7314",
-      "heldAt": "2026-10-02",
-      "category": "shortened reference page",
-      "reason": "Dorar's «أصول الحديث» for صحيح مسلم 2912 has no Muslim book-text entry (two Dorar pages checked), so the wording could not be compared with the book text."
-    },
-    {
-      "id": "muslim:3600",
-      "heldAt": "2026-10-02",
-      "category": "real wording difference",
-      "reason": "Ours «وكيف أرضعه»; Dorar's book text for صحيح مسلم 1453 has «وكيف أرضع؟», while Dorar's summary for the same number has «أرضعه»."
-    },
-    {
-      "id": "muslim:3944",
-      "heldAt": "2026-10-02",
-      "category": "real wording difference",
-      "reason": "Ours «أرضيه» and «وكانا قد شهدا بدرا»; Dorar's book text for صحيح مسلم 1547 has «أرضه» and «وكان قد شهد بدرا», while Dorar's summary for the same number agrees with ours."
-    },
-    {
-      "id": "muslim:2957",
-      "heldAt": "2026-10-02",
-      "category": "still unclear",
-      "reason": "After «فقدم عمر» ours has «رضى الله عنه»; Dorar's book text for صحيح مسلم 1221 has «رضي الله عليه وسلم», while Dorar's summary for the same number has «رضي الله عنه»."
+      "category": "wording not in the printed text",
+      "reason": "Our text ends «خير له من أن يسأل الناس». Two witnesses end at «لأن يأخذ أحدكم أحبله»: Dorar's book text for صحيح البخاري 2075, and صحيح البخاري ط السلطانية 3/57 on shamela.ws (https://shamela.ws/book/1681/3301). The six extra words are not shown to be the text of no. 2075. Decided 2026-10-03, docs/DECISIONS.md D-14: stays pending."
     }
   ]
 }
