@@ -117,6 +117,7 @@ function buildQuran() {
   for (const s of uthmaniRaw.data.surahs) {
     for (const a of s.ayahs) {
       if (String(a.surah) !== String(s.id)) throw new Error(`quran uthmani ${s.id}:${a.number}: surah field mismatch`);
+      if (uthmaniText.has(`${s.id}:${a.number}`)) throw new Error(`quran uthmani ${s.id}:${a.number}: ayah listed twice`);
       uthmaniText.set(`${s.id}:${a.number}`, a.text);
     }
   }

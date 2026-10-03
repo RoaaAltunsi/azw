@@ -1,7 +1,7 @@
 {
   "manifestVersion": 1,
-  "corpusVersion": "p2-ed080c6de027",
-  "generatedAt": "2026-10-03T09:18:10.677Z",
+  "corpusVersion": "p2-0790f19e4c07",
+  "generatedAt": "2026-10-03T09:29:36.666Z",
   "coverage": [
     "quran",
     "bukhari",
@@ -14,8 +14,8 @@
       "kind": "quran",
       "file": {
         "path": "data/corpus/quran.json",
-        "bytes": 7442849,
-        "sha256": "f9ef7df19087c3f41968bd2837b7b7c07b5b381b0cde684077c3492f6d621215"
+        "bytes": 7462285,
+        "sha256": "ec6b200d126f2b373f18577d1d0f542386ee78c18e6fbc6213feef5d19a34c55"
       },
       "counts": {
         "surahs": 114,

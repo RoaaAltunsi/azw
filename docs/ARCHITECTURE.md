@@ -67,6 +67,13 @@ the Quran "uthmani" search variant (below), through the exported `UTHMANI_VARIAN
 part of the main search text: there «ءا» also occurs where the alef carries a tanwin
 («جُزْءًا», «سُوءًا»), and folding it would turn «سوءا» into «سوا».
 
+**Option `superscriptAlefAsAlef` (off by default).** The superscript alef (U+0670) becomes the letter
+«ا» instead of being removed by rule 2. Uthmani script writes many alefs only as this mark
+(«ٱلۡكِتَٰبُ», «مَٰلِكِ»). If the mark were removed, the Uthmani text would read «الكتب», «ملك», and an
+everyday-script draft that really wrote «الكتب» for «الكتاب» would equal it. With the option the
+Uthmani text reads «الكتاب», «مالك», and only a draft that carries the mark is equal to it. Used only
+for the "uthmani" search variant, through `UTHMANI_VARIANT_OPTIONS`.
+
 **Known limit of rule 14 in hadith.** The same words inside a matn (a hadith quoting one of those
 ayat, for example) are removed from the hadith record's `searchText` and from the draft alike.
 Retrieval is unaffected; a status must not be decided on `searchText` equality alone (see "strict").
@@ -125,7 +132,13 @@ mushaf site or app is found. Rules for whoever uses it (the Quran matcher):
   `UTHMANI_VARIANT_OPTIONS`; compare `searchText` with the span normalized with
   `{ keepHonorificPhrases: true }`. A span is found when either comparison succeeds.
 - **A match through the variant is a spelling match**, not a wording difference: the two texts are
-  the same ayah of the same riwayah (Hafs) in two scripts.
+  the same ayah of the same riwayah (Hafs) in two scripts. It should carry its own `reasonCode`, so
+  that it can be told apart from a match on `searchText`.
+- **Only for spans written in Uthmani script** (owner's decision, `docs/DECISIONS.md` D-9). A draft
+  that spells out an alef the source writes as a mark («الرحمان», «هاذا», «ذالك») also equals the
+  variant, but it is a spelling error in everyday script and must not end `MATCH`. Use the variant
+  for `MATCH` only when the span carries Uthmani signs: ٱ (U+0671), the superscript alef (U+0670) or
+  a Quranic mark (U+06D6–U+06ED). A span without them is compared with `searchText` only.
 - A quotation that spans several ayat must be compared with the variants of those ayat joined in
   order, not with a mix of variant and `searchText`.
 
@@ -137,9 +150,9 @@ only; neither is a source of Azw):
 | quran.com `text_uthmani` | 6234 | 2250 | 3984 | 2:72, 15:7 |
 | Tanzil Uthmani (as served by api.alquran.cloud) | 6230 | 2189 | 4041 | 2:72, 8:6, 12:39, 12:41, 13:37, 15:7 |
 
-The ayat not found differ from mushaf 2 in one word's spelling or word division («فَٱدَّٰرَْٰٔتُمْ» in
-2:72, «يَٰصَىٰحِبَىِ» in 12:39 and 12:41, «بَعْدَمَا» for «بَعۡدَ مَا» in 8:6 and 13:37, «لَّوْ مَا» for
-«لَّوۡمَا» in 15:7). They reach the matcher as close candidates. Other Uthmani encodings were
+The ayat not found differ from mushaf 2 in one word's spelling or word division («فَٱدَّٰرَْٰٔتُمْ» in
+2:72, «يَٰصَىٰحِبَىِ» in 12:39 and 12:41, «بَعْدَمَا» for «بَعۡدَ مَا» in 8:6 and 13:37, «لَّوْ مَا» for
+«لَّوۡمَا» in 15:7). They reach the matcher as close candidates. Other Uthmani encodings were
 not measured.
 
 ### Use in the corpus

@@ -105,6 +105,8 @@ const tally = (collection: string, records: SourceRecord[]): void => {
     const bridged = variants.filter((v) => search(v.sourceForm) === search(v.everydayForm)).map((v) => v.sourceForm);
     check(bridged.length === 0, "aliases: every everyday form differs from its source form after normalization", sample(bridged));
     check(new Set(variants.map((v) => v.sourceForm)).size === variants.length, "aliases: spelling-variant source forms are unique");
+    // «لعنت» in 7:38 is the verb «لَعَنَتْ», not the noun «لعنة» (docs/DECISIONS.md D-9).
+    check(!variants.some((v) => v.sourceForm === "لعنت" && v.ayat.includes("7:38")), "aliases: «لعنت» is not bridged in 7:38, where it is a verb");
   }
   tally("quran", records);
 }

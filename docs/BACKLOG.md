@@ -5,6 +5,12 @@ is built until it is moved into a prompt's scope.
 
 ## Moved out of scope during reviews
 
+- API (P6): `ReviewItem.evidence[].record` is a full `SourceRecord`, so the response would carry
+  `searchText` and `searchVariants`. They are retrieval keys, not source text. Decide in P6 whether
+  the API strips them, so that no client can display them as scripture (AGENTS.md §2 rules 1–2).
+- Corpus: read the 81 ayat where mushaf 2 and mushaf 1 differ in letters other than ا و ي ء
+  (`data/corpus/build-report.json`, `quran.uthmaniVariant.otherLettersDiffer`). Not hand-checked.
+
 ## Ideas for after the challenge
 
 - Normalization: more honorific phrases found in the hadith corpus and left in `searchText` —

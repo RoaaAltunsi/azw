@@ -103,4 +103,3 @@ export const QuranSpellingVariantsSchema = z.strictObject({
     }),
   ),
 });
-export type QuranSpellingVariants = z.infer<typeof QuranSpellingVariantsSchema>;

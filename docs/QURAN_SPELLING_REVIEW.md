@@ -147,7 +147,7 @@ This is our eval case `T-007`. The pasted text is the real Uthmani text of the a
 
 | | Text |
 |---|---|
-| What the writer pastes (Uthmani) | إِنَّ ٱلْإِنسَٰنَ لَفِى خُسْرٍ |
+| What the writer pastes (Uthmani) | إِنَّ ٱلْإِنسَٰنَ لَفِى خُسْرٍ |
 | What our source has | إِنَّ الْإِنْسَانَ لَفِي خُسْرٍ |
 
 Look at the second word:

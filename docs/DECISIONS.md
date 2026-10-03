@@ -118,6 +118,16 @@ Closes `docs/SOURCES.md` §5 item 3. Decided by the owner on `docs/QURAN_SPELLIN
      spell «الآخرة» in two ways. This is a folding rule, limited to the variant; the main
      `searchText` has none. The owner may want to reverse it: without it 271 more ayat of the
      Tanzil text are not found as exact.
+   - A second option, `superscriptAlefAsAlef`, keeps the Uthmani superscript alef as the letter «ا»
+     in the variant. It was added in review on 2026-10-03: without it the variant read «الكتب» for
+     «ٱلۡكِتَٰبُ» and «ملك» for «مَٰلِكِ», so an everyday-script draft with a dropped alef («ذلك الكتب لا
+     ريب فيه») equalled the variant and could have ended `MATCH`. Pinned by tests.
+   - **Decided by the owner on 2026-10-03:** a spelling error must not end `MATCH`. A draft that
+     writes «الرحمان», «هاذا» or «ذالك» equals the variant, but it is everyday script with a
+     non-standard spelling. The matcher may give `MATCH` through the variant only when the span is
+     actually written in Uthmani script, i.e. it carries Uthmani signs (ٱ, the superscript alef,
+     Quranic marks). Otherwise the span is compared with `searchText` only, and a difference there
+     is `DIFFERS`.
    - The source calls the file «غير موافق للمطبوع». It is never displayed, so a difference from
      the printed mushaf can cause a missed or a wrong retrieval, not a wrong displayed text. The
      status must still be decided against `exactText`.

@@ -169,6 +169,17 @@ describe("offset map", () => {
     expect(normalizeWithMap("شيء ءامنوا سماء السماء انشقت", "search", { foldHamzaAlef: true }).norm).toBe("شيء امنوا سماء السماء انشقت");
   });
 
+  test("superscriptAlefAsAlef turns U+0670 into a letter that maps to the mark", () => {
+    const original = "ذَٰلِكَ ٱلْكِتَٰبُ";
+    const { norm, map } = normalizeWithMap(original, "search", { superscriptAlefAsAlef: true });
+    expect(norm).toBe("ذالك الكتاب");
+    expect(map).toHaveLength(norm.length);
+    expect(original[map[norm.lastIndexOf("ا")]!]).toBe("ٰ");
+    // Off by default, and never at level "strict".
+    expect(search(original)).toBe("ذلك الكتب");
+    expect(normalizeWithMap(original, "strict", { superscriptAlefAsAlef: true }).norm).toBe("ذلك ٱلكتب");
+  });
+
   test("the map skips a removed honorific phrase", () => {
     const original = "النبي صلى الله عليه وسلم قال";
     const { norm, map } = normalizeWithMap(original, "search");
@@ -210,18 +221,47 @@ describe("samples from data/corpus/quran.json", () => {
   });
 
   // The "uthmani" search variant (docs/DECISIONS.md D-9): the pasted text below is eval case T-007.
+  const plain = (text: string): string => normalizeWithMap(text, "search", { keepHonorificPhrases: true }).norm;
+  const uthmani = (text: string): string => normalizeWithMap(text, "search", UTHMANI_VARIANT_OPTIONS).norm;
+
   test("an Uthmani-script paste equals the ayah's uthmani search variant, not its searchText", () => {
-    const paste = normalizeWithMap("إِنَّ ٱلْإِنسَٰنَ لَفِى خُسْرٍ", "search", UTHMANI_VARIANT_OPTIONS).norm;
-    expect(paste).toBe("ان الانسن لفي خسر");
-    expect(uthmaniVariant("quran:103:2")).toBe(paste);
-    expect(search(ayah("quran:103:2"))).toBe("ان الانسان لفي خسر");
+    // The quote of eval case T-007: the Tanzil Uthmani text of 103:2, read from the case file.
+    const t007 = readFileSync(new URL("../../../eval/cases/tune.jsonl", import.meta.url), "utf8")
+      .split("\n")
+      .filter((line) => line.trim() !== "")
+      .map((line) => JSON.parse(line) as { id: string; expected: Array<{ quote: string }> })
+      .find((c) => c.id === "T-007");
+    const paste = t007!.expected[0]!.quote;
+    expect(uthmani(paste)).toBe("ان الانسان لفي خسر");
+    expect(uthmaniVariant("quran:103:2")).toBe(uthmani(paste));
+    // With the plain options the superscript alef is removed, so the paste is not the searchText.
+    expect(plain(paste)).toBe("ان الانسن لفي خسر");
+    expect(plain(paste)).not.toBe(plain(ayah("quran:103:2")));
+  });
+
+  // Uthmani script writes these alefs as a mark. An everyday-script draft that drops the letter
+  // has a different word («الكتب», «ملك») and must not be found through the variant.
+  const droppedAlef: Array<[string, string]> = [
+    ["quran:103:2", "إن الإنسن لفي خسر"],
+    ["quran:2:2", "ذلك الكتب لا ريب فيه هدى للمتقين"],
+    ["quran:1:4", "ملك يوم الدين"],
+  ];
+  test.each(droppedAlef)("%s: an everyday-script draft with a dropped alef equals neither search text — %s", (id, draft) => {
+    expect(uthmaniVariant(id)).toBeDefined();
+    expect(uthmani(draft)).not.toBe(uthmaniVariant(id));
+    expect(plain(draft)).not.toBe(plain(ayah(id)));
+  });
+
+  test("every Quran record has exactly one uthmani variant, and other collections have none", () => {
+    expect(quran.every((r) => r.searchVariants?.length === 1 && r.searchVariants[0]!.label === "uthmani" && r.searchVariants[0]!.text !== "")).toBe(true);
+    expect(corpus("bukhari").some((r) => r.searchVariants !== undefined)).toBe(false);
   });
 
   test("both Uthmani spellings of «الآخرة» equal the uthmani search variant", () => {
     const variant = uthmaniVariant("quran:2:4");
     expect(variant).toContain("وبالاخره هم يوقنون");
     // In turn: a madda on the alef, a separate hamza letter, a hamza mark on a tatweel.
-    for (const word of ["وَبِٱلۡأٓخِرَةِ", "وَبِٱلْءَاخِرَةِ", "وَبِٱلْـَٔاخِرَةِ"]) {
+    for (const word of ["وَبِٱلۡأٓخِرَةِ", "وَبِٱلْءَاخِرَةِ", "وَبِٱلْـَٔاخِرَةِ"]) {
       expect(normalizeWithMap(word, "search", UTHMANI_VARIANT_OPTIONS).norm).toBe("وبالاخره");
     }
     // Without the option the second spelling keeps its hamza and would not be found.

@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "p2-ed080c6de027",
+  "corpusVersion": "p2-0790f19e4c07",
   "quran": {
     "surahCount": 114,
     "ayahCount": 6236,
@@ -19,7 +19,7 @@
     },
     "uthmaniVariant": {
       "ayat": 6236,
-      "equalToSearchText": 2454,
+      "equalToSearchText": 3137,
       "otherLettersDiffer": [
         "2:164",
         "2:187",
