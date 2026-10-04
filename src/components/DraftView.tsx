@@ -1,22 +1,11 @@
 "use client";
 
-import type { MouseEvent } from "react";
 import type { ReviewItem } from "@/core/types";
 import { format, t } from "@/i18n/ar";
 import { CopyButton } from "./CopyButton";
+import { Icon } from "./Icon";
 import { cardId, DRAFT_VIEW_ID } from "./ReviewCard";
 import { draftPieces, hasCorrections, openItems, type Applied } from "./lib/revised-draft";
-
-// Scrolls to a card and moves the focus to it, so that a keyboard or screen-reader user lands
-// where a sighted user looks. Without JavaScript the link's own #anchor does the same.
-function goToCard(event: MouseEvent<HTMLAnchorElement>, id: string) {
-  const card = document.getElementById(id);
-  if (!card) return;
-  event.preventDefault();
-  const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  card.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "start" });
-  card.focus({ preventScroll: true });
-}
 
 interface DraftViewProps {
   draft: string;
@@ -24,18 +13,23 @@ interface DraftViewProps {
   // The corrections the writer applied (item id → record id). The textarea is never touched: this
   // view shows the revised text, and «انسخ المسودة المعدّلة» copies it.
   applied?: Applied;
+  // The item whose card is shown now: its quote stands out in the draft.
+  currentId?: string;
+  // A tap on a highlighted quote: show its card. Without it the link's own #anchor is followed.
+  onSelect?: (itemId: string) => void;
 }
 
 // The reviewed draft, read-only, with every detected span marked by its status: color, an
 // underline style of its own, and the status named for assistive technology. With corrections
 // applied it is the revised draft: each one stands in its place, under the trace line.
-export function DraftView({ draft, items, applied = {} }: DraftViewProps) {
+export function DraftView({ draft, items, applied = {}, currentId, onSelect }: DraftViewProps) {
   const pieces = draftPieces(draft, items, applied);
   const revised = pieces.some((piece) => piece.corrected);
   const open = openItems(items, applied);
   return (
-    <section id={DRAFT_VIEW_ID} aria-labelledby="draft-view-title" className="card scroll-mt-4 p-4 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto">
-      <h3 id="draft-view-title" className="text-sm font-bold text-ink">
+    <section id={DRAFT_VIEW_ID} aria-labelledby="draft-view-title" className="card scroll-mt-4 p-4 sm:p-6 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto">
+      <h3 id="draft-view-title" className="flex items-center gap-2 text-lg font-bold text-ink">
+        <Icon name="doc" size={20} />
         {t(revised ? "results.draft.revised.title" : "results.draft.title")}
       </h3>
       {items.length > 0 && <p className="mt-1 text-xs text-muted">{t("results.draft.hint")}</p>}
@@ -52,8 +46,13 @@ export function DraftView({ draft, items, applied = {} }: DraftViewProps) {
               href={`#${cardId(item.id)}`}
               className={piece.corrected ? "draft-applied" : "draft-mark"}
               data-status={piece.corrected ? undefined : item.status}
+              aria-current={item.id === currentId ? "true" : undefined}
               title={label}
-              onClick={(event) => goToCard(event, cardId(item.id))}
+              onClick={(event) => {
+                if (!onSelect) return;
+                event.preventDefault();
+                onSelect(item.id);
+              }}
             >
               <span className="sr-only">{label}: </span>
               {piece.text}

@@ -1,13 +1,13 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import type { ReviewItem } from "@/core/types";
 import { format, t } from "@/i18n/ar";
 import { CopySourceButton } from "./CopySourceButton";
 import { DiffLegend, DiffText } from "./DiffText";
 import { ExplanationBox } from "./ExplanationBox";
 import { Icon } from "./Icon";
-import { ScriptureBlock, SourceText } from "./ScriptureBlock";
+import { QUOTE_ROW, QUOTE_ROW_BODY, ScriptureBlock, SourceText } from "./ScriptureBlock";
 import { StatusIcon, StatusPill } from "./StatusPill";
 import { kindLabel } from "./lib/labels";
 import { groupOccurrences, occurrenceCitation, type Occurrence } from "./lib/occurrences";
@@ -24,10 +24,36 @@ interface ReviewCardProps {
   appliedRecordId?: string;
   // Applies the correction of that record, or takes the item's correction back (undefined).
   onApply?: (recordId: string | undefined) => void;
+  // The way to the other cards, when one card is shown at a time. It stands in the header.
+  pager?: ReactNode;
 }
 
-export function ReviewCard({ item, index, appliedRecordId, onApply }: ReviewCardProps) {
+// The frame of a card stays in place when the shown quote changes, so the pager in its header
+// keeps the focus; the body is the quote's own and starts afresh with each quote.
+export function ReviewCard({ item, index, pager, ...body }: ReviewCardProps) {
   const titleId = useId();
+  return (
+    <article
+      id={cardId(item.id)}
+      tabIndex={-1}
+      aria-labelledby={titleId}
+      data-status={item.status}
+      className="card scroll-mt-4 p-4 sm:p-6"
+    >
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <h4 id={titleId} className="text-lg font-bold text-ink">
+          {format("card.title", { index })}
+        </h4>
+        <StatusPill status={item.status} />
+        {pager && <div className="ms-auto">{pager}</div>}
+      </header>
+      <p className="mt-1 text-xs leading-5 text-muted">{format("card.claimedAs", { kind: kindLabel(item.claimedKind) })}</p>
+      <CardBody key={item.id} item={item} {...body} />
+    </article>
+  );
+}
+
+function CardBody({ item, appliedRecordId, onApply }: Omit<ReviewCardProps, "index" | "pager">) {
   const compareId = useId();
   const [selected, setSelected] = useState(0);
   const [comparing, setComparing] = useState(false);
@@ -44,31 +70,17 @@ export function ReviewCard({ item, index, appliedRecordId, onApply }: ReviewCard
   const applied = correction !== undefined && appliedRecordId === entry?.record.id;
 
   return (
-    <article
-      id={cardId(item.id)}
-      tabIndex={-1}
-      aria-labelledby={titleId}
-      data-status={item.status}
-      className="card status-card scroll-mt-4 p-4 sm:p-5"
-    >
-      <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-        <div>
-          <h4 id={titleId} className="text-base font-bold text-ink">
-            {format("card.title", { index })}
-          </h4>
-          <p className="text-xs leading-5 text-muted">{format("card.claimedAs", { kind: kindLabel(item.claimedKind) })}</p>
-        </div>
-        <StatusPill status={item.status} />
-      </header>
-
-      <section className="mt-4" aria-label={t("card.draft.label")}>
+    <>
+      <section className={`mt-4 rounded-xl border border-line bg-tint/60 p-4 ${QUOTE_ROW}`} aria-label={t("card.draft.label")}>
         <h5 className="eyebrow">{t("card.draft.label")}</h5>
-        <blockquote className="mt-1 rounded-xl bg-tint px-4 py-3 font-quote text-lg leading-[2.2] text-ink">
-          <DiffText segments={draftSegments(item.span, entries)} side="draft" />
-        </blockquote>
-        {item.citedReference && item.citedReference.raw !== "" && (
-          <p className="mt-1.5 text-xs text-muted">{format("card.citedReference", { raw: item.citedReference.raw })}</p>
-        )}
+        <div className={QUOTE_ROW_BODY}>
+          <blockquote className="font-quote text-xl leading-[2.2] text-ink">
+            <DiffText segments={draftSegments(item.span, entries)} side="draft" />
+          </blockquote>
+          {item.citedReference && item.citedReference.raw !== "" && (
+            <p className="mt-1.5 text-xs text-muted">{format("card.citedReference", { raw: item.citedReference.raw })}</p>
+          )}
+        </div>
       </section>
 
       {occurrence && (
@@ -91,12 +103,29 @@ export function ReviewCard({ item, index, appliedRecordId, onApply }: ReviewCard
         </p>
       </div>
 
+      {!failed && item.explanation && (
+        <div className="mt-3">
+          <ExplanationBox explanation={item.explanation} />
+        </div>
+      )}
+
       {occurrence && (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {/* The correction is the step that changes the writer's post, so it leads. */}
+          {correction && (
+            <button
+              type="button"
+              className={applied ? "btn-secondary" : "btn-primary"}
+              onClick={() => onApply?.(applied ? undefined : entry?.record.id)}
+            >
+              <Icon name={applied ? "undo" : "check"} />
+              {applied ? t("card.apply.undo") : t(`card.apply.${correction.target}`)}
+            </button>
+          )}
           {hasDiff(entries) && (
             <button
               type="button"
-              className="btn-secondary"
+              className={correction ? "btn-secondary" : "btn-primary"}
               aria-expanded={comparing}
               aria-controls={compareId}
               onClick={() => setComparing((open) => !open)}
@@ -106,12 +135,6 @@ export function ReviewCard({ item, index, appliedRecordId, onApply }: ReviewCard
             </button>
           )}
           <CopySourceButton occurrence={occurrence} />
-          {correction && (
-            <button type="button" className="btn-secondary" onClick={() => onApply?.(applied ? undefined : entry?.record.id)}>
-              <Icon name={applied ? "undo" : "check"} />
-              {applied ? t("card.apply.undo") : t(`card.apply.${correction.target}`)}
-            </button>
-          )}
         </div>
       )}
       {/* What was put in the revised draft, in the correction's own words. Nothing is changed unasked. */}
@@ -134,13 +157,7 @@ export function ReviewCard({ item, index, appliedRecordId, onApply }: ReviewCard
           <DiffLegend />
         </div>
       )}
-
-      {!failed && item.explanation && (
-        <div className="mt-3">
-          <ExplanationBox explanation={item.explanation} />
-        </div>
-      )}
-    </article>
+    </>
   );
 }
 
@@ -172,23 +189,20 @@ function OccurrencePicker({
   );
 }
 
-// «قارن النصين»: the quote and the stretch of the source it was aligned to, side by side (stacked
-// on a narrow screen), joined by the trace line.
+// «قارن النصين»: the quote and the stretch of the source it was aligned to, one above the other,
+// joined by the trace line.
 function CompareView({ id, item, occurrence }: { id: string; item: ReviewItem; occurrence: Occurrence }) {
   return (
     <section id={id} aria-label={t("card.compare.title")} className="mt-3 rounded-xl border border-line p-3">
       <h5 className="eyebrow">{t("card.compare.title")}</h5>
-      <div className="mt-2 grid gap-3 md:grid-cols-[1fr_auto_1fr] md:items-stretch">
+      <div className="mt-2 grid gap-3">
         <div>
           <h6 className="eyebrow">{t("card.compare.draft")}</h6>
           <p className="mt-1 rounded-xl bg-tint p-3 font-quote text-xl leading-[2.4] text-ink">
             <DiffText segments={draftSegments(item.span, occurrence.entries)} side="draft" />
           </p>
         </div>
-        <div
-          aria-hidden="true"
-          className="trace-rule md:border-s-2 md:border-t-0 md:border-dashed md:border-vermilion"
-        />
+        <div aria-hidden="true" className="trace-rule" />
         <div>
           <h6 className="eyebrow">{t("card.compare.source")}</h6>
           <div className="mt-1 rounded-xl border border-line bg-paper p-3">

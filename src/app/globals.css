@@ -12,6 +12,7 @@
   --azw-status-needs-specialist: #5358c2;
 
   /* Surfaces and lines, all derived from the identity colors. */
+  --azw-page: color-mix(in srgb, var(--azw-tint) 45%, white); /* the page behind the cards */
   --azw-surface: #fff;
   --azw-paper: #fbf8f0; /* source text only */
   --azw-muted: color-mix(in srgb, var(--azw-ink) 78%, white); /* AA on white and on the tint */
@@ -44,7 +45,7 @@
 }
 
 body {
-  background-color: var(--azw-tint);
+  background-color: var(--azw-page);
   color: var(--azw-ink);
 }
 
@@ -82,6 +83,11 @@ body {
 }
 /* A heading that receives the focus from a script, to place the reader; it is not a control. */
 .quiet-focus:focus-visible {
+  outline: none;
+}
+/* The draft box takes the focus ring of the textarea inside it (.composer:focus-within). Outside
+   the components layer, like the rule above: a layered rule would lose to :focus-visible. */
+.composer textarea:focus-visible {
   outline: none;
 }
 
@@ -126,9 +132,6 @@ body {
     font-weight: 600;
     line-height: 1.5rem;
   }
-  .status-card {
-    border-inline-start: 4px solid var(--status);
-  }
   /* The tool's sentence about an item, on a wash of the item's status color. */
   .status-wash {
     border-radius: 0.625rem;
@@ -149,6 +152,14 @@ body {
     transition: background-color 120ms;
   }
   .draft-mark:hover {
+    background: color-mix(in srgb, var(--status) 26%, transparent);
+  }
+  /* The quote whose card is shown now. */
+  .draft-mark[aria-current],
+  .draft-applied[aria-current] {
+    box-shadow: 0 0 0 2px var(--azw-ink);
+  }
+  .draft-mark[aria-current] {
     background: color-mix(in srgb, var(--status) 26%, transparent);
   }
 
@@ -235,15 +246,47 @@ body {
     background: var(--azw-tint);
   }
 
+  /* The arrows of the pager: one card is shown at a time. */
+  .pager-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.625rem;
+    background: var(--azw-tint);
+    color: var(--azw-ink);
+    width: 2.75rem;
+    height: 2.75rem;
+    cursor: pointer;
+    transition: background-color 120ms;
+  }
+  .pager-btn:hover {
+    background: color-mix(in srgb, var(--azw-ink) 14%, white);
+  }
+  .pager-btn[aria-disabled="true"] {
+    cursor: default;
+    opacity: 0.4;
+  }
+
+  /* The progress of a review: an estimate (src/components/lib/progress.ts). */
+  .progress-track {
+    overflow: hidden;
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--azw-ink) 10%, transparent);
+    height: 0.5rem;
+  }
+  .progress-bar {
+    border-radius: inherit;
+    background: var(--azw-vermilion);
+    height: 100%;
+    transition: inline-size 250ms linear;
+  }
+
   /* The draft box: the card takes the focus ring of the textarea inside it. */
   .composer:focus-within {
     border-color: var(--azw-ink);
     box-shadow:
       0 0 0 3px color-mix(in srgb, var(--azw-vermilion) 45%, transparent),
       var(--azw-shadow);
-  }
-  .composer textarea:focus-visible {
-    outline: none;
   }
 
   .skeleton {

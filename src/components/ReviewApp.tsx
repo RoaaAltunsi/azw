@@ -4,8 +4,10 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { ReviewResult } from "@/core/types";
 import { format, t, type MessageKey } from "@/i18n/ar";
 import { Icon, type IconName } from "./Icon";
+import { LogoMark } from "./Logo";
 import { Notice } from "./Notice";
 import { ResultsSkeleton, ResultsView } from "./ResultsView";
+import { ReviewProgress } from "./ReviewProgress";
 import { requestReview } from "./lib/api-client";
 import { coverageNames, summaryText } from "./lib/labels";
 import { useHealth, type HealthState } from "./useHealth";
@@ -19,8 +21,9 @@ type Phase =
   // `draft` is the text that was reviewed: the spans of the result are offsets into it.
   | { kind: "done"; result: ReviewResult; draft: string };
 
-// The home screen. The draft lives in this component's state only: it is not written to any
-// browser storage, and it leaves the page only in the review request (docs/PRIVACY.md).
+// The home screen: the draft box, then the wait, then the result in its place. The draft lives in
+// this component's state only: it is not written to any browser storage, and it leaves the page
+// only in the review request (docs/PRIVACY.md).
 export function ReviewApp() {
   const health = useHealth();
   const [text, setText] = useState("");
@@ -30,9 +33,11 @@ export function ReviewApp() {
 
   useEffect(() => () => request.current?.abort(), []);
 
-  // After a review, the focus goes to the result's heading, so the next Tab is in the result.
+  // The wait and the result take the place of the draft box, so each starts at the top of the
+  // page. After a review, the focus goes to the result's heading, so the next Tab is in the result.
   useEffect(() => {
-    if (phase.kind === "done") resultsHeading.current?.focus();
+    if (phase.kind === "loading" || phase.kind === "done") window.scrollTo({ top: 0 });
+    if (phase.kind === "done") resultsHeading.current?.focus({ preventScroll: true });
   }, [phase]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -52,72 +57,112 @@ export function ReviewApp() {
     setPhase(outcome.kind === "result" ? { kind: "done", result: outcome.result, draft } : outcome);
   }
 
-  const loading = phase.kind === "loading";
+  // Back to the draft box, with the draft as the writer left it.
+  function backToDraft() {
+    request.current?.abort();
+    setPhase({ kind: "idle" });
+  }
 
   return (
     <>
-      <div className="mx-auto mt-6 max-w-3xl">
-        <ScopeNote health={health} />
-
-        <form id={FORM_ID} onSubmit={submit} className="card composer mt-4 overflow-hidden" aria-busy={loading}>
-          <label htmlFor="draft" className="eyebrow block px-4 pt-3">
-            {t("home.draft.label")}
-          </label>
-          <textarea
-            id="draft"
-            name="draft"
-            dir="rtl"
-            lang="ar"
-            rows={7}
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-            placeholder={t("home.draft.placeholder")}
-            aria-describedby="draft-hint"
-            autoComplete="off"
-            className="block w-full resize-y bg-transparent px-4 py-2 text-lg leading-9 text-ink placeholder:text-ink/55"
-          />
-          <div className="flex flex-col gap-3 border-t border-line bg-tint/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <p id="draft-hint" className="flex items-center gap-1.5 text-xs leading-5 text-muted">
-              <Icon name="lock" size={14} />
-              {t("home.draft.hint")}
-            </p>
-            <div className="flex shrink-0 gap-2">
-              <button type="button" className="btn-secondary" onClick={() => setText(t("home.example.draft"))}>
-                {t("home.example")}
-              </button>
-              <button type="submit" className="btn-primary grow sm:px-6" aria-disabled={loading}>
-                {loading && <Icon name="spinner" />}
-                {loading ? t("home.submit.loading") : t("home.submit")}
-              </button>
-            </div>
-          </div>
-        </form>
-
-        <SourcesLine health={health} />
-
-        {phase.kind === "idle" && <UsageGuide />}
-        {phase.kind === "error" && (
-          <Notice tone="error" role="alert" title={t("state.error.title")} className="mt-8">
-            <p>{phase.message}</p>
-            <button type="submit" form={FORM_ID} className="btn-secondary mt-2">
-              {t("state.error.retry")}
-            </button>
-          </Notice>
-        )}
-      </div>
-
-      {/* What changed, for assistive technology. The visible result follows. */}
+      {/* What changed, for assistive technology. The visible state follows. */}
       <p role="status" className="sr-only">
-        {loading && t("state.loading")}
+        {phase.kind === "loading" && t("state.loading")}
         {phase.kind === "done" &&
           (phase.result.items.length === 0 ? t("state.noQuotes.title") : summaryText(phase.result))}
       </p>
 
-      {loading && <ResultsSkeleton />}
+      {/* The draft box has its own heading; the wait and the result stand under the tool's name. */}
+      {(phase.kind === "loading" || phase.kind === "done") && <h1 className="sr-only">{t("app.name")}</h1>}
+
+      {phase.kind === "loading" && (
+        <>
+          <ReviewProgress onCancel={backToDraft} />
+          <ResultsSkeleton />
+        </>
+      )}
+
       {phase.kind === "done" && (
-        <ResultsView result={phase.result} draft={phase.draft} stale={text !== phase.draft} headingRef={resultsHeading} />
+        <ResultsView result={phase.result} draft={phase.draft} headingRef={resultsHeading} onBack={backToDraft} />
+      )}
+
+      {(phase.kind === "idle" || phase.kind === "error") && (
+        <>
+          <Hero />
+          <div className="mt-6 grid gap-4 lg:mt-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-stretch">
+            <div>
+              <form id={FORM_ID} onSubmit={submit} className="card p-4 sm:p-6">
+                <label htmlFor="draft" className="flex items-center gap-2 text-base font-bold text-ink">
+                  <Icon name="doc" size={20} />
+                  {t("home.draft.label")}
+                </label>
+                <div className="composer mt-3 overflow-hidden rounded-xl border border-line-strong bg-surface">
+                  <textarea
+                    id="draft"
+                    name="draft"
+                    dir="rtl"
+                    lang="ar"
+                    rows={6}
+                    value={text}
+                    onChange={(event) => setText(event.target.value)}
+                    placeholder={t("home.draft.placeholder")}
+                    aria-describedby="draft-hint"
+                    autoComplete="off"
+                    className="block w-full resize-none bg-transparent px-4 py-3 text-lg leading-9 text-ink placeholder:text-ink/55"
+                  />
+                  <div className="flex items-start justify-between gap-3 px-4 pb-3 text-xs leading-5 text-muted">
+                    <p id="draft-hint" className="flex items-start gap-1.5">
+                      <Icon name="lock" size={14} className="mt-0.5" />
+                      {t("home.draft.hint")}
+                    </p>
+                    <p className="shrink-0 tabular-nums">{format("home.draft.count", { count: text.length })}</p>
+                  </div>
+                </div>
+
+                {phase.kind === "error" && (
+                  <Notice tone="error" role="alert" title={t("state.error.title")} className="mt-4">
+                    <p>{phase.message}</p>
+                  </Notice>
+                )}
+
+                <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <ScopeNote health={health} />
+                  <div className="flex shrink-0 gap-2">
+                    <button type="button" className="btn-secondary px-6" onClick={() => setText(t("home.example.draft"))}>
+                      {t("home.example")}
+                    </button>
+                    <button type="submit" className="btn-primary grow sm:px-6">
+                      {phase.kind === "error" ? t("state.error.retry") : t("home.submit")}
+                      <Icon name="next" />
+                    </button>
+                  </div>
+                </div>
+              </form>
+              <DataLine health={health} />
+            </div>
+            <AfterReview />
+          </div>
+        </>
       )}
     </>
+  );
+}
+
+// The opening of the home screen: what the tool is for, in one line, beside the mark.
+function Hero() {
+  return (
+    <header className="flex items-center justify-between gap-6 pt-2 lg:pt-4">
+      <div>
+        <h1 className="text-3xl font-bold leading-snug text-ink sm:text-4xl lg:text-5xl lg:leading-snug">
+          {t("home.hero.title")}
+        </h1>
+        <p className="mt-2 text-base leading-8 text-muted sm:text-lg lg:mt-3 lg:text-xl">{t("home.hero.subtitle")}</p>
+        <span aria-hidden="true" className="mt-4 block h-0.5 w-12 rounded-full bg-vermilion" />
+      </div>
+      <div className="hidden shrink-0 border-s border-vermilion/40 ps-8 md:block lg:me-8">
+        <LogoMark size={120} />
+      </div>
+    </header>
   );
 }
 
@@ -125,27 +170,27 @@ export function ReviewApp() {
 // and when it does not come, no source is named.
 function ScopeNote({ health }: { health: HealthState }) {
   return (
-    <div aria-live="polite" className="text-center text-sm leading-7 text-ink sm:text-base">
+    <div aria-live="polite" className="min-w-0 grow text-sm leading-6 text-muted">
       {health.status === "ready" && <p>{format("home.scope", { coverage: coverageNames(health.health.coverage) })}</p>}
       {health.status === "loading" && (
         <p>
           <span className="sr-only">{t("home.scope.loading")}</span>
-          <span aria-hidden="true" className="skeleton mx-auto block h-7 w-4/5 max-w-md" />
+          <span aria-hidden="true" className="skeleton block h-6 w-4/5 max-w-md" />
         </p>
       )}
-      {health.status === "unavailable" && <Notice className="text-start">{t("home.scope.unavailable")}</Notice>}
+      {health.status === "unavailable" && <p>{t("home.scope.unavailable")}</p>}
     </div>
   );
 }
 
-// Under the draft box: what is searched and the data version, and whether the server has no LLM
-// keys (LLM_PROVIDER, LLM_MODEL, LLM_API_KEY), as GET /api/v1/health reports it.
-function SourcesLine({ health }: { health: HealthState }) {
+// Under the draft box: the data version, and whether the server has no LLM keys (LLM_PROVIDER,
+// LLM_MODEL, LLM_API_KEY), as GET /api/v1/health reports it.
+function DataLine({ health }: { health: HealthState }) {
   if (health.status !== "ready") return null;
-  const { coverage, corpusVersion, llmConfigured } = health.health;
+  const { corpusVersion, llmConfigured } = health.health;
   return (
     <div className="mt-3 space-y-1 px-1 text-xs leading-6 text-muted">
-      <p>{format("home.sourcesLine", { coverage: coverageNames(coverage), version: corpusVersion })}</p>
+      <p>{format("sources.version", { version: corpusVersion })}</p>
       {!llmConfigured && (
         <p className="flex items-start gap-1.5">
           <Icon name="info" size={14} className="mt-1" />
@@ -156,30 +201,35 @@ function SourcesLine({ health }: { health: HealthState }) {
   );
 }
 
-const GUIDE_STEPS: ReadonlyArray<{ icon: IconName; label: MessageKey }> = [
-  { icon: "paste", label: "home.guide.1" },
-  { icon: "search", label: "home.guide.2" },
-  { icon: "compare", label: "home.guide.3" },
+const AFTER_REVIEW: ReadonlyArray<{ icon: IconName; title: MessageKey; body: MessageKey; accent?: boolean }> = [
+  { icon: "doc", title: "home.after.text.title", body: "home.after.text.body" },
+  { icon: "book", title: "home.after.reference.title", body: "home.after.reference.body", accent: true },
+  { icon: "compare", title: "home.after.diff.title", body: "home.after.diff.body" },
 ];
 
-// The idle state: the three steps, joined by the trace line.
-function UsageGuide() {
+// Beside the draft box: what a review gives back.
+function AfterReview() {
   return (
-    <section aria-label={t("home.guide.title")} className="mt-10">
-      <ol className="flex items-start justify-center">
-        {GUIDE_STEPS.map(({ icon, label }, i) => (
-          <li key={label} className="flex items-start">
-            {i > 0 && <span aria-hidden="true" className="trace-rule mt-5 w-6 sm:w-16" />}
-            <span className="flex w-24 flex-col items-center gap-2 text-center text-xs font-medium text-ink sm:w-28 sm:text-sm">
-              <span className="flex size-10 items-center justify-center rounded-full border border-line bg-surface text-ink shadow-card">
-                <Icon name={icon} size={18} />
-              </span>
-              {t(label)}
+    <aside aria-labelledby="after-title" className="rounded-2xl border border-line bg-tint p-4 sm:p-6">
+      <h2 id="after-title" className="border-b border-line pb-3 text-lg font-bold text-ink">
+        {t("home.after.title")}
+      </h2>
+      <p className="mt-3 text-sm text-muted">{t("home.after.lead")}</p>
+      <ul className="divide-y divide-line">
+        {AFTER_REVIEW.map(({ icon, title, body, accent }) => (
+          <li key={title} className="flex items-center gap-3 py-4 last:pb-0">
+            <span
+              className={`flex size-11 shrink-0 items-center justify-center rounded-full ${accent ? "bg-vermilion/15 text-vermilion" : "bg-ink/10 text-ink"}`}
+            >
+              <Icon name={icon} size={20} />
+            </span>
+            <span>
+              <span className="block font-semibold text-ink">{t(title)}</span>
+              <span className="block text-sm leading-6 text-muted">{t(body)}</span>
             </span>
           </li>
         ))}
-      </ol>
-      <p className="mt-5 text-center text-sm text-muted">{t("state.empty")}</p>
-    </section>
+      </ul>
+    </aside>
   );
 }

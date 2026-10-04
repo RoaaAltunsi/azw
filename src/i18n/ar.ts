@@ -73,8 +73,10 @@ export const ar = {
   "home.scope": "يراجع النقول من: {coverage}. لا يُصدر فتاوى ولا يحكم على الأحاديث.",
   "home.scope.loading": "جارٍ تحميل قائمة المصادر المغطاة…",
   "home.scope.unavailable": "تعذّر تحميل قائمة المصادر المغطاة الآن. الأداة لا تُصدر فتاوى ولا تحكم على الأحاديث.",
-  "home.sourcesLine": "المصادر المغطاة: {coverage} · إصدار البيانات: {version}",
+  "home.hero.title": "افحص نقولك قبل النشر",
+  "home.hero.subtitle": "قارن النص بمصدره، واعرف الفرق بدقة.",
   "home.draft.label": "المسودة",
+  "home.draft.count": "{count} حرفاً",
   "home.draft.placeholder": "الصق مسودتك هنا…",
   "home.draft.hint": "لا يحفظ «عَزْو» المسودة ولا يسجّلها. تُراجَع ثم تُعاد النتيجة فقط.",
   "home.example": "مثال",
@@ -82,10 +84,15 @@ export const ar = {
   "home.submit.loading": "جارٍ مراجعة النقول…",
   // Shown when GET /api/v1/health says llmConfigured: false (the LLM_* variables are not set).
   "home.llm.notConfigured": "لم تُضبط مفاتيح النموذج اللغوي على الخادم، فتُستخرج النقول بالقواعد الآلية وحدها.",
-  "home.guide.title": "طريقة الاستعمال",
-  "home.guide.1": "الصق مسودتك",
-  "home.guide.2": "راجع النقول",
-  "home.guide.3": "قارن بنص المصدر",
+  // The panel beside the draft box: what a review gives back.
+  "home.after.title": "بعد المراجعة",
+  "home.after.lead": "ستحصل على:",
+  "home.after.text.title": "نص المصدر",
+  "home.after.text.body": "النص كما ورد في سجل المصدر، بحروفه.",
+  "home.after.reference.title": "المرجع الدقيق",
+  "home.after.reference.body": "السورة ورقم الآية، أو الكتاب ورقم الحديث.",
+  "home.after.diff.title": "الفروق الظاهرة",
+  "home.after.diff.body": "إبراز أي اختلاف بين نصّك ونص المصدر، كلمةً كلمة.",
   // The demo draft uses forms the regex extractor reads (src/core/extract): ﴿…﴾ after a Quran
   // phrase, and «…» after «قال رسول الله».
   "home.example.draft":
@@ -97,8 +104,15 @@ export const ar = {
     "تتعرف القواعد الآلية على النص بين القوسين ﴿ ﴾ أينما ورد، وعلى النص الذي يلي إحدى هذه العبارات، بين علامتي تنصيص أو بعد نقطتين حتى نهاية الجملة: «قال تعالى»، «قال الله تعالى»، «قال سبحانه»، «يقول الله»، «يقول تعالى»، «يقول سبحانه»، «قوله تعالى»، «قال رسول الله»، «قال النبي»، «قال ﷺ»، «يقول رسول الله»، «يقول النبي»، «يقول ﷺ»، «عن النبي … قال»، «في الحديث»، «ورد عنه»، «في الأثر»، «قال بعض السلف»، «يروى»، «يقال إن النبي».",
 
   // States.
-  "state.empty": "الصق مسودتك ثم اضغط «راجع النقول»، أو جرّب «مثال».",
   "state.loading": "جارٍ مراجعة النقول…",
+  // The wait (src/components/lib/progress.ts). The percentage is an estimate, and says so.
+  "progress.label": "تقدّم المراجعة",
+  "progress.percent": "{percent}٪",
+  "progress.stage.extract": "استخراج النقول من المسودة…",
+  "progress.stage.match": "البحث عن النقول في المصادر…",
+  "progress.stage.compare": "مقارنة الألفاظ والمراجع…",
+  "progress.note": "النسبة تقديرية بحسب الوقت المنقضي. قد تستغرق المراجعة بضع ثوانٍ.",
+  "progress.cancel": "ألغِ المراجعة",
   "state.error.title": "تعذّر إكمال التحقق",
   "state.error.retry": "أعد المحاولة",
   "state.error.network": "تعذّر الاتصال بالخدمة، ولم تُراجَع المسودة. تحقق من اتصالك ثم أعد المحاولة.",
@@ -107,7 +121,6 @@ export const ar = {
   "state.error.page": "حدث خلل في عرض الصفحة، ولم تُعرض أي نتيجة. يُرجى إعادة المحاولة.",
   "state.noQuotes.title": "لم نعثر على نقول في المسودة",
   "state.noQuotes.body": "هذا لا يعني خلوّ المسودة من النقول؛ فقد تكون مكتوبة بصيغة لا تتعرف عليها الأداة بعد.",
-  "state.stale": "عُدّلت المسودة بعد المراجعة؛ النتائج أدناه للنص الذي رُوجع. اضغط «راجع النقول» لمراجعة النص الجديد.",
 
   // Results.
   "results.title": "نتيجة المراجعة",
@@ -120,9 +133,16 @@ export const ar = {
   "results.summary.NOT_FOUND": "{n} لم يُتحقق منه",
   "results.summary.ERROR": "{n} تعذّر التحقق منه",
   "results.summary.separator": " · ",
+  // The same counts for the eye: a number over a short name.
+  "results.stat.MATCH": "مطابق",
+  "results.stat.DIFFERS": "مختلف",
+  "results.stat.NEEDS_SPECIALIST": "يحتاج مراجعة",
+  "results.stat.NOT_FOUND": "لم يُتحقق منه",
+  "results.stat.ERROR": "تعذّر التحقق منه",
+  "results.back": "عدّل المسودة",
   "results.notices": "تنبيهات",
   "results.draft.title": "المسودة كما رُوجعت",
-  "results.draft.hint": "اضغط على نقل مظلَّل للانتقال إلى بطاقته.",
+  "results.draft.hint": "اضغط على نقل مظلَّل لعرض بطاقته.",
   "results.draft.markLabel": "النقل {index}: {status}",
   // The revised draft (src/components/lib/revised-draft.ts): the writer's draft with the
   // corrections they chose to apply. {label} is the MATCH label.
@@ -133,11 +153,16 @@ export const ar = {
   "results.draft.revised.title": "المسودة بعد التعديل",
   "results.draft.revised.markLabel": "النقل {index}: موضع عُدّل من المصدر",
   "results.draft.revised.note":
-    "لم يتغيّر من كلامك إلا المواضع التي تحتها خط متقطع، وما وُضع فيها منقول من سجل المصدر بحروفه. لم تُراجَع المسودة المعدّلة بعد؛ يمكنك لصقها في خانة المسودة ومراجعتها من جديد.",
+    "لم يتغيّر من كلامك إلا المواضع التي تحتها خط متقطع، وما وُضع فيها منقول من سجل المصدر بحروفه. لم تُراجَع المسودة المعدّلة بعد؛ يمكنك نسخها، ثم الضغط على «عدّل المسودة» ولصقها ومراجعتها من جديد.",
   "results.draft.revised.open": "نقول لم تُعدَّل وليست حالتها «{label}»: {count}. راجعها قبل النشر.",
   "results.draft.revised.copy": "انسخ المسودة المعدّلة",
   "results.draft.revised.copy.done": "نُسخت المسودة المعدّلة.",
   "results.cards.title": "النقول",
+  // One card is shown at a time.
+  "results.pager.label": "التنقل بين النقول",
+  "results.pager.position": "{index} / {count}",
+  "results.pager.previous": "النقل السابق",
+  "results.pager.next": "النقل التالي",
 
   "warning.LLM_UNAVAILABLE_REGEX_ONLY": "استُخرجت النقول بالقواعد الآلية وحدها دون نموذج لغوي، فقد لا تُلتقط بعض النقول، ولم يُولَّد أي شرح.",
   "warning.LLM_SPAN_NOT_IN_DRAFT": "أعاد النموذج اللغوي نصاً لا يوجد في مسودتك بلفظه، فاستُبعد ولم يُراجَع. لا يُعرض هنا إلا ما ورد في المسودة.",

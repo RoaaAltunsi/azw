@@ -1598,3 +1598,31 @@ run gave 46 / 51 and 57 / 59 on its first held-out pass and 48 / 51 on the other
 measurement supports: no false confirmation in any held-out run, the regex baseline finds more,
 and a personal ruling is no longer missed. No person has reviewed the cases. This is an AI
 tool's documented measurement, not a scholar's review.
+
+## D-29 — UI redesign: one screen at a time, one card at a time, an estimated progress (2026-10-05)
+
+The owner asked for a quieter UI from three mock-ups (a new mark, the home screen, the result
+with one card and a pager) and for a percentage while a review runs. What the request left open:
+
+1. **The mark is redrawn as SVG, not shipped as the PNG.** The supplied image is a glowing mark on
+   a black square; on the light page it would be a black tile. `LogoMark` (and `src/app/icon.svg`)
+   draw the same shape — two facing quotation bubbles and the vermilion line between them — in the
+   identity colors, so it scales and needs no image file. It is a redrawing by hand, not a trace.
+2. **The result replaces the draft box** instead of standing under it, as in the mock-up.
+   «عدّل المسودة» goes back with the draft untouched. The "draft changed after the review" notice
+   is gone with the state it described: the box and the result are never on the screen together.
+3. **The percentage is an estimate and says so.** `POST /api/v1/review` answers once, so there is
+   no real progress to read. The number comes from elapsed time only, never reaches 100, and
+   stands over «النسبة تقديرية بحسب الوقت المنقضي». A true progress needs a streaming API
+   (`docs/BACKLOG.md`).
+4. **Wording of the mock-ups that the tool cannot say was changed.** «اقتباسات» → «نقول» (the word
+   the rest of the UI uses); «اسم المصدر ورقم الجزء والصفحة» → «السورة ورقم الآية، أو الكتاب ورقم
+   الحديث» (what a record holds); «0 / 1500 كلمة» → a count of characters with no maximum (the
+   limit is server configuration and is not in `/health`); «المصدر المعتمد» is not used. The scope
+   sentence with «لا يُصدر فتاوى ولا يحكم على الأحاديث» stays on the home screen.
+5. **On a narrow screen the card comes before the draft**, so the writer reads a result without
+   scrolling past the whole post; a tap on a quote in the draft scrolls back to its card.
+6. **The correction button leads the card's buttons** when there is one; otherwise «قارن النصين».
+
+Checked in Chrome at desktop width and at 390px: the home screen, the wait, the pager, a tap on a
+quote in the draft, applying a correction. Not tested with users of the target group.

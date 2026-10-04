@@ -6,6 +6,11 @@ import { kindUi } from "./lib/kind-ui";
 import { occurrenceCitation, type Occurrence } from "./lib/occurrences";
 import { alignedSourceSegments, sourceSegments } from "./lib/segments";
 
+// A text beside its label: the label above it on a narrow screen, at its start on a wide one,
+// with the accent line between them. The draft's quote and the source's text share it.
+export const QUOTE_ROW = "sm:grid sm:grid-cols-[5rem_minmax(0,1fr)] sm:gap-4";
+export const QUOTE_ROW_BODY = "mt-1 min-w-0 sm:mt-0 sm:border-s-2 sm:border-vermilion/60 sm:ps-4";
+
 // The text of one source record: record.exactText between the marks of its kind, and nothing else
 // (AGENTS.md §2 rules 1–2). The marks stand outside the text and are not part of it.
 export function SourceText({ entry, aligned = false }: { entry: Evidence; aligned?: boolean }) {
@@ -24,18 +29,20 @@ export function SourceText({ entry, aligned = false }: { entry: Evidence; aligne
 export function ScriptureBlock({ occurrence }: { occurrence: Occurrence }) {
   const several = occurrence.entries.length > 1;
   return (
-    <section className="rounded-xl border border-line bg-paper p-4" aria-label={t("card.source.label")}>
+    <section className={`rounded-xl border border-line bg-paper p-4 ${QUOTE_ROW}`} aria-label={t("card.source.label")}>
       <h4 className="eyebrow">{t("card.source.label")}</h4>
-      {occurrence.entries.map((entry) => (
-        <div key={entry.record.id} className="mt-1">
-          <SourceText entry={entry} />
-          <RecordFacts entry={entry} showCitation={several} />
-        </div>
-      ))}
-      <p className="mt-3 border-t border-line pt-3 text-sm font-semibold text-ink">
-        {format("card.source.reference", { ref: occurrenceCitation(occurrence) })}
-      </p>
-      <SourceLink entry={occurrence.entries[0]!} />
+      <div className={QUOTE_ROW_BODY}>
+        {occurrence.entries.map((entry) => (
+          <div key={entry.record.id}>
+            <SourceText entry={entry} />
+            <RecordFacts entry={entry} showCitation={several} />
+          </div>
+        ))}
+        <p className="mt-3 border-t border-line pt-3 text-sm font-semibold text-ink">
+          {format("card.source.reference", { ref: occurrenceCitation(occurrence) })}
+        </p>
+        <SourceLink entry={occurrence.entries[0]!} />
+      </div>
     </section>
   );
 }

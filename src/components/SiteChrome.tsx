@@ -4,16 +4,6 @@ import { t, type MessageKey } from "@/i18n/ar";
 import { Icon } from "./Icon";
 import { Logo, LogoMark } from "./Logo";
 
-// Shown on every page: the tool is AI-assisted, not a scholar (AGENTS.md §2 rule 7).
-export function AiBanner() {
-  return (
-    <p role="note" className="flex items-center justify-center gap-1.5 bg-ink px-4 py-1.5 text-center text-xs text-white">
-      <Icon name="spark" size={14} />
-      {t("banner.aiTool")}
-    </p>
-  );
-}
-
 const NAV_LINKS: ReadonlyArray<{ href: string; label: MessageKey }> = [
   { href: "/how-it-works", label: "footer.how" },
   { href: "/sources", label: "footer.sources" },
@@ -37,7 +27,7 @@ function NavLinks({ className }: { className: string }) {
 export function SiteHeader() {
   return (
     <header className="border-b border-line bg-surface/80 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-3">
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3">
         <Link href="/" aria-label={t("header.home")} className="rounded-lg">
           <Logo />
         </Link>
@@ -53,9 +43,9 @@ export function SiteHeader() {
 export function SiteFooter() {
   return (
     <footer className="mt-16 border-t border-line bg-surface">
-      <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-4 px-4 py-8 sm:flex-row sm:justify-between">
+      <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-4 px-4 py-8 sm:flex-row sm:justify-between">
         <p className="flex items-center gap-2.5 font-quote text-base text-ink">
-          <LogoMark size={28} />
+          <LogoMark size={24} />
           {t("app.tagline")}
         </p>
         <nav aria-label={t("footer.nav")}>

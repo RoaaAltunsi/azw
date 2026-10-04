@@ -48,8 +48,8 @@ export function DiffLegend() {
     ["delete", "diff.delete"],
   ];
   return (
-    <div className="text-xs leading-6 text-muted">
-      <p className="font-semibold">{t("diff.legend")}</p>
+    <details className="text-xs leading-6 text-muted">
+      <summary className="w-fit cursor-pointer rounded font-semibold">{t("diff.legend")}</summary>
       <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1.5">
         {entries.map(([mark, key]) => (
           <li key={mark}>
@@ -57,6 +57,6 @@ export function DiffLegend() {
           </li>
         ))}
       </ul>
-    </div>
+    </details>
   );
 }

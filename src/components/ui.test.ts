@@ -174,7 +174,6 @@ test("results: the summary, the warnings in their wording, a highlight that link
   const html = renderToStaticMarkup(
     createElement(ResultsView, {
       draft,
-      stale: false,
       result: result({
         items: [reviewItem],
         summary: { MATCH: 0, DIFFERS: 0, NOT_FOUND: 1, NEEDS_SPECIALIST: 0, ERROR: 0 },
@@ -191,16 +190,39 @@ test("results: the summary, the warnings in their wording, a highlight that link
   expect(html).toMatch(/<a href="#card-item-6-9" class="draft-mark" data-status="NOT_FOUND"/);
   expect(html).toContain('id="card-item-6-9"');
   expect(html).toContain(t("report.copy"));
-  expect(html).not.toContain(t("state.stale"));
+  // One item: nothing to page through. The shown card's quote is the current one in the draft.
+  expect(html).not.toContain(t("results.pager.next"));
+  expect(html).toContain('aria-current="true"');
+});
+
+test("results: one card at a time, with a pager and a way back to the draft box", () => {
+  const draft = "﴿أول﴾ ثم ﴿ثان﴾";
+  const first = item({ span: { start: 1, end: 4, text: "أول" }, status: "NOT_FOUND" });
+  const second = item({ span: { start: 10, end: 13, text: "ثان" }, status: "NOT_FOUND" });
+  const html = renderToStaticMarkup(
+    createElement(ResultsView, {
+      draft,
+      onBack: () => {},
+      result: result({ items: [first, second], summary: { MATCH: 0, DIFFERS: 0, NOT_FOUND: 2, NEEDS_SPECIALIST: 0, ERROR: 0 } }),
+    }),
+  );
+  // Both quotes are marked in the draft; only the first card is on the page.
+  expect(html.match(/class="draft-mark"/g)).toHaveLength(2);
+  expect(html.match(/<article/g)).toHaveLength(1);
+  expect(html).toContain(`id="card-${first.id}"`);
+  expect(html).not.toContain(`id="card-${second.id}"`);
+  expect(textOf(html)).toContain("1 / 2");
+  expect(html).toContain(`aria-label="${t("results.pager.next")}"`);
+  expect(html).toContain(`aria-label="${t("results.pager.previous")}" aria-disabled="true"`);
+  expect(html).toContain(t("results.back"));
 });
 
 test("results: no quotes found is said plainly, with no summary row", () => {
-  const html = renderToStaticMarkup(createElement(ResultsView, { draft: "نص", stale: true, result: result({ coverage: ["quran", "bukhari", "new-book"] }) }));
+  const html = renderToStaticMarkup(createElement(ResultsView, { draft: "نص", result: result({ coverage: ["quran", "bukhari", "new-book"] }) }));
   // A collection without a name in the UI is shown by its id, never left out.
   expect(textOf(html)).toContain("رُوجعت النقول في: القرآن الكريم، صحيح البخاري، new-book");
   expect(html).toContain(t("state.noQuotes.title"));
   expect(html).toContain(t("extract.formsNote"));
-  expect(html).toContain(t("state.stale"));
   expect(html).not.toContain("0 مطابق");
   expect(html).not.toContain(t("report.copy"));
 });
@@ -294,7 +316,6 @@ test("results: a correction is offered on its card, and the draft is shown as re
   const html = renderToStaticMarkup(
     createElement(ResultsView, {
       draft: CORRECTABLE_DRAFT,
-      stale: false,
       result: result({ items: [correctable], summary: { MATCH: 0, DIFFERS: 1, NOT_FOUND: 0, NEEDS_SPECIALIST: 0, ERROR: 0 } }),
     }),
   );

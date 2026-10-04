@@ -267,3 +267,6 @@ is built until it is moved into a prompt's scope.
   ranges (U+0610–U+061A, U+08D3–U+08FF).
 
 ## Extension points not yet implemented
+
+- **Real progress for a review.** The percentage shown while a review runs is an estimate from
+  elapsed time (D-29). A streamed response (one event per pipeline step) would make it real.

@@ -15,6 +15,12 @@ const ICON_PATHS = {
   check: "M3 8.5l3.2 3.2L13 5",
   undo: "M5.5 3.5L2.5 6.5l3 3M2.5 6.5H9a4 4 0 0 1 0 8H6",
   spinner: "M8 2.5A5.5 5.5 0 1 1 2.5 8",
+  doc: "M4.5 2.5h5l3 3v8h-8zM9.5 2.5v3h3M6.5 8.5h3M6.5 11h3",
+  book: "M8 4.5C6.8 3.6 5.2 3.2 3 3.2v8.6c2.2 0 3.8.4 5 1.3 1.200-.9 2.800-1.300 5-1.300V3.200c-2.200 0-3.800.4-5 1.300zM8 4.5v8.600",
+  edit: "M3 13l.6-2.800 7.200-7.200a1.200 1.200 0 0 1 1.700 0l.5.5a1.200 1.200 0 0 1 0 1.700l-7.200 7.200L3 13z",
+  // In a right-to-left page "next" points to the left and "previous" to the right.
+  next: "M10 3.5L5.5 8l4.500 4.500",
+  previous: "M6 3.5L10.5 8 6 12.5",
 } as const;
 
 export type IconName = keyof typeof ICON_PATHS;

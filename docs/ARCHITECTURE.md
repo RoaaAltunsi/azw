@@ -1317,14 +1317,14 @@ manifest, which the build cannot trace. `next.config.ts` lists `data/corpus/*.js
 Code: `src/app` (pages), `src/components` (components), `src/components/lib` (pure functions, no
 React). Strings: `src/i18n/ar.ts` only. Tests: `src/components/lib/*.test.ts` and
 `src/components/ui.test.ts` (components rendered to static markup). Choices: `docs/DECISIONS.md`
-D-19.
+D-19, D-29.
 
 The UI is a client of API v1 and of nothing else. It imports the schemas and types of
 `src/core/types.ts` and never `src/server`, the corpus or a matcher.
 
 | Route | |
 |---|---|
-| `/` | `ReviewApp`: scope note and sources line from `GET /api/v1/health`, the draft form, the states, the result |
+| `/` | `ReviewApp`: one screen at a time — the draft box (with the scope note from `GET /api/v1/health`), the wait, or the result |
 | `/privacy` | What `docs/PRIVACY.md` says, in Arabic |
 | `/sources` | `SourcesRegister`: the sources of `docs/SOURCES.md` whose collections are in the API's coverage |
 | `/how-it-works` | The steps, the statuses, what the tool does not do |
@@ -1347,18 +1347,39 @@ their Arabic wording.
 | `report.ts` | `reportText(result, date)`: the result as plain text for «انسخ التقرير» |
 | `labels.ts` | Names for ids from the API (`collection.<id>`, `kind.<id>`, `warning.<CODE>`), and the summary row |
 | `kind-ui.ts` | Per kind: the marks around its source text and its font. The only place the UI names a kind |
+| `progress.ts` | `estimatedProgress(elapsedMs)` and `progressStage(percent)`: the estimated percentage of the wait and the step named beside it |
 
-States of the home screen (`Phase` in `ReviewApp.tsx`): `idle` (the empty state), `loading`
-(skeleton), `error` (the API's `error.message`, or a fixed sentence when there is no API answer),
-`done` (a result; with no item, the "no quotes found" state). A `role="status"` line announces the
-loading and the summary; after a result the focus moves to its heading.
+States of the home screen (`Phase` in `ReviewApp.tsx`); each takes the whole screen (D-29):
+
+- `idle`: the hero line, the draft box, and the panel «بعد المراجعة» (beside the box on a wide
+  screen, under it on a narrow one).
+- `error`: the same screen with the API's `error.message` (or a fixed sentence when there is no
+  API answer) above the buttons; the submit button reads «أعد المحاولة».
+- `loading`: `ReviewProgress` over a skeleton. The API answers once, so the percentage is an
+  estimate from the time that has passed (`lib/progress.ts`: it rises fast, slows down and stops at
+  95), and the screen says «النسبة تقديرية». The step named under it follows the fixed order of
+  the pipeline. «ألغِ المراجعة» aborts the request and returns to the draft box.
+- `done`: the result in place of the draft box (with no item, the "no quotes found" state).
+  «عدّل المسودة» returns to the draft box with the draft as it was.
+
+A `role="status"` line announces the loading and the summary; after a result the focus moves to
+its heading.
+
+The result (`ResultsView`): the counts (a number over a short name and the status icon), «انسخ
+التقرير», then two columns: the reviewed draft, and **one card at a time**. The pager in the card's
+header («1 / 4» between two arrows) moves between the quotes; a tap on a highlighted quote in the
+draft shows its card and moves the focus to it. The quote whose card is shown carries
+`aria-current` in the draft. On a narrow screen the card comes first and the draft under it. The
+corrections the writer applied are kept in `ResultsView`, so they survive moving between cards;
+the state of a card itself (the chosen place, the open comparison) starts afresh with each quote.
 
 A card (`ReviewCard`): the status pill (label + icon), the quote as written with the diff marks,
 the dashed trace line, the source block (`ScriptureBlock`: `exactText` only, the citation, a grade
 only when the record has one with its `by`, the source link when the record has a `sourceUrl`),
-`reasonAr`, «قارن النصين», «انسخ نص المصدر مع المرجع», and `ExplanationBox` under «شرح مولّد آلياً»
-when an item carries an explanation (a `DIFFERS` item only: "Explanation"). An `ERROR` item shows
-its `reasonAr` and nothing from a source.
+`reasonAr`, `ExplanationBox` under «شرح مولّد آلياً» when an item carries an explanation (a
+`DIFFERS` item only: "Explanation"), then the buttons: the correction when there is one, «قارن
+النصين», «انسخ نص المصدر مع المرجع». The legend of the diff marks is folded («دلالة التظليل»). An
+`ERROR` item shows its `reasonAr` and nothing from a source.
 
 **«انسخ التقرير»** (`CopyReportButton`, in the results header when the result has items) copies
 `reportText(result, new Date())`: plain text, one field per line, each line opening with its
