@@ -752,7 +752,8 @@ left to P7. Items 2–4 decide what a writer is shown of a source; the rest are 
 7. **The draft stays in memory.** It is component state only: no `localStorage`, no cookie, no
    URL parameter. The result view shows the text that was reviewed; if the writer edits the
    textarea afterwards, a notice says the result belongs to the earlier text. Nothing rewrites the
-   draft, and there is no "fix all".
+   draft, and there is no "fix all". (Changed by the owner on 2026-10-04, D-25: the writer may
+   apply a correction, one quote at a time, to a copy of the draft. Still no "fix all".)
 8. **Status colors and contrast.** The four identity colors of `AGENTS.md` §8 are used for
    borders, bars and underlines. As text on white, the DIFFERS color `#C98414` gives about 3:1 and
    fails AA, so each status has a darker text color derived from it (`--status-ink` in
@@ -1282,3 +1283,88 @@ is not a proof that no secret of another form was ever committed. The render-fai
 render failure was not forced in a browser, and the built `_global-error.html` is the framework's
 shell, which does not hold the page's words. Not checked: a deployed host's
 logs and headers (P8), and what the provider does with a request.
+
+## D-25 — Corrections the writer may apply, and the revised draft (2026-10-04)
+
+The owner asked on 2026-10-04 for a "correction-and-copy" step: a content writer pastes a whole
+post, and after the review can put the source's text or reference in place of a quote and copy the
+whole post, without rebuilding it by hand. This changes D-19 item 7 ("nothing rewrites the draft"),
+by the owner's instruction. The choices below are what the instruction left open. They follow
+`AGENTS.md` §2 (rules 1, 3, 6 and 9) and were measured on the corpus; none needed a source outside
+the repository, because every text a correction writes is a text of a record already approved
+(`docs/SOURCES.md`). Rules and tables: `docs/ARCHITECTURE.md`, "Corrections" and "The revised draft".
+
+1. **A reference that names the very place makes a close text a wording difference (status rule
+   10b).** The owner's own example, «إن مع الصبر يسرا» [الشرح: 6], ended `NEEDS_SPECIALIST` /
+   `LOW_CONFIDENCE_MATCH`: three words of four are equal, 0.75, under `T_HIGH` 0.8. The sentence
+   said the tool could not tell which text was meant, although the writer had cited the ayah.
+   Options: lower `T_HIGH` (it moves every short quote, with or without a reference, and is a
+   tuning the evaluation has not measured); offer a correction on a `NEEDS_SPECIALIST` item (it
+   contradicts the status); or read the reference as evidence of which record is meant. The third
+   was taken: with a score from `T_LOW` up, a reference that is `consistent` *and* names the place
+   (the surah with the ayah or the range the quote covers; a book with the hadith's number) gives
+   `DIFFERS` / `WORDING_DIFF`. A surah alone or a book alone does not name a place (a book holds
+   thousands of hadiths) and changes nothing. Ambiguity (rule 9) and pending records are decided
+   as before. A matcher reports it as `reference: { result: "consistent", place: true }`;
+   `decide()` still names no kind.
+   Measured: the whole test suite, with the tune cases, gives the same results as before; the
+   held-out split was not read.
+2. **A correction is built by code from the record, in core, and travels in the API**
+   (`evidence[].correction`). The owner's first idea was that the LLM returns the corrected post.
+   Not taken: a model that writes the post again may change other words, or a letter of the verse
+   (rule 9: its output is never a source), and code that could check the model's post could write
+   it. It is in core, not in the UI, because whether a correction may be offered depends on the
+   matcher's reference check, which the API does not carry, and so that every client offers the
+   same ones. `EvidenceSchema` rejects a correction whose text is not the record's own `exactText`
+   or `citation.display`.
+3. **A wording correction is the stretch of `exactText` the quote was aligned to, verbatim**, with
+   its diacritics, pause marks and punctuation, in place of the quote's words. The writer's
+   quotation marks stay. The tool does not strip or edit a source text to make it look like the
+   draft (§9: "never edits a source text").
+4. **A reference correction is `citation.display`**, inside the brackets the writer's reference
+   stands in. It is not rewritten in the writer's form («الشرح: 6»): the tool never composes a
+   citation from numbers. The reference parser reads the form it writes (measured below).
+5. **Where the tool is not sure, it offers nothing.** Only `DIFFERS` items, and of those only
+   `WORDING_DIFF`, `REF_MISMATCH_AYAH` and `REF_MISMATCH_SURAH`. Not offered:
+   - `REF_MISMATCH_NUMBER`, `REF_MISMATCH_COLLECTION`, `REF_NOT_AGREED_UPON`: the tool's own
+     sentences say the cited reference may be right (another edition's numbering, a gap in the
+     tool's copy of the book: D-6 item 4). Replacing it could remove a correct attribution.
+   - A wording whose reference is unchecked or contradicts the record («رواه الترمذي» on a text
+     close to a record of al-Bukhari): the new wording would stand under an attribution the tool
+     cannot support (rule 1).
+   - A wording of another kind than the draft claims (a verse's words after «قال رسول الله ﷺ»).
+   - A word only one side has at the first or last place of the quote: at the edge of a fragment
+     the tool cannot tell an added word from a changed one (`docs/BACKLOG.md`, "Fuzzy alignment"),
+     and in an unmarked quote the last words may be the writer's own sentence.
+   - A quote over several records; `KIND_MISMATCH`; `NOT_FOUND`; every `NEEDS_SPECIALIST`.
+6. **A hadith wording is corrected like a verse's**, under the conditions of item 5. The status
+   rules and the UI name no kind (§6), and the text written is the record's own, under a
+   reference that agrees with the record or with none in the draft. It says that the text is in
+   that record with that wording, which is what `MATCH` says; it is not a judgment that the
+   writer's wording is wrong in every book.
+7. **The writer applies, one quote at a time; there is no "fix all".** A correction changes a copy
+   shown beside the cards («المسودة بعد التعديل»), never the textarea, and can be taken back. A
+   quote that stands in several places takes the citation of the place the writer chose. The
+   panel says that the revised draft has not been reviewed again, and how many quotes are neither
+   `MATCH` nor corrected, so that a copied post is not read as "all checked". Nothing is stored
+   (`docs/PRIVACY.md` is unchanged: no new request, nothing sent to the LLM).
+8. **Corrections of two items never overlap.** One that reaches into another item's quote or into
+   another item's correction (one reference cited for two quotes) is dropped.
+
+Measured (`src/server/corrections.integration.test.ts`, real corpus, regex extractor only): a
+draft with an offered correction applied is reviewed again as `MATCH` on the same record, with
+nothing more offered, and every character outside the correction is unchanged. Over all 6236 ayat,
+each typed without diacritics: with the next ayah's number cited, 6190 of 6236 were offered a
+reference correction and every one ended `MATCH_REF_OK`; with a word of the writer's in the middle
+(ayat of six words or more) under the right reference, 4639 of 4686 were offered a wording correction
+and every one ended `MATCH_REF_OK`. Named drafts cover the owner's example, a reference before
+the quote, round and square brackets, a text in two places, a part of an ayah, and a hadith of
+al-Bukhari. In Chrome on the running app: apply, choose another place, copy (the clipboard held
+exactly the text shown), take back, and the textarea unchanged throughout.
+
+Limits: the sweep is the Quran with two kinds of error made by a script; hadith corrections were
+tested on a few named drafts only, and with the LLM extractor only in the browser session. A
+wrong first or last word is not corrected. The round trip shows the tool agrees with itself: a
+revised draft is as reliable as a `MATCH`, which proves the wording is in the record, not its
+authenticity. Not looked at: a phone-width screen, a screen reader, other browsers. This is an AI
+tool's documented choice, not a scholar's review.

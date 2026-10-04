@@ -12,6 +12,7 @@ export function evidence(overrides: {
   kind?: string;
   ayahRange?: [number, number];
   diff?: Evidence["diff"];
+  correction?: Evidence["correction"];
   grade?: Evidence["record"]["grade"];
   reviewStatus?: "reviewed" | "pending";
   sourceUrl?: string;
@@ -33,6 +34,7 @@ export function evidence(overrides: {
     score: 1,
     ...(overrides.diff ? { diff: overrides.diff } : {}),
     ...(overrides.ayahRange ? { ayahRange: overrides.ayahRange } : {}),
+    ...(overrides.correction ? { correction: overrides.correction } : {}),
   };
 }
 

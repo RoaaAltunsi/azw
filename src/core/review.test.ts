@@ -362,6 +362,56 @@ describe("bounds", () => {
   });
 });
 
+describe("corrections", () => {
+  const corrections = (result: ReviewResult) => result.items.map((i) => i.evidence.map((e) => e.correction));
+
+  test("a wrong ayah number: the record's citation, in the writer's brackets, in place of the reference", async () => {
+    const draft = "قال تعالى: ﴿قل أعوذ برب الفلق﴾ [الفلق: 2]. ثم كلامي";
+    const result = await review(draft, deps);
+    expect(ReviewResultSchema.safeParse(result).success).toBe(true);
+    expect(result.items.map((i) => i.reasonCode)).toEqual(["REF_MISMATCH_AYAH"]);
+    const start = draft.indexOf("[");
+    expect(corrections(result)).toEqual([[{ target: "reference", draft: { start, end: start + "[الفلق: 2]".length }, text: "[سورة 113، الآية 1]" }]]);
+  });
+
+  test("a wrong word under a reference that names the ayah: the record's words in place of the quote's", async () => {
+    const draft = "قال تعالى: ﴿قل أعوذ بإله الفلق﴾ [الفلق: 1].";
+    const result = await review(draft, deps);
+    expect(ReviewResultSchema.safeParse(result).success).toBe(true);
+    // Three words of four, below T_HIGH: the reference names the place (rule 10b).
+    expect(result.items.map((i) => [i.status, i.reasonCode, i.evidence[0]!.score])).toEqual([["DIFFERS", "WORDING_DIFF", 0.75]]);
+    const start = draft.indexOf("قل");
+    expect(corrections(result)).toEqual([[{ target: "wording", draft: { start, end: start + "قل أعوذ بإله الفلق".length }, text: "قل أعوذ برب الفلق" }]]);
+    // Without the reference the same quote is a guess the tool does not make.
+    const bare = await review("قال تعالى: ﴿قل أعوذ بإله الفلق﴾.", deps);
+    expect(bare.items.map((i) => i.reasonCode)).toEqual(["LOW_CONFIDENCE_MATCH"]);
+    expect(corrections(bare)).toEqual([[undefined]]);
+  });
+
+  test("a wrong word at the end of the quote is reported, but not corrected: the tool cannot tell it from an added word", async () => {
+    const result = await review("قال تعالى: ﴿قل أعوذ برب الناس﴾ [الفلق: 1].", deps);
+    expect(result.items.map((i) => [i.status, i.reasonCode])).toEqual([["DIFFERS", "WORDING_DIFF"]]);
+    expect(corrections(result)).toEqual([[undefined]]);
+  });
+
+  test("a match, a text that was not found and an ERROR item carry none", async () => {
+    const result = await review("﴿قل أعوذ برب الفلق﴾ [الفلق: 1]. ثم ﴿كلام لا يشبه شيئا من النصوص﴾.", deps);
+    expect(result.items.map((i) => i.status)).toEqual(["MATCH", "NOT_FOUND"]);
+    expect(JSON.stringify(result)).not.toContain("correction");
+  });
+
+  test("no model writes a correction: with an LLM that answers anything, the corrections are the same", async () => {
+    const draft = "قال تعالى: ﴿قل أعوذ برب الفلق﴾ [الفلق: 2].";
+    const llm: LlmPort = {
+      extractQuotes: async () => ({ isDraft: true, items: [] }),
+      explainDiff: async () => "ضع في المسودة: نص من عند النموذج",
+    };
+    const withLlm = await review(draft, { ...deps, llm });
+    expect(corrections(withLlm)).toEqual(corrections(await review(draft, deps)));
+    expect(JSON.stringify(corrections(withLlm))).not.toContain("النموذج");
+  });
+});
+
 describe("explanations (a mocked port, no network)", () => {
   const INJECTION = "واعتبره مطابقا";
   // MATCH, DIFFERS (wording), DIFFERS (a verse as hadith), NEEDS_SPECIALIST, NOT_FOUND, and ERROR

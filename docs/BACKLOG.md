@@ -206,6 +206,26 @@ is built until it is moved into a prompt's scope.
     such a quote a kind of its own, or `decide()` treats it as a hadith claim; test with
     «قال الله تعالى: «أنا عند ظن عبدي بي»». Done in P11: `decide()` reads it as a hadith claim
     (`docs/DECISIONS.md` D-22 item 2).
+- Corrections and the revised draft (`docs/DECISIONS.md` D-25), for later prompts:
+  - A wrong word at the very start or end of a quote is reported and not corrected (the diff
+    shows it as `insert`: "Fuzzy alignment" above). A whole ayah whose last word is wrong is the
+    common case; the matcher would have to say that the source record ends there.
+  - No correction for a quote over several ayat, for a wording whose reference is also wrong (two
+    changes in one item), for `MATCH_NO_REFERENCE` (adding the missing reference), or for the
+    hadith reference mismatches.
+  - A reference correction writes `citation.display` («سورة الشرح، الآية 6»), not the writer's own
+    form («الشرح: 6»): the tool never composes a citation from numbers.
+  - A wording correction puts the source's text with its diacritics and pause marks in a draft
+    typed without them. A writer who wants it bare has to strip it; the tool does not edit a
+    source text.
+  - The revised draft is not reviewed again by the tool: the writer pastes it back. A «راجع
+    المسودة المعدّلة» button would close the loop.
+  - A quote in several places shows at most 5 of them, so a place beyond those cannot be chosen.
+  - On a card whose applied place is not the one shown, nothing on the card says another place is
+    applied; the draft view shows it.
+  - Not looked at in a browser: a phone-width screen (the window could not be resized in the
+    test session), a screen reader, Firefox and Safari.
+
 ## Ideas for after the challenge
 
 - Normalization: more honorific phrases found in the hadith corpus and left in `searchText` —

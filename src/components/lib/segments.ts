@@ -73,27 +73,3 @@ export const hasDiff = (entries: readonly Evidence[]): boolean => entries.some((
 // Whether the diff shows a difference in wording (anything but "equal").
 export const hasDifference = (entries: readonly Evidence[]): boolean =>
   entries.some((entry) => (entry.diff ?? []).some((op) => op.op !== "equal"));
-
-export interface DraftPiece {
-  text: string;
-  // The item whose span this piece is, with its 1-based place in the result.
-  item?: ReviewItem;
-  index?: number;
-}
-
-// The reviewed draft cut at the spans of the items. A span that does not lie in the draft, or that
-// overlaps an earlier one, is left unmarked rather than shown in the wrong place.
-export function draftPieces(draft: string, items: readonly ReviewItem[]): DraftPiece[] {
-  const pieces: DraftPiece[] = [];
-  const ordered = items.map((item, i) => ({ item, index: i + 1 })).sort((a, b) => a.item.span.start - b.item.span.start);
-  let at = 0;
-  for (const { item, index } of ordered) {
-    const { start, end } = item.span;
-    if (start < at || end > draft.length) continue;
-    if (start > at) pieces.push({ text: draft.slice(at, start) });
-    pieces.push({ text: draft.slice(start, end), item, index });
-    at = end;
-  }
-  if (at < draft.length) pieces.push({ text: draft.slice(at) });
-  return pieces;
-}

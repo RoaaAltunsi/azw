@@ -172,6 +172,9 @@ describe("the cited reference", () => {
   test("a cited number is compared with citation.number", () => {
     expect(checks(match(WATER, cite(["alpha"], { number: "3" })))).toEqual(["alpha:3 consistent", "alpha:2 REF_MISMATCH_NUMBER", "beta:10 REF_MISMATCH_COLLECTION"]);
     expect(checks(match(TRAVEL, cite(["alpha"], { number: "01" })))).toEqual(["alpha:1 consistent"]);
+    // Only a reference with the number names the place; the book alone does not.
+    expect(match(TRAVEL, cite(["alpha"], { number: "1" }))[0]!.reference).toEqual({ result: "consistent", place: true });
+    expect(match(TRAVEL, cite(["alpha"]))[0]!.reference).toEqual({ result: "consistent" });
     expect(outcome(WATER, cite(["alpha"], { number: "3" }))).toBe("MATCH/MATCH_REF_OK [alpha:3]");
     // The nearest miss gives the reason: the right book with another number, before another book.
     expect(outcome(WATER, cite(["beta"], { number: "99" }))).toBe("DIFFERS/REF_MISMATCH_NUMBER [beta:10,alpha:2,alpha:3]");

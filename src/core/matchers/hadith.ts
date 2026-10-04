@@ -85,7 +85,8 @@ function checkReference(reference: Reference | undefined, record: SourceRecord, 
   }
   // A pending record holds the text but confirms nothing: a cited book counts as confirmed only
   // through a reviewed record.
-  return cited.collections.every((c) => found.reviewed.has(c)) ? { result: "consistent" } : UNCHECKED;
+  if (!cited.collections.every((c) => found.reviewed.has(c))) return UNCHECKED;
+  return number !== undefined ? { result: "consistent", place: true } : { result: "consistent" };
 }
 
 // Occurrences that agree with the cited reference first, then the nearest misses.

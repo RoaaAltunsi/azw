@@ -51,7 +51,7 @@ function checkReference(reference: Reference | undefined, surah: number, [first,
   if (cited.partial) return { result: "unchecked" };
   if (cited.ayahStart === undefined) return { result: "consistent" };
   const agrees = cited.ayahStart === first && (cited.ayahEnd ?? cited.ayahStart) === last;
-  return agrees ? { result: "consistent" } : { result: "mismatch", reasonCode: "REF_MISMATCH_AYAH" };
+  return agrees ? { result: "consistent", place: true } : { result: "mismatch", reasonCode: "REF_MISMATCH_AYAH" };
 }
 
 // Occurrences that agree with the cited reference first, then the nearest misses.

@@ -218,6 +218,11 @@ describe("cited reference", () => {
     expect(reference.result === "mismatch" ? reference.reasonCode : reference.result).toBe(expected);
   });
 
+  test("only a reference with the ayah names the place", () => {
+    expect(match(text, { type: "quran", surah: 2, ayahStart: 153 })[0]!.reference).toEqual({ result: "consistent", place: true });
+    expect(match(text, { type: "quran", surah: 2 })[0]!.reference).toEqual({ result: "consistent" });
+  });
+
   test("a quote over two ayat needs the range, not one of its ayat", () => {
     const two = "إن الله مع الصابرين ولا تقولوا لمن يقتل";
     expect(match(two, { type: "quran", surah: 2, ayahStart: 153, ayahEnd: 154 })[0]!.reference.result).toBe("consistent");
@@ -226,7 +231,7 @@ describe("cited reference", () => {
 
   test("fuzzy candidates carry the check too", () => {
     const [candidate] = match("ولم يكن له ندا أحد", { type: "quran", surah: 112, ayahStart: 4 });
-    expect(candidate!.reference.result).toBe("consistent");
+    expect(candidate!.reference).toEqual({ result: "consistent", place: true });
   });
 });
 

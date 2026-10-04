@@ -1,4 +1,6 @@
-import type { Ref } from "react";
+"use client";
+
+import { useState, type Ref } from "react";
 import type { ReviewResult } from "@/core/types";
 import { format, t } from "@/i18n/ar";
 import { CopyReportButton } from "./CopyReportButton";
@@ -7,6 +9,7 @@ import { Notice } from "./Notice";
 import { ReviewCard } from "./ReviewCard";
 import { StatusIcon } from "./StatusPill";
 import { coverageNames, summaryParts, summaryText, warningText } from "./lib/labels";
+import type { Applied } from "./lib/revised-draft";
 
 // The two columns of a result: the reviewed draft, and the cards.
 const RESULT_GRID = "grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:items-start";
@@ -20,6 +23,14 @@ interface ResultsViewProps {
 
 export function ResultsView({ result, draft, stale, headingRef }: ResultsViewProps) {
   const empty = result.items.length === 0;
+  // The corrections the writer chose to apply. They live here only: the textarea and the reviewed
+  // draft are never changed, and a new review starts with none.
+  const [applied, setApplied] = useState<Applied>({});
+  const apply = (itemId: string, recordId: string | undefined) =>
+    setApplied((current) => ({
+      ...Object.fromEntries(Object.entries(current).filter(([id]) => id !== itemId)),
+      ...(recordId === undefined ? {} : { [itemId]: recordId }),
+    }));
   return (
     <section aria-labelledby="results-title" className="mt-10">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-b border-line pb-4">
@@ -58,14 +69,20 @@ export function ResultsView({ result, draft, stale, headingRef }: ResultsViewPro
       ) : (
         <div className={`mt-4 ${RESULT_GRID}`}>
           <div className="lg:sticky lg:top-4">
-            <DraftView draft={draft} items={result.items} />
+            <DraftView draft={draft} items={result.items} applied={applied} />
           </div>
           <section aria-labelledby="cards-title" className="space-y-4">
             <h3 id="cards-title" className="sr-only">
               {t("results.cards.title")}
             </h3>
             {result.items.map((item, i) => (
-              <ReviewCard key={item.id} item={item} index={i + 1} />
+              <ReviewCard
+                key={item.id}
+                item={item}
+                index={i + 1}
+                appliedRecordId={applied[item.id]}
+                onApply={(recordId) => apply(item.id, recordId)}
+              />
             ))}
           </section>
         </div>

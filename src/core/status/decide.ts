@@ -97,6 +97,9 @@ export function decide(input: DecideInput, config: StatusConfig = STATUS_CONFIG)
   if (!best || best.score < config.T_LOW) return result("NOT_FOUND", "NO_RECORD_IN_COVERED_SOURCES");
   const close = ranked.filter((c) => best.score - c.score <= config.AMBIGUITY_MARGIN + EPSILON);
   if (new Set(close.map(wording)).size > 1) return result("NEEDS_SPECIALIST", "AMBIGUOUS_CANDIDATES", close);
-  if (best.score < config.T_HIGH) return result("NEEDS_SPECIALIST", "LOW_CONFIDENCE_MATCH", close);
+  // Below T_HIGH the likeness alone does not say which text is meant. A reference that names this
+  // very place does: the writer cites the record, and the wording differs from it (D-25 item 1).
+  const cited = best.reference.result === "consistent" && best.reference.place === true;
+  if (best.score < config.T_HIGH && !cited) return result("NEEDS_SPECIALIST", "LOW_CONFIDENCE_MATCH", close);
   return onReviewed(close, (reviewed) => result("DIFFERS", "WORDING_DIFF", reviewed));
 }

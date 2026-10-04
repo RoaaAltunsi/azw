@@ -124,6 +124,19 @@ export const ar = {
   "results.draft.title": "المسودة كما رُوجعت",
   "results.draft.hint": "اضغط على نقل مظلَّل للانتقال إلى بطاقته.",
   "results.draft.markLabel": "النقل {index}: {status}",
+  // The revised draft (src/components/lib/revised-draft.ts): the writer's draft with the
+  // corrections they chose to apply. {label} is the MATCH label.
+  "results.draft.copy": "انسخ المسودة",
+  "results.draft.copy.done": "نُسخت المسودة كما رُوجعت، دون تعديل.",
+  "results.draft.correctable":
+    "في بعض النقول تعديل متاح من المصدر: اضغط «ضع نص المصدر في المسودة» أو «ضع مرجع المصدر في المسودة» في بطاقة النقل، فيظهر التعديل هنا، ثم انسخ المسودة كاملة.",
+  "results.draft.revised.title": "المسودة بعد التعديل",
+  "results.draft.revised.markLabel": "النقل {index}: موضع عُدّل من المصدر",
+  "results.draft.revised.note":
+    "لم يتغيّر من كلامك إلا المواضع التي تحتها خط متقطع، وما وُضع فيها منقول من سجل المصدر بحروفه. لم تُراجَع المسودة المعدّلة بعد؛ يمكنك لصقها في خانة المسودة ومراجعتها من جديد.",
+  "results.draft.revised.open": "نقول لم تُعدَّل وليست حالتها «{label}»: {count}. راجعها قبل النشر.",
+  "results.draft.revised.copy": "انسخ المسودة المعدّلة",
+  "results.draft.revised.copy.done": "نُسخت المسودة المعدّلة.",
   "results.cards.title": "النقول",
 
   "warning.LLM_UNAVAILABLE_REGEX_ONLY": "استُخرجت النقول بالقواعد الآلية وحدها دون نموذج لغوي، فقد لا تُلتقط بعض النقول، ولم يُولَّد أي شرح.",
@@ -155,6 +168,13 @@ export const ar = {
   "card.copy": "انسخ نص المصدر مع المرجع",
   "card.copy.done": "نُسخ نص المصدر مع المرجع.",
   "card.copy.failed": "تعذّر النسخ. يمكنك تحديد النص ونسخه يدوياً.",
+  // A correction the writer may apply (docs/API.md, "Corrections"). {text} is the correction's own
+  // text: the source's words or its citation.
+  "card.apply.wording": "ضع نص المصدر في المسودة",
+  "card.apply.reference": "ضع مرجع المصدر في المسودة",
+  "card.apply.undo": "تراجع عن التعديل",
+  "card.apply.done": "وُضع في المسودة المعدّلة: {text}",
+  "card.apply.goToDraft": "اعرض المسودة المعدّلة",
 
   // «انسخ التقرير» (src/components/lib/report.ts): plain text, one field per line. It also uses
   // «card.title», «card.citedReference», «card.source.reference», «card.source.link» and
@@ -248,7 +268,7 @@ export const ar = {
   "how.steps.2": "يقرأ المرجع الذي ذكرته بجانب النقل، إن وُجد، بقواعد ثابتة.",
   "how.steps.3": "يبحث عن النص في سجلات المصادر المغطاة، ويقارنه بنص المصدر كلمةً كلمة.",
   "how.steps.4": "يحدد الحالة بقواعد ثابتة مختبرة. النموذج اللغوي لا يقرر حالةً ولا يُعتمد على ذاكرته مصدراً.",
-  "how.steps.5": "يعرض نص المصدر ومرجعه والفروق في اللفظ. لا يغيّر مسودتك ولا يستبدل فيها شيئاً.",
+  "how.steps.5": "يعرض نص المصدر ومرجعه والفروق في اللفظ. لا يغيّر مسودتك من تلقاء نفسه: إن اخترت أن تضع نص المصدر أو مرجعه في موضع نقلٍ، وُضع فيه كما هو في سجل المصدر، وبقي سائر كلامك كما كتبته.",
   "how.statuses.title": "الحالات الأربع",
   "how.status.MATCH": "النص موجود في سجل مراجَع بهذا اللفظ، والمرجع المذكور (إن وُجد) يوافقه.",
   "how.status.DIFFERS": "وُجد نص قريب، لكن اللفظ يختلف، أو المرجع لا يوافق المصدر، أو النسبة تخالف نوع النص.",

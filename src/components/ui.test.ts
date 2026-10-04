@@ -6,6 +6,7 @@ import GlobalError from "@/app/global-error";
 import { ATTRIBUTION_PATTERNS } from "@/core/extract";
 import { STATUSES, type ReviewResult } from "@/core/types";
 import { t } from "@/i18n/ar";
+import { DraftView } from "./DraftView";
 import { ResultsView } from "./ResultsView";
 import { ReviewCard } from "./ReviewCard";
 import { searchedSources } from "./SourcesRegister";
@@ -202,6 +203,105 @@ test("results: no quotes found is said plainly, with no summary row", () => {
   expect(html).toContain(t("state.stale"));
   expect(html).not.toContain("0 مطابق");
   expect(html).not.toContain(t("report.copy"));
+});
+
+// A correction (docs/API.md, "Corrections"): offered on the card, applied only on the writer's tap.
+const QUOTE = "إن الله مع الشاكرين";
+const STRETCH = AYAH_153.slice(AYAH_153.indexOf("إِنَّ"));
+const CORRECTABLE_DRAFT = `قال: «${QUOTE}» 🌿`;
+const wording = { target: "wording", draft: { start: 6, end: 6 + QUOTE.length }, text: STRETCH } as const;
+const correctable = item({
+  span: { start: 6, end: 6 + QUOTE.length, text: QUOTE },
+  status: "DIFFERS",
+  reasonCode: "WORDING_DIFF",
+  evidence: [evidence({ id: "quran:2:153", correction: wording })],
+});
+const cardWith = (props: { appliedRecordId?: string; onApply?: () => void }, reviewItem = correctable) =>
+  renderToStaticMarkup(createElement(ReviewCard, { item: reviewItem, index: 1, ...props }));
+
+test("a correction is offered by its target, and nothing is applied until the writer asks", () => {
+  const html = cardWith({ onApply: () => {} });
+  expect(html).toContain(t("card.apply.wording"));
+  expect(html).not.toContain(t("card.apply.undo"));
+  expect(textOf(html)).not.toContain("وُضع في المسودة المعدّلة");
+
+  const reference = item({
+    ...correctable,
+    evidence: [evidence({ id: "quran:2:153", display: "سورة البقرة، الآية 153", correction: { target: "reference", draft: { start: 0, end: 3 }, text: "[سورة البقرة، الآية 153]" } })],
+  });
+  expect(cardWith({ onApply: () => {} }, reference)).toContain(t("card.apply.reference"));
+});
+
+test("an applied correction: the card says what was put in the draft, and offers to take it back", () => {
+  const html = cardWith({ onApply: () => {}, appliedRecordId: "quran:2:153" });
+  expect(html).toContain(t("card.apply.undo"));
+  expect(html).not.toContain(t("card.apply.wording"));
+  expect(textOf(html)).toContain(`وُضع في المسودة المعدّلة: ${STRETCH}`);
+  expect(html).toContain('href="#draft-view"');
+  // Another record's correction applied is not this place's.
+  expect(cardWith({ onApply: () => {}, appliedRecordId: "other" })).toContain(t("card.apply.wording"));
+});
+
+test("no correction, no button: an item the API offers none for, an ERROR item, a card nobody listens to", () => {
+  const none = item({ ...correctable, evidence: [evidence({ id: "quran:2:153" })] });
+  expect(cardWith({ onApply: () => {} }, none)).not.toMatch(/ضع (نص|مرجع) المصدر/);
+  const failed = item({ ...correctable, status: "ERROR" });
+  expect(cardWith({ onApply: () => {} }, failed)).not.toMatch(/ضع (نص|مرجع) المصدر/);
+  expect(cardWith({})).not.toMatch(/ضع (نص|مرجع) المصدر/);
+});
+
+test("the draft view: as reviewed until a correction is applied, then the revised draft with its copy button", () => {
+  const view = (applied?: Record<string, string>) => renderToStaticMarkup(createElement(DraftView, { draft: CORRECTABLE_DRAFT, items: [correctable], applied }));
+
+  const reviewed = view();
+  expect(reviewed).toContain(t("results.draft.title"));
+  expect(textOf(reviewed)).toContain(`${QUOTE}» 🌿`);
+  // The copy button is there from the start, and the panel says a correction can be applied.
+  expect(reviewed).toContain(`${t("results.draft.copy")}</button>`);
+  expect(reviewed).toContain(t("results.draft.correctable"));
+  expect(reviewed).not.toContain(t("results.draft.revised.copy"));
+  expect(reviewed).not.toContain("draft-applied");
+
+  const revised = view({ [correctable.id]: "quran:2:153" });
+  expect(revised).toContain(t("results.draft.revised.title"));
+  expect(revised).toContain(t("results.draft.revised.note"));
+  expect(revised).toContain(t("results.draft.revised.copy"));
+  expect(revised).not.toContain(t("results.draft.correctable"));
+  // The source's words stand between the writer's own marks, named for assistive technology.
+  expect(revised).toMatch(new RegExp(`قال: «</span><a href="#card-${correctable.id}" class="draft-applied"[^>]*><span class="sr-only">النقل 1: موضع عُدّل من المصدر: </span>${STRETCH}</a><span>» 🌿`));
+  expect(textOf(revised)).not.toContain(QUOTE);
+  // Every item is corrected: nothing is left open.
+  expect(textOf(revised)).not.toContain("نقول لم تُعدَّل");
+});
+
+test("a draft with nothing to correct: the copy button, and no word about corrections", () => {
+  const plain = item({ span: { start: 0, end: 3, text: "قال" }, status: "NOT_FOUND" });
+  const html = renderToStaticMarkup(createElement(DraftView, { draft: CORRECTABLE_DRAFT, items: [plain] }));
+  expect(html).toContain(`${t("results.draft.copy")}</button>`);
+  expect(html).not.toContain(t("results.draft.correctable"));
+  expect(html).not.toContain(t("results.draft.revised.note"));
+});
+
+test("the revised draft says how many quotes are still as the tool found them", () => {
+  const open = item({ span: { start: 0, end: 3, text: "قال" }, status: "NOT_FOUND" });
+  const html = renderToStaticMarkup(
+    createElement(DraftView, { draft: CORRECTABLE_DRAFT, items: [open, correctable], applied: { [correctable.id]: "quran:2:153" } }),
+  );
+  expect(textOf(html)).toContain("نقول لم تُعدَّل وليست حالتها «مطابق لنص المصدر»: 1. راجعها قبل النشر.");
+});
+
+test("results: a correction is offered on its card, and the draft is shown as reviewed", () => {
+  const html = renderToStaticMarkup(
+    createElement(ResultsView, {
+      draft: CORRECTABLE_DRAFT,
+      stale: false,
+      result: result({ items: [correctable], summary: { MATCH: 0, DIFFERS: 1, NOT_FOUND: 0, NEEDS_SPECIALIST: 0, ERROR: 0 } }),
+    }),
+  );
+  expect(html).toContain(t("card.apply.wording"));
+  expect(html).toContain(t("results.draft.title"));
+  expect(html).not.toContain(t("results.draft.revised.copy"));
+  expect(html).toContain('id="draft-view"');
 });
 
 test("the forms note names every phrase the regex extractor reads", () => {

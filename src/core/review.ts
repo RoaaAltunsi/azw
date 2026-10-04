@@ -2,6 +2,7 @@
 // the index, the alias lists, the extractors and the LLM port are all passed in.
 // Documented in docs/ARCHITECTURE.md ("Orchestrator").
 import { t } from "../i18n/ar";
+import { correctionOf, dropSharedCorrections } from "./correct";
 import type { CorpusIndex } from "./corpus";
 import { buildExplainInput, validateExplanation, type ExplainDiffInput } from "./explain";
 import type { ExtractedQuote, Extractor } from "./extract";
@@ -164,14 +165,20 @@ export async function review(draft: string, deps: ReviewDeps): Promise<ReviewRes
   const references = parseReferences(draft, deps.aliases);
 
   // 5–7. Per item: retrieve across all kinds, score and align (the matchers), decide (the status
-  //      rules), then the word diff of the occurrences the decision rests on.
+  //      rules), then the word diff of the occurrences the decision rests on, each with the
+  //      correction the writer may apply, where one can be offered (./correct).
   //      `occurrence`: the evidence entries of the first occurrence, which step 8 rests on.
   const reviewOne = (quote: MergedQuote): { item: ReviewItem; occurrence: Evidence[] } => {
     const reference: Reference | undefined = attachReference(quote.span, references, draft);
     const verseMarks = inVerseMarks(draft, quote.span);
     const candidates = matchAll({ span: quote.span, claimedKind: quote.claimedKind, reference, verseMarks }, deps.index, registry);
     const decision = decide({ claimedKind: quote.claimedKind, claimLevel: quote.claimLevel, candidates });
-    const evidence = decision.evidence.slice(0, limits.MAX_EVIDENCE_PER_ITEM).flatMap(evidenceOf);
+    const evidence = decision.evidence.slice(0, limits.MAX_EVIDENCE_PER_ITEM).flatMap((candidate): Evidence[] => {
+      const entries = evidenceOf(candidate);
+      const [entry] = entries;
+      const correction = entry && correctionOf({ draft, claimedKind: quote.claimedKind, decision, candidate, diff: entry.diff ?? [], reference });
+      return correction ? [{ ...entry, correction }] : entries;
+    });
     const item: ReviewItem = {
       id: itemId(quote),
       span: quote.span,
@@ -188,7 +195,7 @@ export async function review(draft: string, deps: ReviewDeps): Promise<ReviewRes
     return { item, occurrence: evidence.slice(0, decision.evidence[0]?.records.length ?? 0) };
   };
 
-  const reviewed = quotes.map((quote) => {
+  const drafted = quotes.map((quote) => {
     try {
       return reviewOne(quote);
     } catch {
@@ -207,6 +214,9 @@ export async function review(draft: string, deps: ReviewDeps): Promise<ReviewRes
       return { item, occurrence: [] };
     }
   });
+  // A correction that reaches into another item's part of the draft is not offered.
+  const unshared = dropSharedCorrections(drafted.map(({ item }) => item));
+  const reviewed = drafted.map(({ occurrence }, i) => ({ item: unshared[i]!, occurrence }));
 
   // 8. Grounded explanations: for DIFFERS items only, and only when the LLM read this draft. The
   //    calls start together, so the adapter's time budget is one for all of them. An explanation

@@ -12,7 +12,8 @@ interface Shape {
   hit?: MatchCandidate["hit"];
   spelling?: MatchCandidate["spelling"];
   score?: number;
-  reference?: "none" | "consistent" | "unchecked" | ReferenceMismatchCode;
+  // "place": consistent, and the reference names the very place (surah and ayah, a hadith number).
+  reference?: "none" | "consistent" | "place" | "unchecked" | ReferenceMismatchCode;
   claimAdmitted?: boolean;
   pending?: boolean | "partly";
   wording?: string;
@@ -32,7 +33,12 @@ function candidate(shape: Shape = {}): MatchCandidate {
     layer: "default",
     hit,
     spelling,
-    reference: reference === "none" || reference === "consistent" || reference === "unchecked" ? { result: reference } : { result: "mismatch", reasonCode: reference },
+    reference:
+      reference === "place"
+        ? { result: "consistent", place: true }
+        : reference === "none" || reference === "consistent" || reference === "unchecked"
+          ? { result: reference }
+          : { result: "mismatch", reasonCode: reference },
     ...(shape.claimAdmitted ? { claimAdmitted: true } : {}),
     alignment: {
       quote: [],
@@ -164,6 +170,20 @@ const rows: Row[] = [
   ["score just below T_HIGH", "quran", [fuzzy(0.79)], "NEEDS_SPECIALIST/LOW_CONFIDENCE_MATCH/A [fixture:1]"],
   ["score exactly T_LOW", "quran", [fuzzy(0.5)], "NEEDS_SPECIALIST/LOW_CONFIDENCE_MATCH/A [fixture:1]"],
   ["mid score in a pending record", "quran", [fuzzy(0.6, { pending: true })], "NEEDS_SPECIALIST/LOW_CONFIDENCE_MATCH/A [fixture:1]"],
+  // The writer cites the very place: the text there is the one meant, and its wording differs.
+  ["mid score, the reference names the place", "quran", [fuzzy(0.75, { reference: "place" })], "DIFFERS/WORDING_DIFF/A [fixture:1]"],
+  ["score exactly T_LOW, the reference names the place", "quran", [fuzzy(0.5, { reference: "place" })], "DIFFERS/WORDING_DIFF/A [fixture:1]"],
+  ["mid score, the reference names only the surah or the book", "quran", [fuzzy(0.75, { reference: "consistent" })], "NEEDS_SPECIALIST/LOW_CONFIDENCE_MATCH/A [fixture:1]"],
+  ["mid score, the reference was not checked", "quran", [fuzzy(0.75, { reference: "unchecked" })], "NEEDS_SPECIALIST/LOW_CONFIDENCE_MATCH/A [fixture:1]"],
+  ["mid score, the reference names another place", "quran", [fuzzy(0.75, { reference: "REF_MISMATCH_AYAH" })], "NEEDS_SPECIALIST/LOW_CONFIDENCE_MATCH/A [fixture:1]"],
+  ["below T_LOW a cited place changes nothing", "quran", [fuzzy(0.49, { reference: "place" })], "NOT_FOUND/NO_RECORD_IN_COVERED_SOURCES/A []"],
+  ["mid score, the place cited, in a pending record", "quran", [fuzzy(0.75, { reference: "place", pending: true })], "NEEDS_SPECIALIST/SOURCE_NOT_REVIEWED/A [fixture:1]"],
+  [
+    "mid score, the place cited, but another text is as close",
+    "quran",
+    [fuzzy(0.75, { id: "1", wording: "نص أول", reference: "place" }), fuzzy(0.75, { id: "2", wording: "نص ثان", reference: "REF_MISMATCH_AYAH" })],
+    "NEEDS_SPECIALIST/AMBIGUOUS_CANDIDATES/A [fixture:1,fixture:2]",
+  ],
   ["score just below T_LOW", "quran", [fuzzy(0.49)], "NOT_FOUND/NO_RECORD_IN_COVERED_SOURCES/A []"],
   ["no candidates", "quran", [], "NOT_FOUND/NO_RECORD_IN_COVERED_SOURCES/A []"],
   ["the best candidate decides, whatever the order", "quran", [fuzzy(0.3, { id: "1" }), fuzzy(0.9, { id: "2" })], "DIFFERS/WORDING_DIFF/A [fixture:2]"],

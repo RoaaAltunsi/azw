@@ -99,6 +99,14 @@ into the request's \`text\`, in UTF-16 code units. \`diff[].source\` is \`[start
 the corpus holds but no matcher searches yet is not listed, and no sentence names it.`,
     `**Evidence.** One entry per source record. A quote found in several places gives the entries of at
 most ${REVIEW_LIMITS.MAX_EVIDENCE_PER_ITEM} occurrences; \`reasonAr\` states how many other places there are.`,
+    `**Corrections.** An evidence entry of a \`DIFFERS\` item may carry \`correction\`: a change the writer
+may choose to make. A client that applies it puts \`correction.text\` in place of
+\`text.slice(correction.draft.start, correction.draft.end)\` and changes nothing else. For
+\`target: "wording"\`, \`text\` is a stretch of that record's \`exactText\`; for \`target: "reference"\` it is
+the record's \`citation.display\`, inside the brackets of the reference the draft cites. A client
+never applies one unasked, and applies at most one per item (the entries of one item are other
+places of the same quote). The ranges of different items never overlap. An entry without
+\`correction\` offers none: the tool does not say which text or which reference is meant.`,
     `#### Statuses`,
     table(["`status`", "Label (ar)"], STATUSES.map((status) => [`\`${status}\``, t(`status.${status}`)])),
     `#### Reason codes`,

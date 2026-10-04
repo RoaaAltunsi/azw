@@ -232,7 +232,12 @@ interface ReviewItem {
   reasonCode: string;            // machine-readable reason, e.g. "REF_MISMATCH_AYAH"
   reasonAr: string;              // deterministic Arabic sentence
   // At most REVIEW_LIMITS.MAX_EVIDENCE_PER_ITEM occurrences; reasonAr counts the rest. Empty for ERROR.
-  evidence: Array<{ record: ApiSourceRecord; score: number; diff?: DiffOp[]; ayahRange?: [number, number] }>;
+  // correction: a change the writer may choose to apply (docs/DECISIONS.md D-25). Built by code from
+  // the record: `text` is a stretch of exactText ("wording") or citation.display ("reference").
+  evidence: Array<{
+    record: ApiSourceRecord; score: number; diff?: DiffOp[]; ayahRange?: [number, number];
+    correction?: { target: "wording" | "reference"; draft: { start: number; end: number }; text: string };
+  }>;
   explanation?: { text: string; generated: true };             // optional LLM text, always labeled
   extractedBy: Array<"regex" | "llm" | "manual">;
 }
@@ -265,6 +270,7 @@ draft
  → score + align against exactText
  → status rules (pure function, unit-tested)
  → word diff against exactText, for the evidence that is returned (D-17: the rules do not read it)
+ → the correction the writer may apply, where the rules say which record is meant (D-25; no LLM)
  → optional grounded explanation (LLM), validated
  → ReviewResult, validated against ReviewResultSchema before it leaves the API
 ```
@@ -303,7 +309,9 @@ draft
 - Small commits with clear messages. Conventional Commits.
 - Every core function has unit tests. The status rules have table-driven tests covering every branch.
 - No secrets in the repo. `.env.example` lists the variables. Never commit `.env*`.
-- Never silently rewrite the user's draft.
+- Never silently rewrite the user's draft. A correction is applied only when the writer asks for
+  it, one quote at a time, to a copy shown beside the draft; its text is the source record's own
+  (`docs/DECISIONS.md` D-25).
 - Never add features outside the current prompt's scope. List ideas in `docs/BACKLOG.md` instead.
 - A religious-content decision the prompt leaves open is researched, decided and documented by the
   agent, as set out below. It is never left open for the owner.

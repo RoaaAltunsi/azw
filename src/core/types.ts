@@ -145,12 +145,35 @@ export interface QuoteInput {
   verseMarks?: boolean;
 }
 
-export const EvidenceSchema = z.object({
-  record: ApiSourceRecordSchema,
-  score: z.number(),
-  diff: z.array(DiffOpSchema).optional(),
-  ayahRange: z.tuple([z.number().int().positive(), z.number().int().positive()]).optional(),
+// A change the writer may choose to make in the draft (src/core/correct): put `text` in place of
+// draft[draft.start, draft.end). "wording": `text` is a stretch of the record's exactText, in place
+// of the quote's words. "reference": `text` is the record's citation.display, between the brackets
+// the writer's own reference stands in, in place of that reference. The tool applies nothing by
+// itself, and no model writes any of it.
+export const CORRECTION_TARGETS = ["wording", "reference"] as const;
+export const CorrectionSchema = z.strictObject({
+  target: z.enum(CORRECTION_TARGETS),
+  draft: SpanSchema,
+  text: z.string().min(1),
 });
+export type Correction = z.infer<typeof CorrectionSchema>;
+
+// The status rules and src/core/correct decide what is offered; this is only a backstop at the
+// boundary (AGENTS.md §2 rule 1): a correction whose text is not the record's own is rejected.
+export const EvidenceSchema = z
+  .object({
+    record: ApiSourceRecordSchema,
+    score: z.number(),
+    diff: z.array(DiffOpSchema).optional(),
+    ayahRange: z.tuple([z.number().int().positive(), z.number().int().positive()]).optional(),
+    correction: CorrectionSchema.optional(),
+  })
+  .refine(
+    ({ record, correction }) =>
+      correction === undefined ||
+      (correction.target === "wording" ? record.exactText.includes(correction.text) : correction.text.includes(record.citation.display)),
+    { path: ["correction"], message: "a correction carries the record's own text or citation, and nothing else" },
+  );
 export type Evidence = z.infer<typeof EvidenceSchema>;
 
 // Optional LLM text. `generated: true` forces the «شرح مولّد آلياً» label in every client.

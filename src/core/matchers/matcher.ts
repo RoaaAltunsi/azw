@@ -8,12 +8,15 @@ import type { ContentKind, QuoteInput, SourceRecord } from "../types";
 
 // The cited reference against the place the quote was found.
 // - none: the quote has no reference.
-// - consistent: the reference was read in full and agrees with this place.
+// - consistent: the reference was read in full and agrees with this place. `place: true` when it
+//   names the very place (the surah with its ayat, a book with the hadith's number) and not only
+//   the surah or the book: the writer's own word for which record is meant.
 // - unchecked: there is a reference, but it could not be compared with this place (it is "unknown",
 //   `partial`, or of another kind). It must never count as a reference found correct.
 // - mismatch: the reference was read and contradicts this place.
 export type ReferenceCheck =
-  | { result: "none" | "consistent" | "unchecked" }
+  | { result: "none" | "unchecked" }
+  | { result: "consistent"; place?: true }
   | { result: "mismatch"; reasonCode: ReferenceMismatchCode };
 
 export interface MatchCandidate {

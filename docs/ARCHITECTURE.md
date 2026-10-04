@@ -618,7 +618,7 @@ on the kind; the status rules only read the outcome.
 | Quran, another surah (also when `partial`) | `mismatch` / `REF_MISMATCH_SURAH` |
 | Quran, `partial` (a list of ayat), same surah | `unchecked` |
 | Quran, the surah only, same surah | `consistent` |
-| Quran, an ayah or a range equal to `ayahRange` | `consistent` |
+| Quran, an ayah or a range equal to `ayahRange` | `consistent`, with `place: true`: the reference names the very place |
 | Quran, same surah, any other ayah or range | `mismatch` / `REF_MISMATCH_AYAH` |
 
 A cited range must equal the range the quote covers: two ayat cited with the first ayah only is a
@@ -688,7 +688,7 @@ quote was found, over all candidates. The first row that applies:
 | A number for this collection (`number`, or `numbers[collection]`), and the record has no `citation.number` | `unchecked` |
 | A number that is not `citation.number` (leading zeros aside) | `mismatch` / `REF_MISMATCH_NUMBER` |
 | One of the cited books holds the quote in pending records only | `unchecked` |
-| Otherwise | `consistent` |
+| Otherwise | `consistent`; with `place: true` when a number was cited and agrees (the book alone does not name the place) |
 
 - **A book the tool has no copy of** can be neither confirmed nor contradicted: the text may well
   be in al-Tirmidhi too. Such a citation on a text found in the Sahihayn ends `NEEDS_SPECIALIST` /
@@ -800,7 +800,8 @@ The rules, in order. The first that applies decides.
 | 7 | Exact hit with spelling `error` only | `DIFFERS` | `WORDING_DIFF` | A |
 | 8 | No candidate, or best score < `T_LOW` | `NOT_FOUND` | `NO_RECORD_IN_COVERED_SOURCES` | A |
 | 9 | Two or more candidates within `AMBIGUITY_MARGIN` of the best, with different texts | `NEEDS_SPECIALIST` | `AMBIGUOUS_CANDIDATES` | A |
-| 10 | `T_LOW` ≤ best score < `T_HIGH` | `NEEDS_SPECIALIST` | `LOW_CONFIDENCE_MATCH` | A |
+| 10 | `T_LOW` ≤ best score < `T_HIGH`, and the reference does not name the best candidate's place | `NEEDS_SPECIALIST` | `LOW_CONFIDENCE_MATCH` | A |
+| 10b | `T_LOW` ≤ best score < `T_HIGH`, and the reference is `consistent` with `place: true` for the best candidate | `DIFFERS` | `WORDING_DIFF` | A |
 | 11 | Best score ≥ `T_HIGH`, not exact | `DIFFERS` | `WORDING_DIFF` | A |
 | — | Rules 2–7 and 11, when none of the candidates the result would rest on is wholly `reviewed` | `NEEDS_SPECIALIST` | `SOURCE_NOT_REVIEWED` | A |
 
@@ -821,6 +822,11 @@ The rules, in order. The first that applies decides.
 - **Kind** is compared only for exact hits (rule 2). A close candidate of another kind is rule 11:
   the sentence names the source, and the wording is the first thing to correct.
 - **Rule 4** is `docs/DECISIONS.md` D-11.
+- **Rule 10b** (`docs/DECISIONS.md` D-25 item 1): below `T_HIGH` the likeness alone does not say
+  which text is meant. A reference that names the very place does (the surah with the ayah, a book
+  with the hadith's number): the writer cites that record, and the wording differs from it. A
+  reference to the surah only, or to the book only, changes nothing. Rule 9 comes first: two close
+  texts are still `AMBIGUOUS_CANDIDATES`.
 
 ### Reason sentences
 
@@ -834,6 +840,58 @@ without a name is shown by its id), joined with «، ».
 
 The sentences themselves never contain «صحيح» (tested; the book titles in `{coverage}` are names), the `NOT_FOUND` sentence never judges the text, and
 the `WORDING_DIFF` sentence points to the source without repeating the altered words.
+
+## Corrections
+
+Code: `src/core/correct/`. Tests: `src/core/correct/index.test.ts` (one row per branch),
+`src/core/review.test.ts`, and on the real corpus `src/server/corrections.integration.test.ts`.
+Choices: `docs/DECISIONS.md` D-25.
+
+A correction is a change the writer may choose to make in the draft. It is built by code from the
+source record: no model writes it, and the tool applies nothing by itself. It travels on the
+evidence entry of the record it comes from:
+
+```ts
+interface Correction {                       // src/core/types.ts, CorrectionSchema
+  target: "wording" | "reference";
+  draft: { start: number; end: number };     // the stretch of the draft it replaces
+  text: string;                              // what stands there instead
+}
+```
+
+`correctionOf({ draft, claimedKind, decision, candidate, diff, reference })` returns one or nothing.
+It reads the decision and what the matcher reported, and names no kind.
+
+| Target | Offered when | `draft` | `text` |
+|---|---|---|---|
+| `wording` | `DIFFERS` / `WORDING_DIFF`; the candidate's reference check is `none` or `consistent`; the candidate is of the claimed kind (or `claimAdmitted`); the diff begins and ends on a word both sides have in that place (`equal` or `replace`) | From the first word of the quote to its last. The quotation marks stay | `exactText` from the first aligned source word to the last, verbatim: diacritics, pause marks and punctuation included |
+| `reference` | `DIFFERS` / `REF_MISMATCH_AYAH` or `REF_MISMATCH_SURAH`, for each occurrence whose own check is one of the two | The span of the cited reference | `citation.display` of the record, inside the pair of brackets the writer's reference stands in (`[ ]` or `( )`), or bare when it has none |
+
+Nothing is offered:
+
+- for any other status or reason code. `NOT_FOUND`, `NEEDS_SPECIALIST` and `KIND_MISMATCH` say that
+  the tool does not know which text is meant, or that the fix is in the writer's own sentence;
+- for `REF_MISMATCH_NUMBER`, `REF_MISMATCH_COLLECTION` and `REF_NOT_AGREED_UPON`: their sentences
+  say the cited reference may still be right (another edition's number, a gap in the tool's copy);
+- for a wording whose reference is `unchecked` or a `mismatch`: the reference would stand beside
+  the new wording as it is, an attribution the tool cannot support;
+- when a word only one side has stands at an edge of the quote (`insert` or `delete` first or
+  last): it may be an added word, a changed one, or the writer's own sentence going on;
+- for an occurrence over several records: it has no single stretch and no single citation;
+- when the text would not change.
+
+`dropSharedCorrections(items)` then removes a correction whose range overlaps another item's span
+or another item's correction, so the ranges of different items never overlap and a client can
+apply one per item in any order.
+
+**Backstop at the boundary.** `EvidenceSchema` rejects a `wording` correction whose text is not a
+part of the record's `exactText`, and a `reference` correction whose text does not hold the
+record's `citation.display`. A result that carries anything else does not leave the API.
+
+**Round trip.** On the real corpus, a draft with an offered correction applied is reviewed again
+as `MATCH` on the same record (`MATCH_REF_OK`, or `MATCH_NO_REFERENCE` when the draft cites none),
+and offers nothing more. The integration test checks this on named drafts and on a sweep of the
+mushaf (every 41st ayah by default; `CORRECTIONS_SWEEP_STEP=1` runs all 6236).
 
 ## Regex extractor
 
@@ -1250,7 +1308,8 @@ their Arabic wording.
 | `src/components/lib` | |
 |---|---|
 | `api-client.ts` | `requestReview`, `fetchHealth`: fetch, then validation against the zod schemas. A result comes only from a 200 that parses |
-| `segments.ts` | From diff ops (ranges) to the pieces of a text: `draftSegments`, `sourceSegments`, `alignedSourceSegments`, and `draftPieces` for the highlighted draft |
+| `segments.ts` | From diff ops (ranges) to the pieces of a text: `draftSegments`, `sourceSegments`, `alignedSourceSegments` |
+| `revised-draft.ts` | `draftPieces(draft, items, applied)` for the highlighted draft, with the corrections the writer applied in their places; `revisedDraft` (the same as one text), `appliedCorrection`, `openItems` |
 | `occurrences.ts` | `groupOccurrences` (evidence → places), `occurrenceCitation`, `occurrenceText`, `sourceCopyText` |
 | `report.ts` | `reportText(result, date)`: the result as plain text for «انسخ التقرير» |
 | `labels.ts` | Names for ids from the API (`collection.<id>`, `kind.<id>`, `warning.<CODE>`), and the summary row |
@@ -1281,9 +1340,28 @@ line.
   lines; an `ERROR` item has status, quote and reason only, whatever it holds.
 - The fixed footer `report.footer`.
 
-The report holds no generated explanation and no grade. Both copy buttons are one component
+The report holds no generated explanation and no grade. All copy buttons are one component
 (`CopyButton`): the same status line says whether the copy worked.
 
 Status styling is driven by data: an element carries `data-status`, and `globals.css` sets the
 color, the text color and the underline style from it. The icon registry in `StatusPill.tsx` is
 typed over `Status`, so a new status does not compile without an icon.
+
+### The revised draft
+
+A card whose shown place carries a `correction` ("Corrections") has one more button: «ضع نص المصدر
+في المسودة» or «ضع مرجع المصدر في المسودة». It changes nothing until it is pressed, and then it
+changes only the state `applied` of `ResultsView` (item id → record id): the textarea and the
+reviewed draft are never touched, nothing is stored, and a new review starts with nothing applied.
+One correction per item: a quote that stands in several places takes the citation of the place
+the writer chose with the place buttons. The pressed button becomes «تراجع عن التعديل», and a
+status line on the card quotes what was put in the draft.
+
+`DraftView` then shows «المسودة بعد التعديل»: `draftPieces(draft, items, applied)`, each applied
+correction in its place under the dashed trace line (`.draft-applied`), named for assistive
+technology. Under it: a fixed note (only the underlined places changed; what stands there is the
+source record's own text; the revised draft has not been reviewed again), the count of quotes that
+are neither `MATCH` nor corrected, and «انسخ المسودة المعدّلة», which copies exactly the text
+shown. With nothing applied the view and its title are as before; the button is there from the
+start as «انسخ المسودة» (it copies the draft as reviewed), with a line that says a correction can
+be applied from a card when the result offers one.

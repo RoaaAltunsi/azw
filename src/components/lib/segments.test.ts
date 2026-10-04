@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
-import { alignedSourceSegments, cut, draftPieces, draftSegments, hasDifference, sourceSegments } from "./segments";
-import { evidence, item } from "./test-fixtures";
+import { alignedSourceSegments, cut, draftSegments, hasDifference, sourceSegments } from "./segments";
+import { evidence } from "./test-fixtures";
 
 const joined = (segments: ReadonlyArray<{ text: string }>) => segments.map((s) => s.text).join("");
 
@@ -99,28 +99,4 @@ test("a source text is never altered: the pieces are exactText, whole", () => {
   expect(joined(sourceSegments(entry))).toBe(entry.record.exactText);
   expect(joined(alignedSourceSegments(entry))).toBe(entry.record.exactText.slice(71, 103));
   expect(joined(sourceSegments(evidence({ id: "no-diff" })))).toBe(entry.record.exactText);
-});
-
-test("draftPieces: every span marked once, in draft order, the text whole", () => {
-  const draft = "قال: ﴿أ ب﴾ ثم «ج د» انتهى";
-  const a = item({ span: { start: 6, end: 9, text: "أ ب" } });
-  const b = item({ span: { start: 15, end: 18, text: "ج د" }, status: "NOT_FOUND" });
-  const pieces = draftPieces(draft, [b, a]);
-  expect(pieces.map((p) => p.text).join("")).toBe(draft);
-  // `index` is the place in the result, not in the draft.
-  expect(pieces.filter((p) => p.item).map((p) => [p.text, p.index])).toEqual([
-    ["أ ب", 2],
-    ["ج د", 1],
-  ]);
-});
-
-test("draftPieces: a span outside the draft or over an earlier one is left unmarked", () => {
-  const draft = "0123456789";
-  const pieces = draftPieces(draft, [
-    item({ span: { start: 2, end: 6, text: "2345" } }),
-    item({ span: { start: 4, end: 8, text: "4567" } }),
-    item({ span: { start: 8, end: 40, text: "89" } }),
-  ]);
-  expect(pieces.map((p) => p.text).join("")).toBe(draft);
-  expect(pieces.filter((p) => p.item).map((p) => p.text)).toEqual(["2345"]);
 });

@@ -13,14 +13,20 @@ import { kindLabel } from "./lib/labels";
 import { groupOccurrences, occurrenceCitation, type Occurrence } from "./lib/occurrences";
 import { draftSegments, hasDiff, hasDifference } from "./lib/segments";
 
+// The anchors the parts of a result link to each other by.
 export const cardId = (itemId: string): string => `card-${itemId}`;
+export const DRAFT_VIEW_ID = "draft-view";
 
 interface ReviewCardProps {
   item: ReviewItem;
   index: number; // 1-based place in the result
+  // The evidence record whose correction the writer applied to the revised draft, if any.
+  appliedRecordId?: string;
+  // Applies the correction of that record, or takes the item's correction back (undefined).
+  onApply?: (recordId: string | undefined) => void;
 }
 
-export function ReviewCard({ item, index }: ReviewCardProps) {
+export function ReviewCard({ item, index, appliedRecordId, onApply }: ReviewCardProps) {
   const titleId = useId();
   const compareId = useId();
   const [selected, setSelected] = useState(0);
@@ -32,6 +38,10 @@ export function ReviewCard({ item, index }: ReviewCardProps) {
   const occurrences = failed ? [] : groupOccurrences(item.evidence);
   const occurrence = occurrences[Math.min(selected, occurrences.length - 1)];
   const entries = occurrence?.entries ?? [];
+  // A correction belongs to one record: the place the writer is looking at.
+  const [entry] = entries.length === 1 ? entries : [];
+  const correction = onApply ? entry?.correction : undefined;
+  const applied = correction !== undefined && appliedRecordId === entry?.record.id;
 
   return (
     <article
@@ -96,7 +106,26 @@ export function ReviewCard({ item, index }: ReviewCardProps) {
             </button>
           )}
           <CopySourceButton occurrence={occurrence} />
+          {correction && (
+            <button type="button" className="btn-secondary" onClick={() => onApply?.(applied ? undefined : entry?.record.id)}>
+              <Icon name={applied ? "undo" : "check"} />
+              {applied ? t("card.apply.undo") : t(`card.apply.${correction.target}`)}
+            </button>
+          )}
         </div>
+      )}
+      {/* What was put in the revised draft, in the correction's own words. Nothing is changed unasked. */}
+      {correction && (
+        <p role="status" className="mt-2 text-xs leading-6 text-muted">
+          {applied && (
+            <>
+              {format("card.apply.done", { text: correction.text })}{" "}
+              <a href={`#${DRAFT_VIEW_ID}`} className="text-link">
+                {t("card.apply.goToDraft")}
+              </a>
+            </>
+          )}
+        </p>
       )}
 
       {occurrence && comparing && <CompareView id={compareId} item={item} occurrence={occurrence} />}

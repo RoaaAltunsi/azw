@@ -152,6 +152,17 @@ body {
     background: color-mix(in srgb, var(--status) 26%, transparent);
   }
 
+  /* A stretch of the revised draft the writer replaced with the source's text or citation: the
+     trace line under the words, on the paper of a source text. */
+  .draft-applied {
+    border-radius: 3px;
+    background: var(--azw-paper);
+    color: inherit;
+    text-decoration: underline dashed var(--azw-vermilion);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 6px;
+  }
+
   /* Word diff. The marks differ in underline style as well as in color; the legend names them. */
   .diff-mark {
     border-radius: 3px;

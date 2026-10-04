@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import {
   ApiSourceRecordSchema,
+  EvidenceSchema,
   DiffOpSchema,
   ReviewItemSchema,
   ReviewResultSchema,
@@ -190,4 +191,32 @@ test.each(["quran", "bukhari", "muslim"])("the built %s corpus conforms to Sourc
   const corpus = JSON.parse(readFileSync(`data/corpus/${collection}.json`, "utf8")) as { records: unknown[] };
   expect(corpus.records.length).toBeGreaterThan(0);
   for (const r of corpus.records) SourceRecordSchema.parse(r);
+});
+
+// The backstop of AGENTS.md §2 rule 1 for corrections: only the record's own text or citation.
+describe("EvidenceSchema: a correction", () => {
+  const entry = (correction: unknown) => ({ record: toApiRecord(record), score: 1, correction });
+  const draft = { start: 0, end: 4 };
+  const rows: Array<[string, unknown, boolean]> = [
+    ["a stretch of exactText", { target: "wording", draft, text: "المصدر" }, true],
+    ["the whole of exactText", { target: "wording", draft, text: "نص المصدر" }, true],
+    ["words that are not in exactText", { target: "wording", draft, text: "نص آخر" }, false],
+    ["the citation as a wording", { target: "wording", draft, text: "البقرة: 153" }, false],
+    ["the citation", { target: "reference", draft, text: "البقرة: 153" }, true],
+    ["the citation in brackets", { target: "reference", draft, text: "[البقرة: 153]" }, true],
+    ["another citation", { target: "reference", draft, text: "[البقرة: 154]" }, false],
+    ["an empty text", { target: "wording", draft, text: "" }, false],
+    ["an empty range", { target: "wording", draft: { start: 3, end: 3 }, text: "المصدر" }, false],
+    ["an unknown target", { target: "explanation", draft, text: "المصدر" }, false],
+    ["an extra field", { target: "wording", draft, text: "المصدر", by: "llm" }, false],
+  ];
+  test.each(rows)("%s", (_name, correction, valid) => {
+    expect(EvidenceSchema.safeParse(entry(correction)).success).toBe(valid);
+  });
+
+  test("an entry without a correction is valid, and a result that carries a foreign one is not", () => {
+    expect(EvidenceSchema.safeParse({ record: toApiRecord(record), score: 1 }).success).toBe(true);
+    const foreign = { ...item, status: "DIFFERS", evidence: [entry({ target: "wording", draft, text: "نص من خارج المصدر" })] };
+    expect(ReviewItemSchema.safeParse(foreign).success).toBe(false);
+  });
 });
