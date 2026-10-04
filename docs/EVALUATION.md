@@ -371,7 +371,9 @@ a label. Decision: `docs/DECISIONS.md` D-26.
     evidence**, and the case moved from WORDING_ERROR to AMBIGUOUS. The same search was then run
     on the other altered quotes (`T-034`, `H-033`, `H-034`, `H-035`): each has one closest record.
   - `T-030` and `T-032` are not found by the regex extractor, as intended: their phrase is outside
-    its list. The test now pins that, and the cases wait for the runner's LLM modes.
+    its list. The test now pins that, and the cases wait for the runner's LLM modes. (Since the
+    fix loop of section 12 the list holds «يقول النبي», the regex extractor finds both, and the
+    test checks them like the other tune cases.)
   - `T-027` needs the claim level that only an extractor supplies; the test now passes the labeled
     level in, as it passes the span in.
 - **The 21 held-out additions were never run.** They were written by the labeler and are held-out
@@ -545,9 +547,9 @@ evidence in any run. A mode that did not run cannot pass. `npm run eval` exits w
 record ids only, never by its draft or its quotes; a test pins this. Tune failures show the draft.
 Decision: `docs/DECISIONS.md` D-27.
 
-## 11. Results (2026-10-04)
+## 11. Results before the fix loop (2026-10-04)
 
-Full report: `eval/results/2026-10-04-p2-e2bfaf5a3ad2.md` (every table, the confusion matrices and
+Full report: `eval/results/2026-10-04-p2-e2bfaf5a3ad2-p14.md` (every table, the confusion matrices and
 every wrong case). Produced by `npm run eval`.
 
 - **Date:** 2026-10-04. **Corpus version:** `p2-e2bfaf5a3ad2` (quran, bukhari, muslim).
@@ -638,3 +640,195 @@ another.
   the `citedReference` and `attributionPhrase` fields of the model's output.
 - Nothing was fixed in this step. The failures above are the input of the next one (P15), which
   may tune on the tune split only.
+
+## 12. Results after the fix loop (2026-10-04)
+
+Full report: `eval/results/2026-10-04-p2-e2bfaf5a3ad2.md`. Before: `…-p14.md` (section 11).
+What was changed and why: `docs/DECISIONS.md` D-28.
+
+- **Date:** 2026-10-04. **Corpus version:** `p2-e2bfaf5a3ad2` (quran, bukhari, muslim).
+- **Model:** provider `openai`, model `gpt-5.6-luna`, time budget 15 s. Extraction prompt
+  version 3, explanation prompt version 2.
+- **No person has reviewed the cases.** They were drafted and checked by an AI assistant
+  (section 1).
+
+**What was fixed, on the tune split only.** Four general rules, each with a unit test:
+
+| # | Cause | Rule | Tune cases it concerns |
+|---|---|---|---|
+| 1 | The model returned the writer's own remark as a claim | The prompt defines a claim by its form: a conclusion from a named text, or the words of a ruling (prompt version 2) | `T-001`, `T-006`, `T-018`, `T-022`, `T-025`, `T-027` |
+| 2 | «يقول النبي ﷺ» was outside the regex list | A verb of speech is read in the past and the present tense | `T-030`, `T-032` |
+| 3 | A ruling was found only by the LLM | The regex extractor reads eight claim forms (`CLAIM_PATTERNS`) | `T-018`, `T-027` |
+| 4 | The model called a verse attributed to the Prophet ﷺ `quran` (a false confirmation, `llm` mode, one run) | The kind is what the draft claims, never what the model recognises (prompt version 3) | `T-012` |
+
+No label was edited, no held-out draft was read, and no threshold was changed.
+
+**Release gate: PASS** (before: PASS). Zero false confirmations on the 23 critical held-out cases
+in `merged` and in `regex` mode; no `ERROR` item carried evidence in any run.
+
+**The critical cases, stated exactly.** The gate counts false confirmations only; it does not say
+that every critical case is as labeled. Of the 23 critical held-out cases, in `merged` mode:
+
+| Result | Cases |
+|---|---|
+| Fully as labeled | 21 / 23 |
+| Wrong, ending in a referral to a specialist (`H-010`, `H-033`) | 2 / 23 |
+| A false confirmation (a `MATCH` the label does not support) | 0 / 23 |
+
+In `regex` mode 19 / 23 are fully as labeled and none is a false confirmation. On the tune split
+all 13 critical cases are as labeled in `merged` mode. The two held-out misses are on the safe
+side: the tool abstains (`H-010`) or adds a referral card (`H-033`). They were not fixed, because
+no tune case shows the same failure and a fix designed from a held-out case would spoil the
+held-out result.
+
+**Before and after, held-out split (the reported result).**
+
+| Metric | regex before | regex after | merged before | merged after |
+|---|---|---|---|---|
+| False confirmations / `MATCH` returned (primary) | 0 / 17 | 0 / 17 | 0 / 20 | 0 / 20 |
+| Status accuracy | 46 / 59 | 48 / 59 | 57 / 59 | 58 / 59 |
+| Reason-code accuracy | 46 / 59 | 48 / 59 | 57 / 59 | 57 / 59 |
+| Source retrieval | 37 / 41 | 37 / 41 | 41 / 41 | 41 / 41 |
+| Extraction recall | 47 / 59 | 49 / 59 | 58 / 59 | 59 / 59 |
+| Extraction precision | 47 / 47 | 49 / 49 | 58 / 59 | 59 / 60 |
+| Abstention | 13 / 21 | 15 / 21 | 20 / 21 | 21 / 21 |
+| Requests given the scope message | 0 / 2 | 0 / 2 | 2 / 2 | 2 / 2 |
+| Cases right | 36 / 51 | 38 / 51 | 48 / 51 | 48 / 51 |
+
+**The two groups of cases, before → after** (cases right; status accuracy).
+
+| Split, mode | First 50 | 35 added |
+|---|---|---|
+| Held-out, `merged` | 28 / 30 → 28 / 30; 30 / 32 → 31 / 32 | 20 / 21 → 20 / 21; 27 / 27 → 27 / 27 |
+| Held-out, `regex` | 23 / 30 → 23 / 30; 26 / 32 → 26 / 32 | 13 / 21 → 15 / 21; 20 / 27 → 22 / 27 |
+| Held-out, `llm` | 27 / 30 → 28 / 30; 30 / 32 → 31 / 32 | 18 / 21 → 18 / 21; 26 / 27 → 26 / 27 |
+| Tune, `merged` | 20 / 20 → 20 / 20; 20 / 20 → 20 / 20 | 12 / 14 → 13 / 14; 17 / 17 → 17 / 17 |
+| Tune, `regex` | 18 / 20 → 19 / 20; 19 / 20 → 20 / 20 | 11 / 14 → 14 / 14; 14 / 17 → 17 / 17 |
+| Tune, `llm` | 17 / 20 → 20 / 20; 20 / 20 → 20 / 20 | 12 / 14 → 14 / 14; 17 / 17 → 17 / 17 |
+
+False confirmations are zero in every cell of both groups, before and after. The first 50 are
+the blind group; the regex gain on held-out is all in the 35 added, which are not blind
+(section 8).
+
+**How to read it.** On held-out, `merged` mode moved by one item: the personal ruling that no
+mode extracted before (`H-027`) is now extracted and referred to a specialist, with level C where
+the label says D. Everything else in `merged` mode is inside the model's run-to-run variation.
+The clear gains are on the tune split, which the rules were tuned on, and in the regex baseline.
+
+**Held-out cases still wrong in `merged` mode.** None is a false confirmation.
+
+| Case | Category | What happened |
+|---|---|---|
+| `H-010` | WORDING_ERROR, critical | Unchanged: `NEEDS_SPECIALIST / LOW_CONFIDENCE_MATCH` where the label says `DIFFERS / WORDING_DIFF`. A cautious miss |
+| `H-027` | AMBIGUOUS | Now extracted and `NEEDS_SPECIALIST`; the reason is `INTERPRETIVE_CLAIM`, the label says `PERSONAL_RULING` |
+| `H-033` | WORDING_ERROR, critical | Unchanged: the labeled item is right; the model added a claim no label expects |
+
+**Known limits: tune failures that no general rule fixes.**
+
+- `T-019` in `regex` mode: only the LLM can say that an input is a request and not a draft.
+- One unexpected item in a single run, a different one from run to run: a remark of the writer
+  returned as a claim (`T-006`, `T-013`, `T-024`, `T-031`), or, in `llm` mode only, a quote the
+  model returned with a letter changed, which `validateSpans` drops (`T-012`, `T-025`). In the
+  reported run it is `T-024` in `merged` mode. None is a `MATCH`.
+
+**Stability.** Held-out, `merged`, three runs: 2 items of 62 did not end the same way. Both are
+an item no label expects, returned in one run of three (`H-004`, `H-031`:
+`NEEDS_SPECIALIST`). No labeled item changed status.
+
+**Limits.**
+
+- **Held-out was run twice in this step, not once.** The first full run (prompt version 2,
+  `…-p15-run1.md`) showed a false confirmation on a tune case in `llm` mode. Rule 4 was written
+  for that tune case; the held-out failures of that run were seen by id and category only, and
+  nothing was changed for them. The second run is the one reported. First run, held-out
+  `merged`: false confirmations 0 / 19, status 57 / 59, cases right 46 / 51 (48 / 51 in its two
+  other passes), with `H-041` ending `NEEDS_SPECIALIST / UNCLEAR_ATTRIBUTION` in one pass.
+- The differences before and after are one or two items of 59, the same size as the variation
+  between two runs of the same code. They do not show that held-out accuracy improved; they show
+  that it did not get worse and that no false confirmation appeared.
+- The notes of two held-out cases in section 9 name attribution phrases the regex list does not
+  hold. They were not added (D-28).
+- The limits of section 11 still hold: a small sample, one model, one day, cases not reviewed by
+  a person, the 35 added cases not blind, latency from a developer machine.
+- Cost: the longer prompt adds about 370 input tokens per draft (1154 → 1526 on held-out).
+  Latency p50 / p95 in `merged` mode: 2372 / 7206 ms (before: 2513 / 7534 ms).
+
+## 13. Cost per review (2026-10-04)
+
+Computed from the tokens the SDK reported in the run of section 12 and the provider's list price.
+
+- **Price** of `gpt-5.6-luna`, read by the owner on the provider's pricing page on 2026-10-04:
+  input $0.10, cached input $0.01, output $0.50, each per 1 million tokens.
+- **Tokens per draft**, held-out, `merged` mode: 1526 in, 237 out (one extraction per draft, plus
+  one call per explained item: 68 calls for 51 drafts).
+
+```
+cost per review = (1526 × $0.10 + 237 × $0.50) ÷ 1,000,000
+                = ($152.60 + $118.50) ÷ 1,000,000
+                = $0.00027      → about $0.27 per 1,000 reviews
+```
+
+| | Per review | Per 1,000 reviews |
+|---|---|---|
+| With the LLM (`merged`) | $0.00027 | $0.27 |
+| Without the LLM (`regex`) | $0 | $0 |
+
+One full evaluation (272 reviews with the LLM) costs about $0.07.
+
+**Limits.**
+
+- The evaluation drafts are short (1–4 sentences). Of the 1526 input tokens most are the fixed
+  extraction prompt; a longer draft adds its own length, and each `DIFFERS` item adds one
+  explanation call. The API accepts drafts up to `MAX_DRAFT_CHARS` (12,000 characters); the cost
+  of a draft of that size was not measured.
+- The input is counted at the full price. Whether the provider bills the repeated prompt at the
+  cached price was not checked, so the figure is an upper estimate for input.
+- A list price on one day. It covers the LLM only, not hosting.
+
+**If the provider is unavailable.** The review goes on with the regex extractor alone and says so
+(`LLM_UNAVAILABLE_REGEX_ONLY`). That mode is measured, not assumed: held-out status 48 / 59 and
+zero false confirmations, against 58 / 59 with the LLM (section 12).
+
+## 14. Comparison with checking by hand (protocol; not run yet)
+
+**Why.** The guide scores innovation on a proven addition "compared with a named alternative or
+current practice" (`docs/reference/challenge-guide.md` §2). The current practice of a writer is
+to search each quote by hand. **This comparison has not been run. No number below is a result
+until a person fills the table.**
+
+**The named alternative.** A writer checks a draft by hand: Quran quotes on quranpedia.net, hadith
+quotes on dorar.net.
+
+**The drafts.** 12 tune cases, never held-out. Nine hold one error to catch, one holds a saying
+that is in none of the three sources, and two are correct, so that the checker cannot assume
+every draft is wrong:
+
+| Kind | Cases |
+|---|---|
+| Wording error | `T-008`, `T-009`, `T-010`, `T-023` |
+| Wrong reference | `T-011`, `T-012`, `T-013`, `T-021`, `T-022` |
+| Not in the covered sources | `T-014` |
+| Correct | `T-001`, `T-003` |
+
+**Steps for the person.**
+
+```
+1. Someone else copies the 12 drafts into a document in a mixed order, without ids or notes.
+2. For each draft: start the stopwatch, check every quote by hand on the two sites,
+   write down what is wrong (wording, reference, not found, or nothing), stop the stopwatch.
+3. Compare each answer with the case's label. Count the drafts answered as labeled.
+4. Fill the table. Record who checked, the date, and whether they knew the cases before.
+```
+
+**Results.**
+
+| | By hand | Azw (`merged`) |
+|---|---|---|
+| Drafts answered as labeled | not run | 12 / 12 (run of section 12) |
+| Time per draft | not run | p50 2.3 s, p95 7.5 s (all 34 tune drafts) |
+| Shows the source text and a word-level difference | — | yes |
+
+**Limits to state with the result.** One person and 12 short drafts. The tool's rules were tuned
+on these same tune cases, so its 12 / 12 is not a blind result; the blind numbers are those of
+the held-out split (section 12). The person who labeled or built the cases knows the answers and
+should not be the checker.

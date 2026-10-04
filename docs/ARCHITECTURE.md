@@ -910,11 +910,13 @@ claim of the writer that the matchers then check.
 
 | Kind | Phrases | Marks | Without marks |
 |---|---|---|---|
-| `quran` | «قال تعالى», «قال الله تعالى», «قال سبحانه», «يقول الله», «قوله تعالى» | `«…»`, `“…”`, `"…"`, and `(…)` right after the phrase | up to the sentence end |
-| `hadith` | «قال رسول الله», «قال النبي», «قال ﷺ», «عن النبي … قال» | `«…»`, `“…”`, `"…"` | up to the sentence end |
+| `quran` | «قال تعالى», «قال الله تعالى», «قال سبحانه», «يقول الله», «يقول تعالى», «يقول سبحانه», «قوله تعالى» | `«…»`, `“…”`, `"…"`, and `(…)` right after the phrase | up to the sentence end |
+| `hadith` | «قال رسول الله», «قال النبي», «قال ﷺ», «يقول رسول الله», «يقول النبي», «يقول ﷺ», «عن النبي … قال» | `«…»`, `“…”`, `"…"` | up to the sentence end |
 | `hadith` | «في الحديث», «ورد عنه» | the same | only after a colon |
 | `unclear_attribution` | «في الأثر», «قال بعض السلف», «يروى», «يقال إن النبي» | the same | only after a colon |
 
+- **A verb of speech is listed in the past and in the present tense** («قال النبي», «يقول النبي»):
+  the writer names the same speaker in both (`docs/DECISIONS.md` D-28).
 - **A phrase is matched as whole words**, whatever the diacritics, the hamza on an alef, «ى/ي» and
   «ة/ه»; also after «و» or «ف» and a prefix «ك», «ل», «ب» («وقال تعالى», «لقوله تعالى»). In
   «قال ﷺ» the sign stands for any of `PROPHET_HONORIFICS` («قال صلى الله عليه وسلم»). In
@@ -944,6 +946,34 @@ claim of the writer that the matchers then check.
   «و» or «ف» («… وقال تعالى: «…»») is a new clause: its quote is its own, and the first phrase
   takes nothing from beyond it.
 
+### Claims
+
+3. **A sentence that opens with a claim phrase** is an `interpretive_claim` (`CLAIM_PATTERNS`, an
+   exported list; the second argument of `createRegexExtractor`). They are the forms the
+   extraction prompt names, so that such a sentence is referred to a specialist also when no LLM
+   takes part (`docs/DECISIONS.md` D-28).
+
+| Level | Phrases | What it is |
+|---|---|---|
+| `C` | «تدل الآية على», «يدل الحديث على», «يفهم من الآية», «يفهم من الحديث» | A conclusion the writer draws from a named text |
+| `D` | «يجوز لك», «لا يجوز لك», «يجب عليك», «يحرم عليك» | A ruling addressed to the reader |
+
+```
+draft: والجواب: يجوز لك أن تفطر لقوله تعالى: ﴿فعدة من أيام أخر﴾.
+ 1. phrase   «يجوز لك» → a claim of level D starts at «يجوز»
+ 2. end      it runs as an unmarked quote would: here up to the next phrase «لقوله تعالى»
+ 3. result   two items: the claim «يجوز لك أن تفطر» and the verse inside ﴿ ﴾
+ 4. status   the claim ends NEEDS_SPECIALIST / PERSONAL_RULING; the verse is matched as usual
+```
+
+- The phrase is matched like an attribution phrase (whole words, any diacritics, after «و» / «ف»),
+  and it is part of the span.
+- The span ends where an unmarked quote ends (sentence end, quotation mark, bracket, reference
+  word, next attribution phrase), so a quotation after the claim stays an item of its own.
+- A claim must hold at least one word more than its phrase.
+- The words of a quotation are never a claim: a phrase inside a quote starts later than the quote
+  and is dropped by the overlap rule below.
+
 ### The span
 
 The quoted words only, trimmed: no marks, no phrase, no honorific; for an unmarked quote also no
@@ -970,10 +1000,13 @@ comma, dash or colon at either end. `draft.slice(start, end) === text`, always.
 - A full stop inside an unmarked quote ends it. A quote in marks that opens more than 60
   characters after the phrase is not read as marked.
 - Marks with no phrase before them are never a quote (a book title, a term). Phrases outside the
-  list («يقول النبي», «قال الله عز وجل» without «تعالى», «رُوي»), `{…}` and single quotes are not
+  list («قال المصطفى», «قال الله عز وجل» without «تعالى», «رُوي»), `{…}` and single quotes are not
   read (`docs/BACKLOG.md`).
 - An unbracketed «سورة البقرة: 153» after an unmarked verse is inside the span.
-- Interpretive claims and personal rulings are not detected: that is the LLM extractor's.
+- Claims are read only in the eight forms of `CLAIM_PATTERNS`. A conclusion or a ruling in other
+  words («وفي هذا دليل على…», «يجوز للمسافر…», «طلاقك واقع») is the LLM extractor's to find.
+- An input that is a request and not a draft is not recognised: only the LLM extractor says so
+  (`NOT_A_DRAFT`).
 
 ## LLM extractor
 
@@ -1024,7 +1057,7 @@ schema (a status, an offset) is not read.
 
 | | |
 |---|---|
-| System prompt | Appendix A1 of the prompt pack, verbatim (`EXTRACT_SYSTEM_PROMPT`, `EXTRACT_PROMPT_VERSION = "1"`), sent as `instructions` |
+| System prompt | Appendix A1 of the prompt pack, verbatim (`EXTRACT_SYSTEM_PROMPT`, `EXTRACT_PROMPT_VERSION = "3"`), sent as `instructions`. Version 2 says which sentences are an interpretive claim: one that draws a conclusion from a named text, or one that states a ruling in the words of a ruling; the writer's advice or closing remark is not one. Version 3 says the kind is what the draft claims, never what the model recognises: a verse attributed to the Prophet ﷺ is returned as `hadith` (`docs/DECISIONS.md` D-28) |
 | Draft | A user message of its own: `<draft>\n…\n</draft>` |
 | Temperature | 0. A model that refuses the parameter (HTTP 400 naming `temperature`) is called again without it, and without it from then on |
 | Timeout | `LLM_TIMEOUT_MS` (15000) for the extraction as a whole, the retry included: one `AbortSignal`. The explanations of a review have the same budget again ("Explanation") |

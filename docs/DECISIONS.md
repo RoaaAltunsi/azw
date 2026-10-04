@@ -1481,3 +1481,120 @@ regex baseline; requests 2 / 2 against 0 / 2; latency p50 / p95 2513 / 7534 ms a
 **Limits.** No person has reviewed the cases. A small sample, one model, one reported run of a
 model that is not deterministic; an earlier run the same day differed by one held-out item. This
 is an AI tool's documented measurement, not a scholar's review.
+
+## D-28 — Fix loop on the tune split: four general rules and what they moved (2026-10-04)
+
+The failures of the tune split in the report of D-27 were fixed one cause at a time
+(`docs/EVALUATION.md` section 12). No label was changed, no held-out draft was read, and no rule
+names a case or its text. Each rule has a unit test that uses sentences written for the test.
+The tune numbers below are cases right of 34, in the order regex / llm / merged; the model is not
+the same from run to run, so a number is given with the runs it was seen in.
+
+Start (two runs of the unchanged code): 29 / 29 / 32 and 29 / 32 / 33. No false confirmation.
+
+**1. An interpretive claim is defined by its form (extraction prompt, version 2).**
+
+- *Cause.* The model returned the writer's own closing or opening sentence as an
+  `interpretive_claim` (`T-001`, `T-006`, `T-018`, `T-022` — a critical case —, `T-025`): an
+  extra `NEEDS_SPECIALIST` card that no label expects. In one run it did not return a personal
+  ruling at all (`T-027`).
+- *Rule.* A sentence is a claim when it (a) draws a conclusion from a verse or hadith with words
+  of inference and names that text, or (b) states a ruling in the words of a ruling, also when
+  the draft quotes nothing. The whole sentence is one item. Advice, encouragement, a reminder, an
+  opening or closing remark, and a sentence that only introduces a text are not claims.
+- *Why it makes sense without the cases.* Levels C and D of the scientific package are about
+  disputed matters and rulings (`AGENTS.md` §3). An exhortation is neither; sending it to a
+  specialist tells the writer nothing.
+- *Option weighed.* A filter in code that drops a model's claim unless it holds a word of a
+  closed list. Rejected: it would drop a real ruling written in other words, and the writer
+  would be shown nothing for it. An extra cautious card is the smaller error.
+- *Measured.* The next three runs: — / 33 / 33, then — / 34 / 34 twice. In the ten runs made
+  after this rule, four still showed one unexpected item (a different sentence each time).
+
+**2. A verb of speech is read in the present tense too (regex extractor).**
+
+- *Cause.* «يقول النبي ﷺ: «…»» is outside `ATTRIBUTION_PATTERNS`, so without the LLM the quote
+  was not reviewed at all (`T-030`, `T-032`).
+- *Rule.* Each verb-of-speech phrase is listed in both tenses: «يقول تعالى», «يقول سبحانه»
+  (`quran`), «يقول رسول الله», «يقول النبي», «يقول ﷺ» (`hadith`). «يقول الله» was already listed.
+- *Why the kind is `hadith` and not `unclear_attribution`.* The forms that do not assert are the
+  passive and impersonal ones («رُوي», «ورد عنه», «جاء عنه»); «قال رسول الله ﷺ» «وما أشبه هذا من
+  الألفاظ الجازمة» assert (Ibn al-Salah, as quoted in D-20, Source 1). «يقول النبي ﷺ» names the
+  speaker with the same active verb. No new source was read for this.
+- *Measured.* regex 29 → 31. The forms note of the UI (`extract.formsNote`) names the five new
+  phrases; its test still checks the list against the sentence.
+
+**3. The regex extractor reads the claim forms the prompt names (`CLAIM_PATTERNS`).**
+
+- *Cause.* A ruling or a derived claim was found only by the LLM (`T-018`, `T-027`). Without it,
+  or in a run where the model missed it, the writer was shown nothing for a level D sentence.
+- *Rule.* A sentence that opens with «تدل الآية على», «يدل الحديث على», «يفهم من الآية», «يفهم من
+  الحديث» is a claim of level C; one with «يجوز لك», «لا يجوز لك», «يجب عليك», «يحرم عليك» is a
+  ruling addressed to the reader, level D. The span runs as an unmarked quote does, so a
+  quotation after it stays its own item; the words of a quotation are never a claim.
+- *Why these eight.* They are the forms Appendix A1 gave as examples of a claim before any case
+  was run. A wider list («يجوز», «يجب» alone) would mark general statements that a writer
+  reports from a book; the second person is what makes a ruling personal (level D).
+- *Effect on a result.* A claim never has evidence and always ends `NEEDS_SPECIALIST`. The rule
+  can add a cautious card; it cannot add or remove a `MATCH`.
+- *Measured.* regex 31 → 33. Merged and llm unchanged (34 / 34 in that run).
+
+**4. The kind is the draft's claim, never what the model recognises (extraction prompt, version 3).**
+
+- *Cause.* A false confirmation, seen once, in `llm` mode, in the full run made after rules 1–3:
+  `T-012` (critical) attributes a verse to the Prophet ﷺ. The model returned it as `quran`, as
+  version 1 allowed ("or it is clearly a verse even without a marker"), and it ended `MATCH`
+  instead of `DIFFERS / KIND_MISMATCH`. In `merged` mode the regex extractor's `hadith` wins (D-20
+  item 2), so production was right in every run; but a phrase outside the regex list would have
+  no such guard.
+- *Rule.* The kind is what the draft says the passage is. Words attributed to the Prophet ﷺ are
+  `hadith` even when the model knows them as a verse, and the reverse. "Clearly a verse" applies
+  only when the draft attributes the words to no one.
+- *Why it makes sense without the case.* The model's memory is never a source (`AGENTS.md` §2
+  rule 9), and it is the rule the regex extractor already follows (D-20: text in marks takes the
+  kind of its phrase, also when it is really a verse).
+- *Measured.* Four runs of the tune split after the change: false confirmations 0 / 13 in every
+  mode of every run.
+- *Limit.* A prompt is a request to the model, not a guarantee. The guard that does not depend
+  on the model is still the regex extractor's kind, for the phrases it reads.
+
+**Not fixed, and why (known limits).**
+
+- `T-019` in `regex` mode: only the LLM says that an input is a request. No pattern was added:
+  a list of request words would be a rule about one sentence. A property of the baseline.
+- The model is not deterministic at temperature 0. After the four rules, single runs still showed
+  one item that differs from the labels: an unexpected claim (`T-006`, `T-013`, `T-024`, `T-031`,
+  one each in different runs) or a quote returned with a letter changed and so dropped by
+  `validateSpans` (`T-012`, `T-025`, `llm` mode only). None is a `MATCH`.
+- Attribution phrases named only in the notes of held-out cases («جاء عنه ﷺ أنه قال», «قال
+  المصطفى ﷺ») were not added: the tune split has no case for them, and adding them would be
+  tuning on held-out.
+- No threshold of `STATUS_CONFIG`, no normalization rule and no reference rule was changed: no
+  tune failure pointed at one.
+
+**Held-out was run twice, not once.** The first full run (prompt version 2) is the one that
+showed the false confirmation of rule 4, on a tune case. The fix was designed on that tune case
+alone; the held-out failures of that run were seen by id and category only, as the report prints
+them, and nothing was changed for them. The second full run is the reported result. Both reports
+are kept: `eval/results/2026-10-04-p2-e2bfaf5a3ad2-p15-run1.md` and
+`eval/results/2026-10-04-p2-e2bfaf5a3ad2.md`; the report of D-27 is now `…-p14.md`.
+
+**Measured, held-out, `merged` mode** (before = D-27; after = the second run):
+
+| | Before | After |
+|---|---|---|
+| False confirmations / `MATCH` returned | 0 / 20 | 0 / 20 |
+| Status accuracy | 57 / 59 | 58 / 59 |
+| Extraction recall | 58 / 59 | 59 / 59 |
+| Abstention | 20 / 21 | 21 / 21 |
+| Cases right | 48 / 51 | 48 / 51 |
+| Cases right, `regex` baseline | 36 / 51 | 38 / 51 |
+
+Release gate: PASS before and after. The gate did not fail, so no threshold was tightened and no
+trade of `MATCH` for `NEEDS_SPECIALIST` was needed.
+
+**Limits.** The gains are small and inside the run-to-run variation of the model: the first P15
+run gave 46 / 51 and 57 / 59 on its first held-out pass and 48 / 51 on the other two. What the
+measurement supports: no false confirmation in any held-out run, the regex baseline finds more,
+and a personal ruling is no longer missed. No person has reviewed the cases. This is an AI
+tool's documented measurement, not a scholar's review.

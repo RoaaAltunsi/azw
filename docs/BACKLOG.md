@@ -226,14 +226,18 @@ is built until it is moved into a prompt's scope.
   - Not looked at in a browser: a phone-width screen (the window could not be resized in the
     test session), a screen reader, Firefox and Safari.
 
-- Evaluation (P14), for P15 (`docs/EVALUATION.md` section 11, `docs/DECISIONS.md` D-27). Tune on the
-  tune split only:
-  - The model returns the writer's closing sentence as an `interpretive_claim` (`T-001`, `T-006`,
-    `T-018`, `T-022`, `T-025`): an extra `NEEDS_SPECIALIST` card. A prompt change is a new
-    `EXTRACT_PROMPT_VERSION`.
-  - A ruling for a personal case is not always extracted (`T-027` in one run of two; held-out
-    `H-027`, `H-040`), and a hadith qudsi once came back as `unclear_attribution` (`H-041`). The
+- Evaluation, after the fix loop (P15: `docs/EVALUATION.md` section 12, `docs/DECISIONS.md` D-28).
+  Tune on the tune split only:
+  - The model still returns, in some runs, a sentence of the writer as an `interpretive_claim`
+    that no label expects (one item in four tune runs of ten after prompt version 2; held-out
+    `H-004`, `H-033`), and a hadith qudsi once came back as `unclear_attribution` (`H-041`). The
     extraction is not the same from run to run, although the temperature is 0.
+  - A ruling for a personal case came back as level C, not D (`H-027`).
+  - The regex extractor reads claims in eight fixed forms only, and cannot say that an input is a
+    request (`T-019`): both are the LLM extractor's.
+  - Attribution phrases still outside the regex list: «قال المصطفى», «جاء عنه», «رُوي», «قال الله
+    عز وجل» without «تعالى». They were not added in P15 because the tune split has no case for
+    them (two are named in the notes of held-out cases).
   - `H-010`: a misquoted verse inside a question ends `LOW_CONFIDENCE_MATCH`, not `DIFFERS`; in
     `llm` mode the model says `NOT_A_DRAFT` and the verse is not reviewed at all.
   - In merged mode the same quote is cut one character wider or narrower from run to run (the

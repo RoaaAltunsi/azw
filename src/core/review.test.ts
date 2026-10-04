@@ -304,7 +304,7 @@ describe("the LLM extractor (a mocked port, no network)", () => {
     const claim = "يجوز لك أن تترك ذلك لقوله تعالى: ﴿قل أعوذ برب الفلق﴾.";
     const result = await review(draft, { ...deps, llm: returning([item(claim, "interpretive_claim", "D")]) });
     expect(result.items.map((i) => [i.span.text, i.status, i.reasonCode, i.contentLevel, i.extractedBy])).toEqual([
-      ["يجوز لك أن تترك ذلك لقوله تعالى", "NEEDS_SPECIALIST", "PERSONAL_RULING", "D", ["llm"]],
+      ["يجوز لك أن تترك ذلك لقوله تعالى", "NEEDS_SPECIALIST", "PERSONAL_RULING", "D", ["regex", "llm"]],
       ["قل أعوذ برب الفلق", "MATCH", "MATCH_NO_REFERENCE", "A", ["regex"]],
     ]);
     for (const i of result.items) expect(draft.slice(i.span.start, i.span.end)).toBe(i.span.text);

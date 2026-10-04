@@ -33,16 +33,22 @@ export interface AttributionPattern {
   roundBrackets?: boolean;
 }
 
-// The attribution phrases the extractor reads. Extend the list here.
+// The attribution phrases the extractor reads. Extend the list here. A verb of speech is listed in
+// the past and in the present tense («قال النبي», «يقول النبي»): docs/DECISIONS.md D-28.
 export const ATTRIBUTION_PATTERNS: readonly AttributionPattern[] = [
   { phrase: "قال تعالى", claimedKind: "quran", unmarked: "always", roundBrackets: true },
   { phrase: "قال الله تعالى", claimedKind: "quran", unmarked: "always", roundBrackets: true },
   { phrase: "قال سبحانه", claimedKind: "quran", unmarked: "always", roundBrackets: true },
   { phrase: "يقول الله", claimedKind: "quran", unmarked: "always", roundBrackets: true },
+  { phrase: "يقول تعالى", claimedKind: "quran", unmarked: "always", roundBrackets: true },
+  { phrase: "يقول سبحانه", claimedKind: "quran", unmarked: "always", roundBrackets: true },
   { phrase: "قوله تعالى", claimedKind: "quran", unmarked: "always", roundBrackets: true },
   { phrase: "قال رسول الله", claimedKind: "hadith", unmarked: "always" },
   { phrase: "قال النبي", claimedKind: "hadith", unmarked: "always" },
   { phrase: "قال ﷺ", claimedKind: "hadith", unmarked: "always" },
+  { phrase: "يقول رسول الله", claimedKind: "hadith", unmarked: "always" },
+  { phrase: "يقول النبي", claimedKind: "hadith", unmarked: "always" },
+  { phrase: "يقول ﷺ", claimedKind: "hadith", unmarked: "always" },
   { phrase: "عن النبي … قال", claimedKind: "hadith", unmarked: "always" },
   { phrase: "في الحديث", claimedKind: "hadith", unmarked: "afterColon" },
   { phrase: "ورد عنه", claimedKind: "hadith", unmarked: "afterColon" },
@@ -50,6 +56,27 @@ export const ATTRIBUTION_PATTERNS: readonly AttributionPattern[] = [
   { phrase: "قال بعض السلف", claimedKind: "unclear_attribution", unmarked: "afterColon" },
   { phrase: "يروى", claimedKind: "unclear_attribution", unmarked: "afterColon" },
   { phrase: "يقال إن النبي", claimedKind: "unclear_attribution", unmarked: "afterColon" },
+];
+
+export interface ClaimPattern {
+  // Written and matched like the phrase of an AttributionPattern.
+  phrase: string;
+  // "C" = a conclusion drawn from a text; "D" = a ruling addressed to the reader (src/core/status).
+  claimLevel: Extract<ContentLevel, "C" | "D">;
+}
+
+// The sentences of the writer that are read as an interpretive claim: from the phrase to the
+// sentence end. They are the forms the extraction prompt names (src/llm/prompts/extract.ts), so
+// that a ruling is referred to a specialist also when no LLM takes part (docs/DECISIONS.md D-28).
+export const CLAIM_PATTERNS: readonly ClaimPattern[] = [
+  { phrase: "تدل الآية على", claimLevel: "C" },
+  { phrase: "يدل الحديث على", claimLevel: "C" },
+  { phrase: "يفهم من الآية", claimLevel: "C" },
+  { phrase: "يفهم من الحديث", claimLevel: "C" },
+  { phrase: "يجوز لك", claimLevel: "D" },
+  { phrase: "لا يجوز لك", claimLevel: "D" },
+  { phrase: "يجب عليك", claimLevel: "D" },
+  { phrase: "يحرم عليك", claimLevel: "D" },
 ];
 
 // Skipped between a phrase and its quote, and never part of a span.
@@ -65,6 +92,7 @@ export const MAX_LEAD_CHARS = 60;
 export const MAX_PHRASE_GAP_CHARS = 40;
 
 const UNCLEAR: ClaimedKind = "unclear_attribution";
+const CLAIM: ClaimedKind = "interpretive_claim";
 
 // ---------------------------------------------------------------------------------------------
 // Patterns
@@ -168,6 +196,7 @@ interface Attribution extends Range {
 interface Found {
   span: Range;
   claimedKind: ClaimedKind;
+  claimLevel?: ClaimPattern["claimLevel"];
 }
 
 // Two phrases before one quote («يُروى عن النبي ﷺ أنه قال», «قال رسول الله ﷺ: قال الله تعالى»):
@@ -176,8 +205,9 @@ interface Found {
 export const weakerKind = (outer: ClaimedKind, inner: ClaimedKind): ClaimedKind =>
   outer === UNCLEAR || inner === UNCLEAR ? UNCLEAR : outer === "quran" ? inner : outer;
 
-export function createRegexExtractor(patterns: readonly AttributionPattern[]): Extractor {
+export function createRegexExtractor(patterns: readonly AttributionPattern[], claimPatterns: readonly ClaimPattern[] = CLAIM_PATTERNS): Extractor {
   const compiled = patterns.map((pattern) => ({ pattern, regex: new RegExp(phraseSource(pattern.phrase), "g") }));
+  const compiledClaims = claimPatterns.map((pattern) => ({ pattern, regex: new RegExp(phraseSource(pattern.phrase), "g") }));
 
   return (draft) => {
     const attributions: Attribution[] = compiled
@@ -245,15 +275,25 @@ export function createRegexExtractor(patterns: readonly AttributionPattern[]): E
       const found = locate(a);
       if (found) candidates.push({ ...found, order: a.start });
     }
+    // A claim: the sentence from its phrase on, as far as an unmarked quote would run, so that a
+    // quotation after it stays an item of its own. It must say more than the phrase.
+    for (const { pattern, regex } of compiledClaims) {
+      for (const m of draft.matchAll(regex)) {
+        const span = unmarkedFrom(m.index);
+        if (wordCount(draft.slice(span.start, span.end)) > wordCount(pattern.phrase)) {
+          candidates.push({ span, claimedKind: CLAIM, claimLevel: pattern.claimLevel, order: m.index });
+        }
+      }
+    }
 
     // In draft order, without overlaps: the earlier start wins, then the longer span (the merge
     // rule of the orchestrator). A ﴿…﴾ inside a hadith quote is therefore not a separate quote.
     candidates.sort((x, y) => x.span.start - y.span.start || y.span.end - x.span.end || x.order - y.order);
     const quotes: ExtractedQuote[] = [];
     let lastEnd = 0;
-    for (const { span, claimedKind } of candidates) {
+    for (const { span, claimedKind, claimLevel } of candidates) {
       if (span.start < lastEnd) continue;
-      quotes.push({ span: { ...span, text: draft.slice(span.start, span.end) }, claimedKind, extractedBy: "regex" });
+      quotes.push({ span: { ...span, text: draft.slice(span.start, span.end) }, claimedKind, ...(claimLevel ? { claimLevel } : {}), extractedBy: "regex" });
       lastEnd = span.end;
     }
     return quotes;

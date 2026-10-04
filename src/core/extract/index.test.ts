@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { attachReference, parseReferences } from "../references";
-import { ATTRIBUTION_PATTERNS, createRegexExtractor, regexExtractor } from "./index";
+import { ATTRIBUTION_PATTERNS, CLAIM_PATTERNS, createRegexExtractor, regexExtractor } from "./index";
 
 // Every draft a test reads, so that the invariants at the end run on all of them.
 const seen = new Set<string>();
@@ -46,6 +46,8 @@ describe("Quran phrases", () => {
     `يقول الله عز وجل: « ${VERSE} »`,
     `كما في قوله تعالى: (${VERSE}).`,
     `لقوله تعالى «${VERSE}»`,
+    `يقول تعالى: «${VERSE}»`,
+    `ويقول سبحانه وتعالى: (${VERSE})`,
   ])("in marks: %s", (draft) => {
     expect(texts(draft)).toEqual([["quran", VERSE]]);
   });
@@ -84,6 +86,10 @@ describe("hadith phrases", () => {
     `وفي الحديث الشريف «${HADITH}»`,
     `ورد عنه ﷺ أنه قال: «${HADITH}»`,
     `قال رسول الله ﷺ لأصحابه يوماً: «${HADITH}»`,
+    `يقول النبي ﷺ: «${HADITH}»`,
+    `ويقول رسول الله صلى الله عليه وسلم: «${HADITH}»`,
+    `يقول ﷺ: «${HADITH}»`,
+    `كان يقول صلى الله عليه وسلم: «${HADITH}»`,
   ])("in marks: %s", (draft) => {
     expect(texts(draft)).toEqual([["hadith", HADITH]]);
   });
@@ -95,8 +101,16 @@ describe("hadith phrases", () => {
     `عن النبي ﷺ أنه قال ${HADITH}؟`,
     `في الحديث: ${HADITH}.`,
     `ورد عنه ﷺ: ${HADITH}!`,
+    `يقول النبي ﷺ: ${HADITH}.`,
   ])("without marks, up to the sentence end: %s", (draft) => {
     expect(texts(draft)).toEqual([["hadith", HADITH]]);
+  });
+
+  // The present tense of a verb of speech is read like its past tense, and a writer who is not
+  // named is still not read.
+  test("the present tense names the same speakers as the past tense", () => {
+    expect(texts(`يقول الشاعر: «${HADITH}»`)).toEqual([]);
+    expect(texts(`يقول بعض الناس: ${HADITH}.`)).toEqual([]);
   });
 
   test("with diacritics", () => {
@@ -241,6 +255,56 @@ describe("the span", () => {
       ["hadith", "اقرؤوا سورة الإخلاص"],
       ["quran", "قل هو الله أحد"],
     ]);
+  });
+});
+
+describe("claims", () => {
+  const claims = (draft: string) => extract(draft).map((q) => [q.claimedKind, q.claimLevel, q.span.text]);
+
+  test.each([
+    ["وتدل الآية على وجوب الصبر في كل حال.", "وتدل الآية على وجوب الصبر في كل حال"],
+    ["ويدل الحديث على فضل النصيحة، وهذا ظاهر. ثم كلام آخر", "ويدل الحديث على فضل النصيحة، وهذا ظاهر"],
+    ["يُفهم من الآية أن اليسر قريب!", "يُفهم من الآية أن اليسر قريب"],
+    ["ويفهم من الحديث أن النصيحة واجبة\nسطر آخر", "ويفهم من الحديث أن النصيحة واجبة"],
+  ])("a conclusion drawn from a named text is a level C claim, up to the sentence end: %s", (draft, text) => {
+    expect(claims(draft)).toEqual([["interpretive_claim", "C", text]]);
+  });
+
+  test.each([
+    ["والجواب: يجوز لك أن تفطر في سفرك، ولا شيء عليك.", "يجوز لك أن تفطر في سفرك، ولا شيء عليك"],
+    ["فلا يجوز لك ترك العمل.", "فلا يجوز لك ترك العمل"],
+    ["يجب عليك قضاء ما فاتك؟", "يجب عليك قضاء ما فاتك"],
+    ["ويحرم عليك هذا البيع.", "ويحرم عليك هذا البيع"],
+  ])("a ruling addressed to the reader is a level D claim: %s", (draft, text) => {
+    expect(claims(draft)).toEqual([["interpretive_claim", "D", text]]);
+  });
+
+  test("a claim stops before the quotation it rests on, which stays an item of its own", () => {
+    expect(claims(`يجوز لك أن تفطر لقوله تعالى: ﴿${VERSE}﴾.`)).toEqual([
+      ["interpretive_claim", "D", "يجوز لك أن تفطر"],
+      ["quran", undefined, VERSE],
+    ]);
+    expect(claims(`قال تعالى: ﴿${VERSE}﴾. وتدل الآية على قرب الفرج.`)).toEqual([
+      ["quran", undefined, VERSE],
+      ["interpretive_claim", "C", "وتدل الآية على قرب الفرج"],
+    ]);
+  });
+
+  test("the words of a quotation are never a claim", () => {
+    expect(claims("قال رسول الله ﷺ: «لا يجوز لك أن تهجر أخاك»")).toEqual([["hadith", undefined, "لا يجوز لك أن تهجر أخاك"]]);
+    expect(claims("قال النبي ﷺ: يجب عليك الصدق في القول.")).toEqual([["hadith", undefined, "يجب عليك الصدق في القول"]]);
+  });
+
+  test("a phrase with nothing after it, a general ruling word, and ordinary prose give nothing", () => {
+    expect(claims("وهذا ما تدل الآية على.")).toEqual([]);
+    expect(claims("يجوز للمسافر أن يفطر.")).toEqual([]);
+    expect(claims("فاحرص على الصدق في كل حال.")).toEqual([]);
+  });
+
+  test("the claim list can be replaced", () => {
+    const none = createRegexExtractor(ATTRIBUTION_PATTERNS, []);
+    expect(none("يجوز لك أن تفطر في سفرك.")).toEqual([]);
+    expect(CLAIM_PATTERNS.every((p) => p.claimLevel === "C" || p.claimLevel === "D")).toBe(true);
   });
 });
 
