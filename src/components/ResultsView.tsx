@@ -1,12 +1,12 @@
 import type { Ref } from "react";
 import type { ReviewResult } from "@/core/types";
-import { t } from "@/i18n/ar";
+import { format, t } from "@/i18n/ar";
 import { CopyReportButton } from "./CopyReportButton";
 import { DraftView } from "./DraftView";
 import { Notice } from "./Notice";
 import { ReviewCard } from "./ReviewCard";
 import { StatusIcon } from "./StatusPill";
-import { summaryParts, summaryText, warningText } from "./lib/labels";
+import { coverageNames, summaryParts, summaryText, warningText } from "./lib/labels";
 
 // The two columns of a result: the reviewed draft, and the cards.
 const RESULT_GRID = "grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:items-start";
@@ -29,6 +29,13 @@ export function ResultsView({ result, draft, stale, headingRef }: ResultsViewPro
         {!empty && <SummaryRow result={result} />}
         {!empty && <CopyReportButton result={result} />}
       </div>
+
+      {/* What this review searched, from the result itself (AGENTS.md §6, "Coverage must be true"). */}
+      {result.coverage.length > 0 && (
+        <p className="mt-3 text-xs leading-6 text-muted">
+          {format("results.searched", { coverage: coverageNames(result.coverage), version: result.corpusVersion })}
+        </p>
+      )}
 
       {stale && <Notice className="mt-4">{t("state.stale")}</Notice>}
 

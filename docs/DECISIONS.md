@@ -1183,3 +1183,102 @@ Limits: tested with a mocked port and a fake client only; nothing was sent to th
 validator checks form and grounding, not truth: a note that quotes nothing, holds no number and
 none of the seven words passes whatever it says. It is shown labeled «شرح مولّد آلياً» beside the
 status and `reasonAr`, which it cannot change; whether more is needed is the audit's (P13).
+
+## D-24 — Audit of injection, privacy, transparency, failure modes and secrets (2026-10-04)
+
+An audit of the code as it stood after P12 (`AGENTS.md` §2 rules 2, 3, 4, 7, 8 and 9). It reads the
+code and the tests, fixes what was wrong and adds a test only where none existed. No matcher, no
+status rule and no API schema changed. None of the decisions below needed a source outside the
+repository: none decides a text, a reference or a grade.
+
+### Findings
+
+| # | Area | Finding | Result |
+|---|---|---|---|
+| 1 | Injection | The draft reaches the model in a user message of its own, between `<draft>` and `</draft>` (`extractUserMessage`); the system prompt is sent apart, as `instructions`. An explanation request is JSON of six fields in a user message of its own (`explainUserMessage`) | Holds. Tested in `src/llm/openai.test.ts` |
+| 2 | Injection | Every output is validated before use: `LlmExtractionSchema` (unknown fields are not read), `validateSpans` (a quote is kept only where the draft holds it; the offsets are computed, never taken), `validateExplanation`; an answer that is not a string is no explanation | Holds. Tested |
+| 3 | Injection | No status, reason or evidence comes from the model: `decide()` receives `claimedKind`, `claimLevel` and the candidates of the matchers. From the model come only: which spans of the draft are items, a kind (which can weaken a claim, never strengthen one, and never changes a `﴿…﴾` quote: D-21 item 3), `claimLevel` of an interpretive claim, `isDraft` (read only when no extractor found a quote), and the text of an explanation | Holds. Five new drafts, each with a port that obeys the injection on both calls: `src/core/injection.test.ts` |
+| 4 | Injection | A draft that holds `</draft>` closes the delimiter early (D-21 item 8, kept). A model that obeys what follows it gains nothing: tested (the port returns `isDraft: false` and no item; the `﴿…﴾` quote is still reviewed, with its status) | Holds; the limit stays documented |
+| 5 | Explanation | **The gap of D-23**: a note with no quotation, no number and none of the seven words passed whatever it said. The test of P12 itself showed «النص مطابق لنص المصدر ولا فرق بينهما.» displayed on a `DIFFERS` item | **Fixed**: decision 1 below |
+| 6 | Privacy | No draft text, quote or LLM output reaches a log or an error message. The one log sink is `deps.log` in `src/server/api-handlers.ts`; `src/llm` and `src/core` log nothing and no component calls `console`. The thrown messages of `src/core` and `src/server` name record ids, layers and corpus files, never a query. A rejected or failed LLM call is caught in `review()` and its error is dropped, not logged | Holds. New test: an explanation that fails, times out, is rejected or passes leaves no Arabic in the log |
+| 7 | Privacy | `docs/PRIVACY.md` and `/privacy` listed the fields of a log line without `failure` and `detail`, and said the log "has no field for text": `detail` is a string (an error's class name, schema paths, or the corpus loader's message) | **Fixed** in both texts |
+| 8 | Privacy | `/privacy` did not say what `docs/PRIVACY.md` says about a failed LLM call: the result then reads «دون نموذج لغوي», although the draft may have been sent before the call failed | **Fixed**: one sentence added to `privacy.processed.2` |
+| 9 | Transparency | The AI banner is in the root layout, so on the four pages and on the not-found page (checked in the built HTML). The page Next.js shows when a page fails to render replaces the layout: it had no banner and its words were English | **Fixed**: `src/app/global-error.tsx` (the banner, one fixed Arabic sentence, a retry button; nothing of the error is shown) |
+| 10 | Transparency | «شرح مولّد آلياً» is on every generated text: `ExplanationBox` is the only place an explanation is rendered, and the report holds none | Holds. Tested (P12) |
+| 11 | Transparency | **The results did not name the sources that were searched.** The home page names them from `GET /health`, the report and the `NOT_FOUND` sentence from the result; the results view itself named none | **Fixed**: a line under the results heading, from the result's own `coverage` and `corpusVersion` (`results.searched`) |
+| 12 | Failure modes | LLM down, timeout, output outside the schema → the regex-only path with `LLM_UNAVAILABLE_REGEX_ONLY` and its sentence; corpus load failure → 500 with the fixed sentence and no item, and `GET /health` 503 → the home page names no source; oversized → 413; rate limit → 429; a failed explanation → the item as it was. A result is taken only from a 200 that parses, and `ReviewResultSchema` refuses a `MATCH` without evidence | Holds. Gaps filled: the explanation failures through the API handler; every failure and warning sentence is Arabic and holds no «مطابق» (`src/i18n/ar.test.ts`); the render-failure page |
+| 13 | Secrets | `git log --all` (one branch, one tag, no stash): no `.env*` file was ever committed except `.env.example`, whose values are empty; no string of a known key form in any commit or in the tracked and untracked tree; the value of the local `LLM_API_KEY` is in no commit and in no file git sees. `.gitignore` ignores `.env*` except `.env.example` | Holds |
+| 14 | Secrets | The environment is read by `src/llm/index.ts` and `src/server/api-config.ts` only; no `NEXT_PUBLIC_` variable exists; only the two API routes import `src/server`, and only `src/server` imports `src/llm`. After `next build`, neither the key nor its name nor the provider's host is in `.next/static` | Holds. New test: `src/components/client-boundary.test.ts` |
+| 15 | Secrets | The value of the key is in `.next/cache/turbopack` and `.next/dev/cache/turbopack` (the bundler's cache of the environment). `.next/` is ignored by git and is not served | Not a leak. Do not share or archive the `.next` folder of a machine that holds a key (`docs/BACKLOG.md`) |
+
+### Decisions
+
+1. **One more rule for the explanation: a closed vocabulary.** (`AGENTS.md` §2 rules 3 and 4.)
+   - *The question.* A note is free text of a model that may have obeyed an instruction inside
+     the quote. The six checks of D-23 bound its form and its quotations; outside the quotation
+     marks it could say anything not written with one of seven words: «النص مطابق» on a `DIFFERS`
+     item (an unsupported positive statement, rule 3), a grade or a ruling in another word («ثابت»,
+     «حسن», «جائز», «واجب»), an interpretation, a name, an address (rule 4).
+   - *Options weighed.* (a) Leave it: the note is labeled and cannot change a status. Rejected: the
+     label says who wrote the text, not that it may contradict the status beside it. (b) A longer
+     list of forbidden words. Rejected: a list of what may not be said is never complete. (c) The
+     note must quote a word of a diff op (the idea in `docs/BACKLOG.md`). Rejected as the only
+     rule: «في مسودتك «ندا»، وهو مطابق» quotes one and still passes. (d) Every word outside the
+     quoted segments belongs to a closed list. **Chosen**: it is the only option under which "passes
+     whatever it says" is no longer true, and a rejected note costs the writer nothing.
+   - *The rule.* After the quoted segments and the titles of the covered books are taken out,
+     every word of the note is a number (checked by the number rule), a word of `sourceCitation`
+     or `draftCitation`, or a word of `EXPLANATION_VOCABULARY` (`src/core/explain/index.ts`, 160
+     words: the nouns, verbs and particles needed to say where two texts or two references
+     differ). Words are compared without diacritics; a word may carry the prefixes و ف, ب ل ك
+     and ال, and a prefix may stand alone before a quoted segment (ب«…»). «لا» is not in the
+     list, so that «لا يختلف» cannot be written; «ليس», «لم» and «غير» are. «مطابق» and every
+     word of grading or ruling are absent. The seven forbidden words stay as they were: they are
+     checked inside quoted segments too, which the vocabulary is not.
+   - *The prompt.* A model cannot keep to a list it was not given. `EXPLAIN_SYSTEM_PROMPT` has
+     one more line, which names the list (built from the same constant, tested), and
+     `EXPLAIN_PROMPT_VERSION` is `"2"`. The rest is Appendix A2 as before.
+   - *Measured* (a probe, not an evaluation: 15 short drafts written for it, sent through
+     `review()` on the real corpus with the model of the local `.env`, 2026-10-04). Before the
+     change (prompt 1, six checks): 7 `DIFFERS` items, 6 notes and one `NULL`, all 6 accepted.
+     After it (prompt 2, seven checks): 10 `DIFFERS` items, 10 notes; 9 accepted and one rejected
+     for a lone «ب» before a quoted segment («أبدلت «يحب» ب«مَعَ»»), which led to the lone-prefix
+     clause; run again, 10 of 10 accepted. The notes of prompt 2 are shorter and plainer than
+     those of prompt 1 («زيادة «جميعا» في المسودة.»).
+   - *Tests.* `src/core/explain/index.test.ts` (eight notes outside the vocabulary; prefixes,
+     citation words, titles), `src/core/review.test.ts` (the note of P12's injection test is now
+     rejected), `src/core/injection.test.ts`.
+2. **The five injection drafts** are in `src/core/injection.test.ts`, written for this audit: an
+   order to mark everything as matching; an order to add a verse and a hadith (the port returns
+   two texts that are records of the fixture corpus and would end `MATCH` if accepted); a closing
+   `</draft>` tag followed by a `<system>` block; an order inside a `﴿…﴾` quote aimed at the
+   explanation; an order to output a grade and a ruling. For each, the port obeys on both calls
+   with several notes, and the result equals the result of an honest port: same statuses,
+   reasons, evidence and summary, no explanation, `MATCH` count 0, and none of the injected words
+   anywhere in the result. Each also checks that the explanation request holds the six fields of
+   the item and no other part of the draft.
+3. **A render failure has its own page** (finding 9), with a new sentence `state.error.page`.
+   It shows nothing of the error: an error's message could quote the draft.
+4. **The searched-sources line shows `coverage` as the result gives it** (finding 11): a
+   collection with no Arabic name in `src/i18n/ar.ts` is shown by its id, never left out; a result
+   with an empty coverage shows no line.
+5. **`detail` of a log line was not changed.** For `REVIEW_THREW` and `HANDLER_THREW` it is the
+   error's class name, for `RESPONSE_INVALID` schema paths and codes, for `CORPUS_LOAD_FAILED` the
+   loader's message. None can hold draft text as the code stands; the notice now says so
+   (finding 7) instead of the field being removed, because it is what tells one fault from
+   another.
+
+Limits: the vocabulary bounds what a note can be about, not whether it is true. A note that says
+in the allowed words that a word is missing when it was added still passes, and a note may quote
+back, between «», words of the draft that are themselves an instruction; both are shown beside
+the deterministic status, `reasonAr` and word diff, which they cannot change. A word of
+`draftCitation` is allowed outside quotation marks, and that text is the writer's. The probe is
+ten notes of one model: how often a note is rejected on real drafts, and whether prompt 2 keeps
+the gentle tone Appendix A2 asks for, are for the evaluation (P14). In the probe, the four drafts
+with an instruction inside the quote ended `NEEDS_SPECIALIST` or `NOT_FOUND` on the real corpus,
+so no explanation was asked for them: the explanation path under injection is tested with the
+mocked port only. The secrets scan looked for known key forms and for the local key's value; it
+is not a proof that no secret of another form was ever committed. The render-failure page was rendered in a test; a
+render failure was not forced in a browser, and the built `_global-error.html` is the framework's
+shell, which does not hold the page's words. Not checked: a deployed host's
+logs and headers (P8), and what the provider does with a request.

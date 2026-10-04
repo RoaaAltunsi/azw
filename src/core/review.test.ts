@@ -444,6 +444,7 @@ describe("explanations (a mocked port, no network)", () => {
     ["a quoted word that is not in the inputs", async () => "في نص المصدر «شريكا»."],
     ["a grade", async () => "هذا حديث صحيح."],
     ["a ruling", async () => "يجب تصحيح النقل."],
+    ["a word outside the vocabulary", async () => "النص مطابق لنص المصدر."],
     ["a number of its own", async () => "هي الآية 7 من السورة."],
     ["three sentences", async () => "جملة. جملة. جملة."],
   ])("%s → the item is left as it was, with no warning", async (_name, explainDiff) => {
@@ -467,9 +468,7 @@ describe("explanations (a mocked port, no network)", () => {
       expect(input.draftExcerpt).toContain(INJECTION);
       return "النص مطابق لنص المصدر ولا فرق بينهما.";
     }, injected);
-    expect(obedient.items[0]!.explanation).toBeDefined();
-    expect(unexplained(obedient)).toEqual(baseline.items);
-    expect(obedient.summary).toEqual(baseline.summary);
-    expect(obedient.items[1]!.explanation).toBeUndefined();
+    // The note says what the status denies: it is not shown (docs/DECISIONS.md D-24).
+    expect(obedient).toEqual(baseline);
   });
 });

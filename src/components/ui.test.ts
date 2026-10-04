@@ -2,6 +2,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "vitest";
+import GlobalError from "@/app/global-error";
 import { ATTRIBUTION_PATTERNS } from "@/core/extract";
 import { STATUSES, type ReviewResult } from "@/core/types";
 import { t } from "@/i18n/ar";
@@ -181,6 +182,9 @@ test("results: the summary, the warnings in their wording, a highlight that link
     }),
   );
   expect(textOf(html)).toContain("1 نقول: 0 مطابق · 0 مختلف · 0 يحتاج مراجعة · 1 لم يُتحقق منه");
+  // The sources named are those of the result's own coverage, and no other.
+  expect(textOf(html)).toContain("رُوجعت النقول في: القرآن الكريم · إصدار البيانات: test");
+  expect(html).not.toMatch(/صحيح البخاري|صحيح مسلم/);
   expect(html).toContain(t("warning.LLM_UNAVAILABLE_REGEX_ONLY"));
   expect(html).toContain(t("warning.ITEM_LIMIT_REACHED"));
   expect(html).toMatch(/<a href="#card-item-6-9" class="draft-mark" data-status="NOT_FOUND"/);
@@ -190,7 +194,9 @@ test("results: the summary, the warnings in their wording, a highlight that link
 });
 
 test("results: no quotes found is said plainly, with no summary row", () => {
-  const html = renderToStaticMarkup(createElement(ResultsView, { draft: "نص", stale: true, result: result({}) }));
+  const html = renderToStaticMarkup(createElement(ResultsView, { draft: "نص", stale: true, result: result({ coverage: ["quran", "bukhari", "new-book"] }) }));
+  // A collection without a name in the UI is shown by its id, never left out.
+  expect(textOf(html)).toContain("رُوجعت النقول في: القرآن الكريم، صحيح البخاري، new-book");
   expect(html).toContain(t("state.noQuotes.title"));
   expect(html).toContain(t("extract.formsNote"));
   expect(html).toContain(t("state.stale"));
@@ -203,6 +209,14 @@ test("the forms note names every phrase the regex extractor reads", () => {
   expect(note).toContain("﴿ ﴾");
   for (const { phrase } of ATTRIBUTION_PATTERNS) expect(note).toContain(`«${phrase}»`);
   expect(note.match(/«/g)).toHaveLength(ATTRIBUTION_PATTERNS.length);
+});
+
+test("the page shown when rendering fails: the AI banner, a fixed Arabic sentence, nothing of the error", () => {
+  const html = renderToStaticMarkup(createElement(GlobalError, { error: new Error("مسودة سرية"), reset: () => {} }));
+  expect(html).toContain(t("banner.aiTool"));
+  expect(html).toContain(t("state.error.page"));
+  expect(html).not.toContain("مسودة سرية");
+  expect(html).not.toContain("مطابق");
 });
 
 test("no source is named unless the API says it is searched", () => {

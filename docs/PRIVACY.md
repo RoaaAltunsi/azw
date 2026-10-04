@@ -1,6 +1,6 @@
 # Azw — privacy notice
 
-What Azw does with a draft, as the code stands on 2026-10-04 (after P12). `AGENTS.md` §2 rule 8:
+What Azw does with a draft, as the code stands on 2026-10-04 (after the audit of P13, `docs/DECISIONS.md` D-24). `AGENTS.md` §2 rule 8:
 do not store drafts, do not log draft content, publish a short privacy notice. The Arabic notice
 shown in the app (`/privacy`) must say what this file says, and no more.
 
@@ -40,9 +40,12 @@ shown in the app (`/privacy`) must say what this file says, and no more.
 
 One log line per request, holding only: a random request id, the HTTP status, an outcome code, the
 length of the draft in characters, timings, the number of items, the count of each status, and
-warning codes. The log entry type has no field for text (`LogEntry` in
-`src/server/api-handlers.ts`), and a test checks that no part of a draft and no address appears in
-the log.
+warning codes. When a request fails with a fault of the server, the line also holds a fixed word
+for where it failed (`failure`) and one detail: the class name of the error, the paths of the
+schema issues, or, when the corpus did not load, the loader's own message, which names corpus
+files. The log entry type has no field for the draft, for a quote or for what the LLM returns
+(`LogEntry` in `src/server/api-handlers.ts`), and tests check that no part of a draft, no
+generated text and no address appears in the log.
 
 ## Your network address
 
@@ -59,12 +62,13 @@ keeps what is sent to it is set by its terms.
 
 | Claim | Code | Test |
 |---|---|---|
-| No draft or quote in the log | `src/server/api-handlers.ts` (`LogEntry`) | `src/server/api-handlers.test.ts`, "privacy: what is logged" and "the LLM port" |
+| No draft or quote in the log | `src/server/api-handlers.ts` (`LogEntry`) | `src/server/api-handlers.test.ts`, "privacy: what is logged", "the LLM port" (also an explanation that fails, times out or is rejected) and "failures never look like a result" |
 | The search index keeps no query, and its error messages carry none | `src/core/corpus/corpus-index.ts` | `src/core/corpus/corpus-index.test.ts` (the error message; that nothing is kept is by reading the code) |
 | No response is cached | `src/server/api-handlers.ts` (`json`) | `src/server/api-handlers.test.ts`, happy path |
 | The address is a rate-limit key only | `src/server/rate-limit.ts`, `clientKey` | `src/server/api-handlers.test.ts`, "privacy: what is logged" |
 | The draft goes to the provider in the user message only, with `store: false`; the adapter logs nothing | `src/llm/openai.ts` | `src/llm/openai.test.ts` (a fake client) |
-| An explanation request holds the six fields above and nothing else, with `store: false`; it is made for `DIFFERS` items only, and only when the extraction succeeded | `src/core/explain/index.ts`, `src/core/review.ts`, `src/llm/openai.ts` | `src/core/review.test.ts`, "explanations"; `src/llm/openai.test.ts`, "explainDiff" |
+| An explanation request holds the six fields above and nothing else, with `store: false`; it is made for `DIFFERS` items only, and only when the extraction succeeded | `src/core/explain/index.ts`, `src/core/review.ts`, `src/llm/openai.ts` | `src/core/review.test.ts`, "explanations"; `src/core/injection.test.ts`; `src/llm/openai.test.ts`, "explainDiff" |
+| No key and no server code reaches the browser | `src/llm/index.ts`, `src/server/api-config.ts` (the only readers of the environment) | `src/components/client-boundary.test.ts` |
 
 Limits of this notice: it describes the application code. It was not checked against a deployed
 host's own logging (P8). What the LLM provider does with a request was not tested and cannot be

@@ -1,7 +1,7 @@
 // The explanation's input and its validator. Fixture sentences, not source text.
 import { describe, expect, test } from "vitest";
 import type { Evidence, ReviewItem } from "../types";
-import { buildExplainInput, FORBIDDEN_WORDS, validateExplanation, type ExplainDiffInput } from "./index";
+import { buildExplainInput, EXPLANATION_VOCABULARY, FORBIDDEN_WORDS, validateExplanation, type ExplainDiffInput } from "./index";
 
 const INPUT: ExplainDiffInput = {
   draftExcerpt: "ولم يكن له ندا أحد",
@@ -24,17 +24,17 @@ describe("validateExplanation", () => {
   });
 
   test("length: at most 240 characters", () => {
-    expect(check("ا".repeat(240))).not.toBeNull();
-    expect(check("ا".repeat(241))).toBeNull();
+    expect(check(`${"من ".repeat(79)}هذا`)).toHaveLength(240);
+    expect(check(`${"من ".repeat(79)}كلمة`)).toBeNull();
     expect(check("  ")).toBeNull();
   });
 
   test("sentences: at most two; a full stop inside a quoted segment ends none", () => {
-    expect(check("جملة أولى. جملة ثانية.")).not.toBeNull();
-    expect(check("جملة أولى. جملة ثانية. جملة ثالثة.")).toBeNull();
-    expect(check("جملة أولى؟ جملة ثانية! جملة ثالثة")).toBeNull();
-    expect(check("سطر أول\nسطر ثان\nسطر ثالث")).toBeNull();
-    expect(check("في المصدر «كفوا أحد. ثم كلام». جملة ثانية.")).not.toBeNull();
+    expect(check("كلمة زائدة. كلمة ناقصة.")).not.toBeNull();
+    expect(check("كلمة زائدة. كلمة ناقصة. كلمة أخرى.")).toBeNull();
+    expect(check("كلمة زائدة؟ كلمة ناقصة! كلمة أخرى")).toBeNull();
+    expect(check("كلمة زائدة\nكلمة ناقصة\nكلمة أخرى")).toBeNull();
+    expect(check("في المصدر «كفوا أحد. ثم كلام». كلمة أخرى.")).not.toBeNull();
   });
 
   test("a quoted segment that is in none of the inputs is rejected", () => {
@@ -72,10 +72,38 @@ describe("validateExplanation", () => {
 
   test("the title of a covered book passes; the same word outside a title does not", () => {
     const hadith = { ...INPUT, sourceCitation: "صحيح البخاري، حديث رقم 1", draftCitation: "رواه مسلم" };
-    const note = "وجدنا هذا النص في «صحيح البخاري» برقم 1، لا في الكتاب المذكور في المسودة.";
+    const note = "ورد هذا النص في «صحيح البخاري» برقم 1، وليس في الكتاب المذكور في المسودة.";
     expect(check(note, hadith)).toBe(note);
     expect(check(note, hadith, [])).toBeNull();
     expect(check("هذا حديث صحيح في «صحيح البخاري».", hadith)).toBeNull();
+  });
+
+  // D-24: outside its quoted segments a note is written with the vocabulary and nothing else.
+  test.each([
+    ["a claim of a match", "النص مطابق لنص المصدر."],
+    ["the same claim, negated", "لا يختلف النص عن المصدر."],
+    ["a grade in another word", "هذا الحديث ثابت عن النبي."],
+    ["a ruling in another word", "هذا العمل جائز شرعا."],
+    ["an interpretation", "معنى الآية أن الله واحد."],
+    ["a scholar's name", "قال ابن كثير هذه الآية في المصدر."],
+    ["an address", "في المصدر example.com"],
+    ["a word of the quote, not quoted", "في المصدر كفوا."],
+  ])("a note outside the vocabulary is rejected: %s", (_name, note) => {
+    expect(check(note)).toBeNull();
+  });
+
+  test("the vocabulary takes prefixes, the words of the citations and the title of a covered book", () => {
+    expect(check("وبالمصدر كلمة «كفوا»، وللمسودة «ندا».")).not.toBeNull();
+    expect(check("أبدلت «كفوا» ب«ندا».")).not.toBeNull();
+    expect(check("وَرَدَتْ في المَصْدَرِ كلمةٌ أُخرى.")).not.toBeNull();
+    // «الإخلاص» is a word of both citations; with other citations it is a word of the note's own.
+    expect(check("هي الآية 4 من سورة الإخلاص.")).not.toBeNull();
+    expect(check("هي الآية 4 من سورة الإخلاص.", { ...INPUT, sourceCitation: "سورة 112، الآية 4", draftCitation: null })).toBeNull();
+    expect(check("ورد النص في صحيح مسلم.")).not.toBeNull();
+    expect(check("ورد النص في صحيح مسلم.", INPUT, [])).toBeNull();
+    expect(EXPLANATION_VOCABULARY).not.toContain("لا");
+    expect(EXPLANATION_VOCABULARY).not.toContain("مطابق");
+    expect(new Set(EXPLANATION_VOCABULARY).size).toBe(EXPLANATION_VOCABULARY.length);
   });
 
   test("the list is the one of the prompt", () => {

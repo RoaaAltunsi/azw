@@ -989,7 +989,8 @@ rewritten for it, and what the model returns is validated whatever it read.
 Code: `src/core/explain/index.ts` (`buildExplainInput`, `validateExplanation`, pure),
 `src/llm/openai.ts` (`explainDiff`), `src/llm/prompts/explain.ts` (the prompt). Tests:
 `src/core/explain/index.test.ts`, `src/llm/openai.test.ts`, and "explanations" in
-`src/core/review.test.ts` (a mocked port). Choices: `docs/DECISIONS.md` D-23.
+`src/core/review.test.ts` (a mocked port), and `src/core/injection.test.ts` (five injection
+drafts, a port that obeys them). Choices: `docs/DECISIONS.md` D-23, and D-24 for the vocabulary.
 
 A short generated note on how a quote differs from its source. It is an addition to `reasonAr`,
 shown under «شرح مولّد آلياً»; it never changes `status`, `reasonCode`, `reasonAr` or `evidence`.
@@ -1013,8 +1014,9 @@ the first occurrence of its evidence):
 their ranges; `equal` ops are left out. No layer text, no grade and no other part of the draft is
 in the input.
 
-**The adapter.** `responses.create`, plain text. System prompt: Appendix A2 of the prompt pack,
-verbatim (`EXPLAIN_SYSTEM_PROMPT`, `EXPLAIN_PROMPT_VERSION = "1"`), sent as `instructions`; the
+**The adapter.** `responses.create`, plain text. System prompt: Appendix A2 of the prompt pack
+plus one line that names the validator's vocabulary, built from `EXPLANATION_VOCABULARY`
+(`EXPLAIN_SYSTEM_PROMPT`, `EXPLAIN_PROMPT_VERSION = "2"`, D-24), sent as `instructions`; the
 input as JSON in the user message. `store: false`, no logging, temperature as for the extraction
 (0, or none once the model refused it). The output is trimmed; `NULL` or an empty output is
 `null`. No retry. Each call has a timeout of `LLM_TIMEOUT_MS`; `review()` starts all calls of a
@@ -1032,16 +1034,19 @@ twice `LLM_TIMEOUT_MS` (extraction, then explanations).
 | Sentences | At most 2. A sentence ends at `.`, `!`, `?`, `؟` or a line break; the quoted segments are taken out first, so a full stop inside one ends nothing |
 | Numbers | Every run of digits (Arabic-Indic digits read as ASCII) equals a run of digits of one of the two citations |
 | Words | None of «صحيح», «ضعيف», «موضوع», «حكم», «يجب», «يحرم», «فتوى», compared without diacritics, anywhere in a word and inside quoted segments too. `bookTitles` (the names of the covered collections, from `collection.<id>`) are taken out first, as whole words |
+| Vocabulary (D-24) | Outside the quoted segments and the book titles, every word is a number, a word of one of the two citations, or a word of `EXPLANATION_VOCABULARY` (160 words for saying where two texts or two references differ). Compared without diacritics; a word may carry the prefixes و ف, ب ل ك and ال, and a prefix may stand alone before a quoted segment. «لا», «مطابق» and every word of grading, ruling or interpretation are not in the list |
 
 A `null`, a failure, a timeout, an answer that is not a string or a note the validator rejects
 all end the same way: the item has no `explanation`, the result has no warning for it, and nothing
 else changes.
 
-Limits: the validator checks form and grounding, not truth. A note with no quotation, no number
-and no listed word passes whatever it says (a model that obeyed an instruction in the quote could
-write «النص مطابق» on a `DIFFERS` item); it is shown labeled as generated, beside the deterministic
-`reasonAr` and status, which it cannot change. A number written in words is not checked. Not run
-against the provider: the prompt was not measured (P14).
+Limits: the validator checks form, grounding and vocabulary, not truth. The vocabulary bounds what
+a note can be about (a model that obeyed an instruction in the quote can no longer write «النص
+مطابق», a grade or a ruling), but a false statement in the allowed words still passes, and a note
+may quote back words of the draft that are themselves an instruction. It is shown labeled as
+generated, beside the deterministic `reasonAr`, status and word diff, which it cannot change. A
+number written in words is not checked. Against the provider it was run as a probe only (15 short
+drafts, 2026-10-04, D-24: 10 notes, all accepted); the prompt was not measured (P14).
 
 ## Orchestrator
 
@@ -1234,7 +1239,13 @@ The UI is a client of API v1 and of nothing else. It imports the schemas and typ
 | `/how-it-works` | The steps, the statuses, what the tool does not do |
 
 The layout (`src/app/layout.tsx`) carries the banner «أداة مدعومة بالذكاء الاصطناعي، وليست بديلاً
-عن المختص.», a skip link and the footer on every page.
+عن المختص.», a skip link and the footer on every page. `src/app/global-error.tsx` is shown when a
+page fails to render; it replaces the layout, so it carries the banner itself, with one fixed
+Arabic sentence and nothing of the error (D-24).
+
+The results view (`ResultsView`) names the sources this review searched under its heading, from
+the result's own `coverage` and `corpusVersion` («رُوجعت النقول في: …»), then the warnings in
+their Arabic wording.
 
 | `src/components/lib` | |
 |---|---|

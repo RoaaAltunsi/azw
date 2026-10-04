@@ -141,9 +141,11 @@ is built until it is moved into a prompt's scope.
   - Not run against the provider: how often the model's note passes the validator, how often it
     answers `NULL`, and the added latency are unmeasured (P14). A review can now take up to twice
     `LLM_TIMEOUT_MS`.
-  - The validator cannot tell a true note from a false one that quotes nothing (P13: the
-    injection and failure-mode audit). A stricter rule (for example, a note must quote at least
-    one word of a diff op when the item has one) needs measuring first.
+  - The validator cannot tell a true note from a false one. Done in P13 as far as a validator
+    can: a closed vocabulary (`docs/DECISIONS.md` D-24). What is left: a false statement in the
+    allowed words, and a note that quotes back an instruction of the draft. Requiring a quoted
+    word of a diff op, or checking which side a quoted word is said to be on, would narrow it
+    further; measure first (P14).
   - A note that quotes a source word without its diacritics is rejected (verbatim), and the real
     Quran text is fully vocalised: expect rejections there. Comparing quoted segments through the
     normalization would accept them; measure before changing.
@@ -152,6 +154,23 @@ is built until it is moved into a prompt's scope.
   - The report's date is `YYYY-MM-DD` on the Gregorian calendar; no Hijri date.
   - The report has no "share" target (Web Share API) and no file download: clipboard only.
   - `AGENTS.md` §6 does not list `src/core/explain/` in its tree.
+
+- Audit (P13), for later prompts (`docs/DECISIONS.md` D-24):
+  - The vocabulary and prompt 2 of the explanation were probed on ten notes of one model. How
+    often a real note is rejected, which words the list lacks, and whether the notes stay gentle
+    are for the evaluation (P14). A word is added to `EXPLANATION_VOCABULARY` only if it cannot
+    carry a grade, a ruling, an interpretation or a claim of a match; the prompt takes the list
+    from the same constant, and its version changes with it.
+  - A draft that holds `</draft>` still closes the delimiter early (D-21 item 8). Escaping it in
+    the message to the model only (the lookup stays on the draft) would cost the quotes that
+    hold the tag; not done.
+  - `.next/cache` holds the value of `LLM_API_KEY` on a machine that built with one. It is
+    ignored by git and not served; never share or archive that folder. On the host (P8), check
+    that no build cache is published and that the response headers are as tested.
+  - A log line's `detail` is free text by type. It holds a class name, schema paths or the
+    corpus loader's message today; a typed union would make that a compile-time fact.
+  - `src/app/global-error.tsx` was rendered in a test only, never forced in a browser.
+  - Not checked in P13: a deployed host's logs (P8), the provider's handling of a request.
 
 - UI (P7), for later prompts:
   - API gap: a `ReviewItem` has no occurrence index, so the UI reads the places of a quote from

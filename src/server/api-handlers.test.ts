@@ -125,6 +125,28 @@ describe("POST /api/v1/review — the LLM port", () => {
     expect(JSON.stringify(logs)).not.toMatch(/[؀-ۿ]/);
   });
 
+  // The explanation call through the API: whatever it does, the answer is a 200 with the item's own
+  // status, and nothing the model returned (or threw) reaches the log.
+  const DIFFERS_DRAFT = "قال تعالى: ﴿استعينوا بالصبر إن الله مع الصابرين﴾ [البقرة: 153].";
+  const NOTE = "في نص المصدر كلمة ليست في مسودتك.";
+  test.each<[string, LlmPort["explainDiff"], string | undefined]>([
+    ["fails", () => Promise.reject(new Error(`provider said: ${DIFFERS_DRAFT}`)), undefined],
+    ["times out", () => Promise.reject(new DOMException(`timed out on ${DIFFERS_DRAFT}`, "TimeoutError")), undefined],
+    ["returns a note the validator rejects", async () => "النص مطابق لنص المصدر، وهو حديث صحيح.", undefined],
+    ["returns a note that passes", async () => NOTE, NOTE],
+  ])("an explanation that %s → 200, the item unchanged, no generated text in the log", async (_name, explainDiff, shown) => {
+    const llm: LlmPort = { extractQuotes: async () => ({ items: [], isDraft: true }), explainDiff };
+    const { handler, logs } = harness({ llmConfigured: true }, { llm: () => llm });
+    const response = await handler.POST(post({ text: DIFFERS_DRAFT }));
+    expect(response.status).toBe(200);
+    const result = ReviewResultSchema.parse(await response.json());
+    expect(result.items.map((i) => [i.status, i.reasonCode, i.explanation?.text])).toEqual([["DIFFERS", "WORDING_DIFF", shown]]);
+    expect(result.summary.MATCH).toBe(0);
+    expect(result.warnings).toEqual([]);
+    expect(logs[0]).toMatchObject({ httpStatus: 200, outcome: "OK", items: 1 });
+    expect(JSON.stringify(logs)).not.toMatch(/[؀-ۿ]/);
+  });
+
   test("a request and not a draft → 200 with zero items and NOT_A_DRAFT", async () => {
     const { handler } = harness({ llmConfigured: true }, { llm: () => port(async () => ({ items: [], isDraft: false })) });
     const result = ReviewResultSchema.parse(await (await handler.POST(post({ text: "أعطني حديثاً عن الصبر" }))).json());

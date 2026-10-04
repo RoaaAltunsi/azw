@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { STATUSES } from "@/core/types";
-import { ar, format, t } from "./ar";
+import { ar, format, t, type MessageKey } from "./ar";
 
 // Exact labels from AGENTS.md §4. A rename must fail here.
 const labels = {
@@ -61,5 +61,16 @@ test("no home, state, result or card sentence names a collection", () => {
   for (const [key, value] of Object.entries(ar)) {
     if (!/^(banner|home|state|results|card|how)\./.test(key)) continue;
     for (const name of names) expect(value, key).not.toContain(name);
+  }
+});
+
+// A failure is said in Arabic, in the tool's own words, and never in the words of a match.
+test("every failure and warning sentence is Arabic and holds no match label", () => {
+  const keys = (Object.keys(ar) as MessageKey[]).filter((key) => /^(api\.error|state\.error|item\.error|warning|home\.scope\.unavailable|sources\.unavailable)/.test(key));
+  expect(keys.length).toBeGreaterThanOrEqual(15);
+  for (const key of keys) {
+    expect(ar[key], key).toMatch(/[ء-ي]{3}/);
+    expect(ar[key], key).not.toContain(ar["status.MATCH"]);
+    expect(ar[key], key).not.toContain("مطابق");
   }
 });
