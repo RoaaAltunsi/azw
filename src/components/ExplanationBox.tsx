@@ -3,7 +3,7 @@ import { t } from "@/i18n/ar";
 import { Icon } from "./Icon";
 
 // Generated text, apart from the source text and dimmer than it, always under its label
-// (AGENTS.md §2 rule 2). Nothing fills it until P12.
+// (AGENTS.md §2 rule 2). Only a DIFFERS item can carry one (src/core/explain).
 export function ExplanationBox({ explanation }: { explanation: Explanation }) {
   return (
     <aside className="rounded-xl border border-dashed border-line-strong bg-ink/5 p-3 text-sm text-muted">

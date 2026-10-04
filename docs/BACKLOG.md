@@ -137,6 +137,21 @@ is built until it is moved into a prompt's scope.
     the rule stays (`docs/DECISIONS.md` D-20 item 1).
   - `LlmPort` is declared in `src/core/review.ts`; the timeout is the adapter's (D-21 item 7), and
     `deps.now` is still not read.
+- Explanation and report (P12), for later prompts (`docs/DECISIONS.md` D-23):
+  - Not run against the provider: how often the model's note passes the validator, how often it
+    answers `NULL`, and the added latency are unmeasured (P14). A review can now take up to twice
+    `LLM_TIMEOUT_MS`.
+  - The validator cannot tell a true note from a false one that quotes nothing (P13: the
+    injection and failure-mode audit). A stricter rule (for example, a note must quote at least
+    one word of a diff op when the item has one) needs measuring first.
+  - A note that quotes a source word without its diacritics is rejected (verbatim), and the real
+    Quran text is fully vocalised: expect rejections there. Comparing quoted segments through the
+    normalization would accept them; measure before changing.
+  - A rejected or failed explanation leaves no trace, not even a count in the request log.
+  - Only the first occurrence is explained and reported; the card can show another.
+  - The report's date is `YYYY-MM-DD` on the Gregorian calendar; no Hijri date.
+  - The report has no "share" target (Web Share API) and no file download: clipboard only.
+  - `AGENTS.md` §6 does not list `src/core/explain/` in its tree.
 
 - UI (P7), for later prompts:
   - API gap: a `ReviewItem` has no occurrence index, so the UI reads the places of a quote from

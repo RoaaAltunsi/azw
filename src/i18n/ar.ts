@@ -152,6 +152,21 @@ export const ar = {
   "card.copy.done": "نُسخ نص المصدر مع المرجع.",
   "card.copy.failed": "تعذّر النسخ. يمكنك تحديد النص ونسخه يدوياً.",
 
+  // «انسخ التقرير» (src/components/lib/report.ts): plain text, one field per line. It also uses
+  // «card.title», «card.citedReference», «card.source.reference», «card.source.link» and
+  // «sources.version». The footer is fixed wording.
+  "report.copy": "انسخ التقرير",
+  "report.copy.done": "نُسخ التقرير.",
+  "report.title": "تقرير مراجعة النقول من «عَزْو»",
+  "report.date": "تاريخ التقرير: {date}",
+  "report.coverage": "المصادر المغطاة: {coverage}",
+  "report.warning": "تنبيه: {text}",
+  "report.status": "الحالة: {status}",
+  "report.quote": "النص في المسودة: {text}",
+  "report.source": "نص المصدر: {text}",
+  "report.reason": "النتيجة: {reason}",
+  "report.footer": "أداة مدعومة بالذكاء الاصطناعي. التحقق يشمل المصادر المذكورة فقط، ولا يتضمن حكماً على الأحاديث أو فتوى.",
+
   // Typographic marks a kind's source text is shown between.
   "quote.quran.open": "﴿",
   "quote.quran.close": "﴾",
@@ -172,10 +187,11 @@ export const ar = {
 
   // /privacy says what docs/PRIVACY.md says, and no more. Update both together.
   "privacy.title": "إشعار الخصوصية",
-  "privacy.intro": "ما تفعله «عَزْو» بالمسودة، بحسب شيفرة التطبيق في 2026-10-03.",
+  "privacy.intro": "ما تفعله «عَزْو» بالمسودة، بحسب شيفرة التطبيق في 2026-10-04.",
   "privacy.processed.title": "ما الذي يُعالَج",
   "privacy.processed.1": "تُرسل المسودة التي تقدّمها إلى خادم «عَزْو»، وتُقارن في الذاكرة بنصوص المصادر، ثم تُعاد النتيجة.",
   "privacy.processed.2": "إذا ضُبط نموذج لغوي على الخادم، أُرسلت المسودة كاملة إلى مزوّد النموذج (OpenAI، وهو المزوّد الوحيد المدعوم الآن) لاستخراج النقول منها، ولا تُرسل لغرض آخر. يطلب «عَزْو» من المزوّد ألا يخزّن الرد، وما يحتفظ به المزوّد مما يُرسل إليه تحكمه شروطه هو. وإذا لم يُضبط نموذج، استُخرجت النقول بقواعد آلية على خادم «عَزْو» ولم تغادر المسودة الخادم.",
+  "privacy.processed.3": "إذا انتهى نقلٌ إلى الحالة «مختلف في اللفظ أو المرجع» وكان النموذج اللغوي قد قرأ المسودة، أُرسل إلى المزوّد نفسه طلب ثانٍ لكتابة «شرح مولّد آلياً» قصير، وفيه: النقل، ونص المصدر الذي قورن به، ومرجع المصدر، والمرجع المذكور في المسودة، ورمز السبب، والألفاظ المختلفة بين النصين. لا يُرسل معه شيء آخر، ويطلب «عَزْو» من المزوّد ألا يخزّن الرد.",
   "privacy.notKept.title": "ما لا يُحفظ",
   "privacy.notKept.1": "لا يخزّن «عَزْو» المسودة: لا قاعدة بيانات ولا ملف ولا ذاكرة مؤقتة. تبقى في ذاكرة الخادم مدة الطلب فقط.",
   "privacy.notKept.2": "لا يسجّل «عَزْو» المسودة، كلها أو بعضها، ولا أي نقل مأخوذ منها، ولا ما يعيده النموذج اللغوي.",

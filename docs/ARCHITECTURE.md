@@ -929,7 +929,8 @@ returns is untrusted input (`AGENTS.md` §2 rule 9).
 
 **The port** (`LlmPort`, declared in `src/core/review.ts`):
 `extractQuotes(draft) → Promise<LlmExtraction>` and `explainDiff(input) → Promise<string | null>`
-(not called: P12; the adapter returns `null`). A rejection means that no LLM took part.
+("Explanation" below). A rejected extraction means that no LLM took part; a rejected explanation
+means no explanation for that item.
 
 **The output schema** (`LlmExtractionSchema`, zod; the same object is the structured-output schema
 sent to the provider and the check `review()` runs on what the port returns):
@@ -968,7 +969,7 @@ schema (a status, an offset) is not read.
 | System prompt | Appendix A1 of the prompt pack, verbatim (`EXTRACT_SYSTEM_PROMPT`, `EXTRACT_PROMPT_VERSION = "1"`), sent as `instructions` |
 | Draft | A user message of its own: `<draft>\n…\n</draft>` |
 | Temperature | 0. A model that refuses the parameter (HTTP 400 naming `temperature`) is called again without it, and without it from then on |
-| Timeout | `LLM_TIMEOUT_MS` (15000) for the extraction as a whole, the retry included: one `AbortSignal` |
+| Timeout | `LLM_TIMEOUT_MS` (15000) for the extraction as a whole, the retry included: one `AbortSignal`. The explanations of a review have the same budget again ("Explanation") |
 | Retry | One, and only after a connection error, 429 or 5xx. Not after a timeout, a 4xx, a refusal or a cut output. The SDK's own retries are off |
 | Storage | `store: false` |
 | Logging | None |
@@ -982,6 +983,65 @@ Limits: the automated tests use a fake client. Against the provider the adapter 
 only, on seven short drafts through the running app (2026-10-03, `docs/DECISIONS.md` D-21, "Live
 run"); the prompt was not measured on the evaluation cases (P14). A draft that contains the text `</draft>` closes the delimiter early; the draft is not
 rewritten for it, and what the model returns is validated whatever it read.
+
+## Explanation
+
+Code: `src/core/explain/index.ts` (`buildExplainInput`, `validateExplanation`, pure),
+`src/llm/openai.ts` (`explainDiff`), `src/llm/prompts/explain.ts` (the prompt). Tests:
+`src/core/explain/index.test.ts`, `src/llm/openai.test.ts`, and "explanations" in
+`src/core/review.test.ts` (a mocked port). Choices: `docs/DECISIONS.md` D-23.
+
+A short generated note on how a quote differs from its source. It is an addition to `reasonAr`,
+shown under «شرح مولّد آلياً»; it never changes `status`, `reasonCode`, `reasonAr` or `evidence`.
+
+**When.** For an item whose status is `DIFFERS`, when the LLM extraction of this review succeeded
+(the result carries no `LLM_UNAVAILABLE_REGEX_ONLY`). No other status is explained.
+
+**The input** (`ExplainDiffInput`, built by `buildExplainInput` from the item and the entries of
+the first occurrence of its evidence):
+
+```ts
+{ draftExcerpt: string;          // span.text
+  sourceText: string;            // exactText of the occurrence's records, joined by a space
+  sourceCitation: string;        // citation.display; several records: «من … إلى …»
+  draftCitation: string | null;  // citedReference.raw
+  reasonCode: string;
+  diffOps: Array<{ op: "replace" | "insert" | "delete"; draft?: string; source?: string }> }
+```
+
+`diffOps` are the item's diff ops with the words cut from the draft and from `exactText` through
+their ranges; `equal` ops are left out. No layer text, no grade and no other part of the draft is
+in the input.
+
+**The adapter.** `responses.create`, plain text. System prompt: Appendix A2 of the prompt pack,
+verbatim (`EXPLAIN_SYSTEM_PROMPT`, `EXPLAIN_PROMPT_VERSION = "1"`), sent as `instructions`; the
+input as JSON in the user message. `store: false`, no logging, temperature as for the extraction
+(0, or none once the model refused it). The output is trimmed; `NULL` or an empty output is
+`null`. No retry. Each call has a timeout of `LLM_TIMEOUT_MS`; `review()` starts all calls of a
+review in one pass, in parallel, so they end at one deadline. A review can therefore take up to
+twice `LLM_TIMEOUT_MS` (extraction, then explanations).
+
+**The validator.** `validateExplanation(text, input, bookTitles)` returns the trimmed note or
+`null`. The note is accepted only if all of these hold:
+
+| Check | Rule |
+|---|---|
+| Length | At most 240 characters (UTF-16 code units), and not empty |
+| Quoted segments | Every segment inside `«…»` or `﴿…﴾` (trimmed) is not empty and stands verbatim in `draftExcerpt`, `sourceText`, `sourceCitation` or `draftCitation`. Verbatim means the same characters, diacritics included |
+| Other quotation marks | None: an unmatched `«`, `»`, `﴿`, `﴾`, or any of `" “ ” „ ‘ ’` outside a matched segment rejects the note, because words quoted that way cannot be checked |
+| Sentences | At most 2. A sentence ends at `.`, `!`, `?`, `؟` or a line break; the quoted segments are taken out first, so a full stop inside one ends nothing |
+| Numbers | Every run of digits (Arabic-Indic digits read as ASCII) equals a run of digits of one of the two citations |
+| Words | None of «صحيح», «ضعيف», «موضوع», «حكم», «يجب», «يحرم», «فتوى», compared without diacritics, anywhere in a word and inside quoted segments too. `bookTitles` (the names of the covered collections, from `collection.<id>`) are taken out first, as whole words |
+
+A `null`, a failure, a timeout, an answer that is not a string or a note the validator rejects
+all end the same way: the item has no `explanation`, the result has no warning for it, and nothing
+else changes.
+
+Limits: the validator checks form and grounding, not truth. A note with no quotation, no number
+and no listed word passes whatever it says (a model that obeyed an instruction in the quote could
+write «النص مطابق» on a `DIFFERS` item); it is shown labeled as generated, beside the deterministic
+`reasonAr` and status, which it cannot change. A number written in words is not checked. Not run
+against the provider: the prompt was not measured (P14).
 
 ## Orchestrator
 
@@ -998,7 +1058,7 @@ of the LLM gives the same result, ids included; a result holds no time.
 |---|---|
 | `index`, `aliases`, `corpusVersion`, `coverage` | From `loadCorpus`. `coverage` is what the corpus holds |
 | `extractors` | `Extractor[]`, in priority order, all before the LLM. An extractor is a function `draft → ExtractedQuote[]`, each `{ span, claimedKind, claimLevel?, extractedBy }` |
-| `llm?` | `LlmPort`. Absent = no LLM takes part. Its time budget is the adapter's own |
+| `llm?` | `LlmPort`. Absent = no LLM takes part: no extraction and no explanation. Its time budget is the adapter's own |
 | `now` | The clock. Not read |
 | `matchers?` | The matcher registry; defaults to `matchers` of `src/core/matchers`. A test passes its own |
 | `limits?` | Defaults to `REVIEW_LIMITS` |
@@ -1038,7 +1098,11 @@ The order is that of `AGENTS.md` §6.
    matcher") → `matchAll` (every registered matcher, whatever the claimed kind) → `decide` → `reasonAr` → `evidenceOf` for the occurrences that are shown. The word diff
    is a pure function of the alignment the matcher made, and `decide` does not read it, so it is
    computed after the decision and only for the evidence that is returned.
-6. **Explanations**: P12.
+6. **Explanations** ("Explanation" above). When the extraction of step 1 succeeded, every
+   `DIFFERS` item is explained from the first occurrence of its evidence: `buildExplainInput` →
+   `deps.llm.explainDiff` → `validateExplanation`, all items in parallel. An accepted note becomes
+   `explanation: { text, generated: true }`; anything else leaves the item as it was. The step
+   adds no warning and changes no other field.
 
 `citedReference` is the attached reference as it was read: `{ raw, span, parsed }`, with `parsed`
 typed by `ParsedReferenceSchema` (`docs/DECISIONS.md` D-17).
@@ -1176,7 +1240,8 @@ The layout (`src/app/layout.tsx`) carries the banner «أداة مدعومة ب�
 |---|---|
 | `api-client.ts` | `requestReview`, `fetchHealth`: fetch, then validation against the zod schemas. A result comes only from a 200 that parses |
 | `segments.ts` | From diff ops (ranges) to the pieces of a text: `draftSegments`, `sourceSegments`, `alignedSourceSegments`, and `draftPieces` for the highlighted draft |
-| `occurrences.ts` | `groupOccurrences` (evidence → places), `occurrenceCitation`, `sourceCopyText` |
+| `occurrences.ts` | `groupOccurrences` (evidence → places), `occurrenceCitation`, `occurrenceText`, `sourceCopyText` |
+| `report.ts` | `reportText(result, date)`: the result as plain text for «انسخ التقرير» |
 | `labels.ts` | Names for ids from the API (`collection.<id>`, `kind.<id>`, `warning.<CODE>`), and the summary row |
 | `kind-ui.ts` | Per kind: the marks around its source text and its font. The only place the UI names a kind |
 
@@ -1189,8 +1254,24 @@ A card (`ReviewCard`): the status pill (label + icon), the quote as written with
 the dashed trace line, the source block (`ScriptureBlock`: `exactText` only, the citation, a grade
 only when the record has one with its `by`, the source link when the record has a `sourceUrl`),
 `reasonAr`, «قارن النصين», «انسخ نص المصدر مع المرجع», and `ExplanationBox` under «شرح مولّد آلياً»
-when an item carries an explanation (none does until P12). An `ERROR` item shows its `reasonAr`
-and nothing from a source.
+when an item carries an explanation (a `DIFFERS` item only: "Explanation"). An `ERROR` item shows
+its `reasonAr` and nothing from a source.
+
+**«انسخ التقرير»** (`CopyReportButton`, in the results header when the result has items) copies
+`reportText(result, new Date())`: plain text, one field per line, each line opening with its
+Arabic label so that it reads right-to-left where it is pasted. Blocks are separated by an empty
+line.
+
+- Header: the title, the date (`YYYY-MM-DD` on the reader's clock at the click; a result holds no
+  time), `corpusVersion`, the coverage names, and one line per warning with its sentence.
+- One block per item: «النقل n», the status label, the quote, the cited reference when the draft
+  has one, then for the first occurrence the source text (as `sourceCopyText` gives it), its
+  citation and `record.sourceName`, then `reasonAr`. An item without evidence has no source
+  lines; an `ERROR` item has status, quote and reason only, whatever it holds.
+- The fixed footer `report.footer`.
+
+The report holds no generated explanation and no grade. Both copy buttons are one component
+(`CopyButton`): the same status line says whether the copy worked.
 
 Status styling is driven by data: an element carries `data-status`, and `globals.css` sets the
 color, the text color and the underline style from it. The icon registry in `StatusPill.tsx` is

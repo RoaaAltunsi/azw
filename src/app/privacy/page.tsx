@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: t("privacy.title") };
 
 // The sections of docs/PRIVACY.md, in its order. The page says what that file says, and no more.
 const SECTIONS: ReadonlyArray<{ title: MessageKey; items: readonly MessageKey[] }> = [
-  { title: "privacy.processed.title", items: ["privacy.processed.1", "privacy.processed.2"] },
+  { title: "privacy.processed.title", items: ["privacy.processed.1", "privacy.processed.2", "privacy.processed.3"] },
   {
     title: "privacy.notKept.title",
     items: ["privacy.notKept.1", "privacy.notKept.2", "privacy.notKept.3", "privacy.notKept.4"],

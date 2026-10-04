@@ -1,6 +1,7 @@
 import type { Ref } from "react";
 import type { ReviewResult } from "@/core/types";
 import { t } from "@/i18n/ar";
+import { CopyReportButton } from "./CopyReportButton";
 import { DraftView } from "./DraftView";
 import { Notice } from "./Notice";
 import { ReviewCard } from "./ReviewCard";
@@ -26,6 +27,7 @@ export function ResultsView({ result, draft, stale, headingRef }: ResultsViewPro
           {t("results.title")}
         </h2>
         {!empty && <SummaryRow result={result} />}
+        {!empty && <CopyReportButton result={result} />}
       </div>
 
       {stale && <Notice className="mt-4">{t("state.stale")}</Notice>}

@@ -185,6 +185,7 @@ test("results: the summary, the warnings in their wording, a highlight that link
   expect(html).toContain(t("warning.ITEM_LIMIT_REACHED"));
   expect(html).toMatch(/<a href="#card-item-6-9" class="draft-mark" data-status="NOT_FOUND"/);
   expect(html).toContain('id="card-item-6-9"');
+  expect(html).toContain(t("report.copy"));
   expect(html).not.toContain(t("state.stale"));
 });
 
@@ -194,6 +195,7 @@ test("results: no quotes found is said plainly, with no summary row", () => {
   expect(html).toContain(t("extract.formsNote"));
   expect(html).toContain(t("state.stale"));
   expect(html).not.toContain("0 مطابق");
+  expect(html).not.toContain(t("report.copy"));
 });
 
 test("the forms note names every phrase the regex extractor reads", () => {

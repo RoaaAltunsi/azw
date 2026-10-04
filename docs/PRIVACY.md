@@ -1,6 +1,6 @@
 # Azw — privacy notice
 
-What Azw does with a draft, as the code stands on 2026-10-03 (after P10). `AGENTS.md` §2 rule 8:
+What Azw does with a draft, as the code stands on 2026-10-04 (after P12). `AGENTS.md` §2 rule 8:
 do not store drafts, do not log draft content, publish a short privacy notice. The Arabic notice
 shown in the app (`/privacy`) must say what this file says, and no more.
 
@@ -15,6 +15,12 @@ shown in the app (`/privacy`) must say what this file says, and no more.
   provider not to store the response (`store: false`). What the provider keeps of what it
   receives is governed by its own terms (<https://developers.openai.com/api/docs/guides/your-data>),
   not by this code.
+- **For a quote that ends «مختلف في اللفظ أو المرجع» (`DIFFERS`)**, when the LLM read the draft, a
+  second request goes to the same provider to write the short note shown under «شرح مولّد آلياً».
+  It holds: the quote, the source text it was compared with, the source's reference, the
+  reference the draft cites, the reason code, and the words that differ between the two texts.
+  Nothing else is sent with it, and it too asks the provider not to store the response
+  (`store: false`). No such request is made for any other status, nor when the extraction failed.
 - When no LLM is configured, quotes are found by a rule-based extractor on the Azw server and the
   draft does not leave it. `GET /api/v1/health` reports `llmConfigured`; a result that carries the
   warning `LLM_UNAVAILABLE_REGEX_ONLY` was made without an LLM reading the draft to its end (none
@@ -58,6 +64,7 @@ keeps what is sent to it is set by its terms.
 | No response is cached | `src/server/api-handlers.ts` (`json`) | `src/server/api-handlers.test.ts`, happy path |
 | The address is a rate-limit key only | `src/server/rate-limit.ts`, `clientKey` | `src/server/api-handlers.test.ts`, "privacy: what is logged" |
 | The draft goes to the provider in the user message only, with `store: false`; the adapter logs nothing | `src/llm/openai.ts` | `src/llm/openai.test.ts` (a fake client) |
+| An explanation request holds the six fields above and nothing else, with `store: false`; it is made for `DIFFERS` items only, and only when the extraction succeeded | `src/core/explain/index.ts`, `src/core/review.ts`, `src/llm/openai.ts` | `src/core/review.test.ts`, "explanations"; `src/llm/openai.test.ts`, "explainDiff" |
 
 Limits of this notice: it describes the application code. It was not checked against a deployed
 host's own logging (P8). What the LLM provider does with a request was not tested and cannot be

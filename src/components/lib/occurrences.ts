@@ -44,13 +44,17 @@ export function occurrenceCitation(occurrence: Occurrence): string {
   return first === last ? first : format("reason.ref.range", { first, last });
 }
 
-// What «انسخ نص المصدر مع المرجع» puts on the clipboard: exactText and citation.display, nothing else.
-export function sourceCopyText(occurrence: Occurrence): string {
-  const text = occurrence.entries
+// The source text of an occurrence as it is copied: exactText of each record between its kind's marks.
+export function occurrenceText(occurrence: Occurrence): string {
+  return occurrence.entries
     .map(({ record }) => {
       const { open, close } = kindUi(record.kind);
       return `${open}${record.exactText}${close}`;
     })
     .join(" ");
-  return `${text}\n${occurrenceCitation(occurrence)}`;
+}
+
+// What «انسخ نص المصدر مع المرجع» puts on the clipboard: exactText and citation.display, nothing else.
+export function sourceCopyText(occurrence: Occurrence): string {
+  return `${occurrenceText(occurrence)}\n${occurrenceCitation(occurrence)}`;
 }

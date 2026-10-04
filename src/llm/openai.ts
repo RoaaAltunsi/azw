@@ -1,5 +1,5 @@
-// The OpenAI adapter of the LLM port: the Responses API with structured output (a JSON schema made
-// from the zod schema, strict). Server only.
+// The OpenAI adapter of the LLM port: the Responses API, with structured output for the extraction
+// (a JSON schema made from the zod schema, strict) and plain text for an explanation. Server only.
 //
 // Privacy (AGENTS.md §2 rule 8): nothing here logs, and the request asks the provider not to store
 // the response (`store: false`). An error is rethrown as it came; the caller reads its class only.
@@ -7,12 +7,14 @@ import OpenAI, { APIConnectionError, APIConnectionTimeoutError, APIError, Intern
 import { zodTextFormat } from "openai/helpers/zod";
 import { LlmExtractionSchema, type LlmExtraction } from "../core/extract/llm";
 import type { LlmPort } from "../core/review";
+import { EXPLAIN_NO_ANSWER, EXPLAIN_SYSTEM_PROMPT, explainUserMessage } from "./prompts/explain";
 import { EXTRACT_SYSTEM_PROMPT, extractUserMessage } from "./prompts/extract";
 
 export interface OpenAiPortOptions {
   apiKey: string;
   model: string;
-  // For one extraction as a whole, the retry included.
+  // For one extraction as a whole, the retry included; and again for the explanations of one
+  // review, as a whole.
   timeoutMs: number;
   // A test passes its own; no network is used then.
   client?: Pick<OpenAI, "responses">;
@@ -66,7 +68,21 @@ export function createOpenAiPort(options: OpenAiPortOptions): LlmPort {
         }
       }
     },
-    // P12.
-    explainDiff: async () => null,
+    // Plain text, one attempt. review() starts the calls of one review together, so the timeout of
+    // each ends at the same moment: one budget for all of them.
+    async explainDiff(input) {
+      const response = await client.responses.create(
+        {
+          model: options.model,
+          instructions: EXPLAIN_SYSTEM_PROMPT,
+          input: explainUserMessage(input),
+          store: false,
+          ...(sendTemperature ? { temperature: 0 } : {}),
+        },
+        { signal: AbortSignal.timeout(options.timeoutMs), maxRetries: 0 },
+      );
+      const text = response.output_text.trim();
+      return text === "" || text === EXPLAIN_NO_ANSWER ? null : text;
+    },
   };
 }

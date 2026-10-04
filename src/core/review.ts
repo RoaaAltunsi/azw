@@ -3,13 +3,16 @@
 // Documented in docs/ARCHITECTURE.md ("Orchestrator").
 import { t } from "../i18n/ar";
 import type { CorpusIndex } from "./corpus";
+import { buildExplainInput, validateExplanation, type ExplainDiffInput } from "./explain";
 import type { ExtractedQuote, Extractor } from "./extract";
 import { LlmExtractionSchema, validateSpans, type LlmExtraction } from "./extract/llm";
 import { mergeQuotes, type MergedQuote } from "./extract/merge";
 import { evidenceOf, inVerseMarks, matchAll, matchers, type Matcher } from "./matchers";
 import { attachReference, parseReferences, type Reference, type ReferenceAliases } from "./references";
-import { decide, reasonAr } from "./status";
-import { API_VERSION, ExtractedBySchema, STATUSES, type DiffOp, type ReviewItem, type ReviewResult, type Status } from "./types";
+import { collectionName, decide, reasonAr } from "./status";
+import { API_VERSION, ExtractedBySchema, STATUSES, type Evidence, type ReviewItem, type ReviewResult, type Status } from "./types";
+
+export type { ExplainDiffInput, ExplainDiffOp } from "./explain";
 
 // The bounds of one review. A one- or two-word quote can be an exact hit in thousands of ayat, and
 // a draft can hold any number of quotes; neither may decide the size of a response.
@@ -38,23 +41,15 @@ export const INTERNAL_ERROR = "INTERNAL_ERROR";
 
 // The LLM port (AGENTS.md §6: everything an LLM does goes through it), implemented in src/llm.
 // Whatever it returns is untrusted input (AGENTS.md §2 rule 9): the extraction is schema-validated
-// and its quotes are looked up in the draft (./extract/llm), text is validated, and neither ever
-// decides a status.
-export interface ExplainDiffInput {
-  quote: string; // the span of the draft
-  sourceText: string; // exactText of the record the item rests on
-  citation: string;
-  diff: DiffOp[];
-  reasonCode: string;
-}
-
+// and its quotes are looked up in the draft (./extract/llm), an explanation is validated
+// (./explain), and neither ever decides a status.
 export interface LlmPort {
   // Quotations and claims in the draft, as text. A rejection (failure, timeout) means that no LLM
   // took part: the review goes on with the other extractors.
   extractQuotes(draft: string): Promise<LlmExtraction>;
-  // A short explanation of a difference, grounded in the given source text only; null when the
-  // model cannot state it. Shown as `explanation: { text, generated: true }`, never as source
-  // text. Not called yet (P12).
+  // A short explanation of a difference, grounded in the given input only; null when the model
+  // cannot state it. A rejection (failure, timeout) means no explanation for that item. Shown as
+  // `explanation: { text, generated: true }`, never as source text.
   explainDiff(input: ExplainDiffInput): Promise<string | null>;
 }
 
@@ -120,6 +115,17 @@ async function extractWithLlm(draft: string, llm: LlmPort | undefined): Promise<
   }
 }
 
+// The explanation of one item, or undefined: the model had none, the call failed or timed out, or
+// the text did not pass validateExplanation. Never rejects.
+async function explain(llm: LlmPort, input: ExplainDiffInput, bookTitles: readonly string[]): Promise<string | undefined> {
+  try {
+    const text = await llm.explainDiff(input);
+    return (typeof text === "string" ? validateExplanation(text, input, bookTitles) : null) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 // The position in the draft: the same draft always gives the same ids.
 const itemId = (quote: MergedQuote): string => `item-${quote.span.start}-${quote.span.end}`;
 
@@ -159,12 +165,14 @@ export async function review(draft: string, deps: ReviewDeps): Promise<ReviewRes
 
   // 5–7. Per item: retrieve across all kinds, score and align (the matchers), decide (the status
   //      rules), then the word diff of the occurrences the decision rests on.
-  const reviewOne = (quote: MergedQuote): ReviewItem => {
+  //      `occurrence`: the evidence entries of the first occurrence, which step 8 rests on.
+  const reviewOne = (quote: MergedQuote): { item: ReviewItem; occurrence: Evidence[] } => {
     const reference: Reference | undefined = attachReference(quote.span, references, draft);
     const verseMarks = inVerseMarks(draft, quote.span);
     const candidates = matchAll({ span: quote.span, claimedKind: quote.claimedKind, reference, verseMarks }, deps.index, registry);
     const decision = decide({ claimedKind: quote.claimedKind, claimLevel: quote.claimLevel, candidates });
-    return {
+    const evidence = decision.evidence.slice(0, limits.MAX_EVIDENCE_PER_ITEM).flatMap(evidenceOf);
+    const item: ReviewItem = {
       id: itemId(quote),
       span: quote.span,
       claimedKind: quote.claimedKind,
@@ -174,17 +182,18 @@ export async function review(draft: string, deps: ReviewDeps): Promise<ReviewRes
       reasonCode: decision.reasonCode,
       // From the whole decision, so that «وفي n من المواضع الأخرى» counts what is not shown too.
       reasonAr: reasonAr(decision, { coverage }),
-      evidence: decision.evidence.slice(0, limits.MAX_EVIDENCE_PER_ITEM).flatMap(evidenceOf),
+      evidence,
       extractedBy: quote.extractedBy,
     };
+    return { item, occurrence: evidence.slice(0, decision.evidence[0]?.records.length ?? 0) };
   };
 
-  const items = quotes.map((quote): ReviewItem => {
+  const reviewed = quotes.map((quote) => {
     try {
       return reviewOne(quote);
     } catch {
       // Nothing found for this item may be shown: no evidence, no reference, no badge.
-      return {
+      const item: ReviewItem = {
         id: itemId(quote),
         span: quote.span,
         claimedKind: quote.claimedKind,
@@ -195,10 +204,22 @@ export async function review(draft: string, deps: ReviewDeps): Promise<ReviewRes
         evidence: [],
         extractedBy: quote.extractedBy,
       };
+      return { item, occurrence: [] };
     }
   });
 
-  // 8. Grounded explanations (deps.llm.explainDiff): P12.
+  // 8. Grounded explanations: for DIFFERS items only, and only when the LLM read this draft. The
+  //    calls start together, so the adapter's time budget is one for all of them. An explanation
+  //    is added to an item; nothing else of the item or of the result changes with it.
+  const llm = extraction ? deps.llm : undefined;
+  const bookTitles = coverage.map(collectionName);
+  const items = await Promise.all(
+    reviewed.map(async ({ item, occurrence }): Promise<ReviewItem> => {
+      if (!llm || item.status !== "DIFFERS" || occurrence.length === 0) return item;
+      const text = await explain(llm, buildExplainInput(draft, item, occurrence), bookTitles);
+      return text === undefined ? item : { ...item, explanation: { text, generated: true } };
+    }),
+  );
 
   const summary = Object.fromEntries(STATUSES.map((status) => [status, 0])) as Record<Status, number>;
   for (const item of items) summary[item.status] += 1;

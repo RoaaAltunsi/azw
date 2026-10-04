@@ -12,7 +12,7 @@ export interface ReasonContext {
 }
 
 // The name a collection is shown by («collection.<id>» in src/i18n/ar.ts), or its id when it has none.
-function collectionName(id: string): string {
+export function collectionName(id: string): string {
   const key = `collection.${id}`;
   return Object.hasOwn(ar, key) ? t(key as MessageKey) : id;
 }

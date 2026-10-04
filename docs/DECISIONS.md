@@ -1114,3 +1114,72 @@ a hadith claim end as labeled (item 9). `STATUS_CONFIG` was not changed, and the
 words was set on one case: the evaluation should measure it. That «إنما الأعمال بالنيات» is in no Muslim record was read in the corpus only.
 Ibn al-Salah's sentence was read in one digital copy (Wikisource), not in a printed edition. This
 is an AI tool's documented source check, not a scholar's review.
+
+## D-23 — Grounded explanation and copyable report: choices the prompt did not settle (2026-10-04)
+
+Made while adding the explanation and the report (`docs/ARCHITECTURE.md`, "Explanation" and "UI").
+None decides a status, a text, a reference or a grade, and none needed a source outside the
+repository: they follow from `AGENTS.md` §2 (rules 2, 3, 4 and 9). Wherever the prompt left the
+validator open, the stricter reading was taken: a rejected note costs the writer nothing, because
+`reasonAr` is always shown.
+
+1. **A quotation mark the validator cannot check rejects the note.** The prompt checks the
+   segments inside «» and ﴿﴾. Words quoted in `"…"`, `“…”` or `‘…’`, or after an unmatched «,
+   would pass unchecked, and could be words of no source shown as a quotation (rule 1). Such a
+   note is rejected. An empty segment («») is rejected too. *An addition to the prompt's rules.*
+2. **"Verbatim" is the same characters.** A segment is looked up as literal text (outer whitespace
+   trimmed), diacritics included. Looking it up through the normalization would accept a word the
+   model re-spelled, and the quotation shown would then not be the text of the draft or of the
+   source. Cost: a note that quotes a vocalised source word without its diacritics is rejected
+   (`docs/BACKLOG.md`).
+3. **Sentences are counted outside the quoted segments.** A sentence ends at `.`, `!`, `?`, `؟`
+   or a line break; a part with no letter and no digit is not a sentence. A full stop inside a
+   quoted source text is the source's, not the note's.
+4. **A number is a whole run of digits.** «43» is not covered by a citation that holds «4» and
+   «3». Arabic-Indic and Extended Arabic-Indic digits are read as ASCII digits on both sides. A
+   number inside a quoted segment is checked like any other. A number written in words is not
+   seen.
+5. **The seven words are matched without diacritics, anywhere in a word, quoted or not.** «صَحِيحٌ»,
+   «الحكم», «حكمه»: any word that holds one of them rejects the note, also when the word is
+   part of a quoted draft or source text («إن الحكم إلا لله»): the prompt says "it holds none
+   of", and telling a quotation from the tool's own judgment there is not worth the risk. Such an
+   item gets no explanation.
+6. **The book titles are those of the covered collections.** Appendix A2 allows "a book title
+   copied exactly from sourceCitation"; the prompt says «صحيح البخاري», «صحيح مسلم». The validator
+   receives the names of the result's coverage (`collection.<id>` of `src/i18n/ar.ts`), so core
+   names no book, and a new collection's title is allowed when its matcher is registered. A title
+   is taken out as whole words only; «صحيح» beside a title still rejects.
+7. **One time budget, by starting together.** The port stays `explainDiff(input)`, one call per
+   item. Each call has a timeout of `LLM_TIMEOUT_MS`, and `review()` starts all of them in one
+   synchronous pass, so they share one deadline (tested: every call has started before the first
+   answers). The budget is separate from the extraction's: a review can take up to twice
+   `LLM_TIMEOUT_MS`. Sharing one budget between extraction and explanations would give the
+   explanations whatever the extraction left, often nothing.
+8. **The temperature**: 0, and none once the model refused it during an extraction. An
+   explanation call is never repeated, so a refusal met there first only fails that call; in a
+   review the extraction always comes first.
+9. **Where things live.** `ExplainDiffInput`, `buildExplainInput` and `validateExplanation` are
+   in the new `src/core/explain/`; `src/core/review.ts` re-exports the type and still declares
+   `LlmPort`. `collectionName` of `src/core/status/reason.ts` is now exported (item 6); no status
+   rule changed.
+10. **The report.**
+    - *The cited reference* is listed for every item that has one, also without evidence (a
+      `NOT_FOUND` quote with «رواه البخاري»): it is the writer's own text, and the card shows it
+      too. The prompt's "status, quote and reason only" is read as "no source lines". An `ERROR`
+      item shows status, quote and reason only, whatever it holds, as the card does.
+    - *The date* is `YYYY-MM-DD` from the reader's clock at the click, built from the date's
+      parts: `toLocaleDateString` differs between browsers, and the report must be the same text
+      everywhere. The line is «تاريخ التقرير», not the date of the review: a result holds no time.
+    - *One field per line, each opening with its Arabic label*, so that a plain-text paste is
+      laid out right-to-left without direction marks.
+    - *Strings*: the lines that the card already words («المرجع المذكور في المسودة», «المرجع في
+      المصدر», «المصدر», «النقل n», «إصدار البيانات») reuse its keys.
+    - `CopySourceButton` and the new `CopyReportButton` are one `CopyButton`;
+      `occurrenceText` was split out of `sourceCopyText`, whose output did not change.
+11. **Privacy wording.** `docs/PRIVACY.md` and `/privacy` (`privacy.processed.3`) name the six
+    fields of an explanation request and say when it is made.
+
+Limits: tested with a mocked port and a fake client only; nothing was sent to the provider. The
+validator checks form and grounding, not truth: a note that quotes nothing, holds no number and
+none of the seven words passes whatever it says. It is shown labeled «شرح مولّد آلياً» beside the
+status and `reasonAr`, which it cannot change; whether more is needed is the audit's (P13).
