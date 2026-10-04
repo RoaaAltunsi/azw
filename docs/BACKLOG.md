@@ -226,6 +226,23 @@ is built until it is moved into a prompt's scope.
   - Not looked at in a browser: a phone-width screen (the window could not be resized in the
     test session), a screen reader, Firefox and Safari.
 
+- Evaluation (P14), for P15 (`docs/EVALUATION.md` section 11, `docs/DECISIONS.md` D-27). Tune on the
+  tune split only:
+  - The model returns the writer's closing sentence as an `interpretive_claim` (`T-001`, `T-006`,
+    `T-018`, `T-022`, `T-025`): an extra `NEEDS_SPECIALIST` card. A prompt change is a new
+    `EXTRACT_PROMPT_VERSION`.
+  - A ruling for a personal case is not always extracted (`T-027` in one run of two; held-out
+    `H-027`, `H-040`), and a hadith qudsi once came back as `unclear_attribution` (`H-041`). The
+    extraction is not the same from run to run, although the temperature is 0.
+  - `H-010`: a misquoted verse inside a question ends `LOW_CONFIDENCE_MATCH`, not `DIFFERS`; in
+    `llm` mode the model says `NOT_A_DRAFT` and the verse is not reviewed at all.
+  - In merged mode the same quote is cut one character wider or narrower from run to run (the
+    merge of a regex span and an LLM span).
+  - The runner does not read `citedReference` and `attributionPhrase` of the model's output, and
+    does not judge whether an explanation is true.
+  - Latency with the LLM is 2.5 s p50 and 7.5 s p95 per draft; the regex result could be shown
+    first.
+
 ## Ideas for after the challenge
 
 - Normalization: more honorific phrases found in the hadith corpus and left in `searchText` —

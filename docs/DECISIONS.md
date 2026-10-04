@@ -1428,3 +1428,56 @@ for the LLM extractor. The 21 held-out additions were not run.
 so a pass shows the tool does what its documentation says, not that the rules are right. Their
 altered wordings were not searched on dorar.net. No person has read them. This is an AI tool's
 documented choice, not a scholar's review.
+
+## D-27 — Evaluation runner: choices the prompt did not settle, and the first results (2026-10-04)
+
+The runner (`eval/run-eval.ts`) measures the pipeline on the 85 cases in three modes and writes
+the report. It fixes nothing. Method: `docs/EVALUATION.md` section 10; results: section 11.
+
+**Choices.**
+
+1. **Pairing is one to one, the best overlap first.** A returned item is paired with an expected
+   item at IoU ≥ 0.5 (given). When two items compete for one partner the higher overlap wins and
+   the other stays unpaired, so one returned item can never satisfy two labels.
+2. **An expected item that was not extracted is wrong on every count** (status, reason, retrieval,
+   reference). Option weighed: score status only over paired items. Rejected: it would hide the
+   regex baseline's misses, which are exactly what the comparison is for. Recall and precision are
+   reported beside it, so the two causes stay apart.
+3. **False confirmations are counted over the `MATCH` items returned**, and include a `MATCH` that
+   no label expects.
+4. **Reference accuracy looks at the first evidence record**, the one whose citation the reason
+   sentence shows. Retrieval looks at all the evidence.
+5. **A request passes only with zero items and `NOT_A_DRAFT`** (given). The regex mode has no way
+   to say an input is not a draft, so it scores 0 there; this is reported as it is.
+6. **"Cases right" is strict:** any difference from the label, and any returned item no label
+   expects, makes the case wrong and lists it under "Failures".
+7. **Tokens are read without changing `LlmPort`:** a wrapper around `fetch`, installed by the
+   runner only, reads the two `usage` numbers of each provider response. A second wrapper around
+   the port counts calls and text lengths for the fallback estimate (characters ÷ 3, labeled).
+8. **Stability compares items by overlap, not by offsets.** The first full run showed 28 "changed"
+   items of 73, almost all the same quote cut one character wider or narrower with the same
+   status. Items of two runs are now the same item when their spans pair at IoU ≥ 0.5; the run
+   was repeated and the report replaced (1 changed item of 59).
+9. **The gate cannot pass on what was not measured.** A mode that did not run on held-out is
+   `NOT RUN` and the gate is `FAIL`; a run without the held-out split is `NOT EVALUATED`.
+   `npm run eval` exits 1 on `FAIL`.
+10. **The report names the provider and the model** (the task asks for the model used). No other
+    setting is printed, and the key never is. The console shows counts only.
+11. **A one-split run writes its own file** (`…-tune.md`), so it never replaces a full report.
+12. **One count beyond the eight asked:** `DIFFERS` items that carry a validated explanation,
+    because it is part of what the LLM adds and `docs/BACKLOG.md` listed it as unmeasured.
+
+**Labels: none changed.** Two findings were examined (`docs/EVALUATION.md` section 11): the model
+returns some of the writer's closing sentences as claims that no label expects, and `H-010` ends
+`NEEDS_SPECIALIST` where the label says `DIFFERS`. The labels follow the form of the sentence and
+the package's own example and assert nothing about the matter, so no outside source bears on
+them; they stand. A label is never changed because the tool disagrees with it.
+
+**Measured** (held-out, `merged` mode, model `gpt-5.6-luna`, corpus `p2-e2bfaf5a3ad2`): false
+confirmations 0 / 20; status 57 / 59; retrieval 41 / 41; recall 58 / 59 against 47 / 59 for the
+regex baseline; requests 2 / 2 against 0 / 2; latency p50 / p95 2513 / 7534 ms against 4 / 12 ms;
+1154 tokens in and 224 out per draft. Release gate: PASS.
+
+**Limits.** No person has reviewed the cases. A small sample, one model, one reported run of a
+model that is not deterministic; an earlier run the same day differed by one held-out item. This
+is an AI tool's documented measurement, not a scholar's review.

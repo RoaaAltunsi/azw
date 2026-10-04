@@ -477,3 +477,164 @@ a label. Decision: `docs/DECISIONS.md` D-26.
 | `H-050` | MIXED | DIFFERS / REF_MISMATCH_AYAH<br>MATCH / MATCH_REF_OK<br>NEEDS_SPECIALIST / INTERPRETIVE_CLAIM | `quran:2:45`<br>`bukhari:552` +1<br>— | A longer post with three items |
 | `H-051` | MIXED | DIFFERS / REF_MISMATCH_NUMBER<br>MATCH / MATCH_REF_OK<br>NOT_FOUND / NO_RECORD_IN_COVERED_SOURCES | `muslim:5307`<br>`bukhari:5392` +1<br>— | A longer post with three hadith quotes |
 <!-- AUTO:case-index:END -->
+
+## 10. Runner and metrics
+
+`eval/run-eval.ts` (`npm run eval`, or `npm run eval -- --split tune|heldout`) calls `review()`
+directly, with the real corpus (`loadCorpus`) and the real LLM port (`createLlmPort`), one draft at
+a time, and writes `eval/results/<date>-<corpusVersion>.md`. A one-split run writes
+`…-<split>.md`, so it never replaces a full report. The scoring is in `eval/lib/score.ts` and the
+report in `eval/lib/report.ts`, both pure and unit-tested on hand-made inputs; no test calls the LLM.
+
+**Three modes.**
+
+| Mode | Extractors | LLM | What it is |
+|---|---|---|---|
+| `regex` | `regexExtractor` | none | The baseline |
+| `llm` | none | yes | The LLM extractor alone |
+| `merged` | `regexExtractor` | yes | Production |
+
+The LLM settings are read from the local `.env` (the npm script passes Node's
+`--env-file-if-exists`). The runner prints no setting, no draft and no quote. The report names the
+provider and the model, never the key. Without the settings only the `regex` mode runs and the
+report says so.
+
+**How an item is scored.** Example, one case with two labels:
+
+```
+labels:    A = chars 10–50, MATCH, records [bukhari:1]      B = chars 80–120, NOT_FOUND
+returned:  x = chars 12–50, MATCH, evidence [bukhari:1]     y = chars 200–230, MATCH
+ 1. pair     A–x overlap 38 of 40 characters (IoU 0.95 ≥ 0.5) → a pair. B and y have no partner
+ 2. status   A: right. B: not extracted, so wrong
+ 3. records  A: bukhari:1 is among the evidence, and it is the first citation shown → both right
+ 4. false confirmation   y is a MATCH that no label expects → 1 of the 2 MATCH items returned
+ 5. the case is wrong: it is listed under "Failures"
+```
+
+| Metric | Count | Denominator |
+|---|---|---|
+| False confirmations (primary) | `MATCH` items not paired with an expected `MATCH` item | `MATCH` items returned |
+| Status accuracy | Expected items whose paired item has the expected status | Expected items |
+| Reason-code accuracy | … and the expected reason code | Expected items |
+| Source retrieval | An expected `recordId` is among the item's evidence | Expected items that list records |
+| Reference accuracy | The first evidence record (the one whose citation the reason sentence shows) is an expected record | Expected items that list records |
+| Extraction recall | Expected items that have a paired item | Expected items |
+| Extraction precision | Returned items that have a paired expected item | Returned items |
+| Abstention | Expected `NOT_FOUND` and `NEEDS_SPECIALIST` items that end so | Such expected items |
+| Requests | `expectScopeMessage` cases answered with zero items and the warning `NOT_A_DRAFT` | Such cases |
+| Cases right | Cases where nothing differs from the label, and no item is returned that no label expects | Cases |
+
+Pairs are one to one, the best overlap first. An expected item that was not extracted counts as
+wrong in status, reason, retrieval and reference: the writer was shown nothing for it. The status
+confusion matrix has a column for it, and a row for returned items that no label expects.
+
+**Stability.** The held-out split is run three times in `merged` mode; the first run is the one
+in the tables. An item is known by its case and its place in the draft; the report lists every
+item whose status was not the same in the three runs, or that a run did not return.
+
+**Latency and cost.** Wall time of `review()` per draft, p50 and p95 (nearest rank), corpus already
+loaded. Tokens are the provider's own count: the runner reads the `usage` numbers of each response
+through a wrapper around `fetch`, so `LlmPort` is unchanged. When a provider reports none, the
+report gives an estimate from the text lengths (characters ÷ 3) and labels it as an estimate.
+
+**Release gate.** `PASS` only when all three hold, each one measured: zero false confirmations on
+the critical held-out cases in `merged` mode; the same in `regex` mode; no `ERROR` item carries
+evidence in any run. A mode that did not run cannot pass. `npm run eval` exits with code 1 on `FAIL`.
+
+**Held-out.** The report shows a held-out failure by id, category, statuses, reason codes and
+record ids only, never by its draft or its quotes; a test pins this. Tune failures show the draft.
+Decision: `docs/DECISIONS.md` D-27.
+
+## 11. Results (2026-10-04)
+
+Full report: `eval/results/2026-10-04-p2-e2bfaf5a3ad2.md` (every table, the confusion matrices and
+every wrong case). Produced by `npm run eval`.
+
+- **Date:** 2026-10-04. **Corpus version:** `p2-e2bfaf5a3ad2` (quran, bukhari, muslim).
+- **Model:** provider `openai`, model `gpt-5.6-luna`, time budget 15 s. Extraction prompt
+  version 1, explanation prompt version 2.
+- **No person has reviewed the cases.** They were drafted and checked by an AI assistant
+  (section 1). The numbers below are measured on those cases and are no more than that.
+
+**Release gate: PASS.** Zero false confirmations on the 23 critical held-out cases in `merged` and
+in `regex` mode; no `ERROR` item carried evidence in any run.
+
+**Headline numbers, held-out split (51 cases, 59 expected items).** The reported result:
+
+| Metric | regex (baseline) | llm | merged (production) |
+|---|---|---|---|
+| False confirmations / `MATCH` returned (primary) | 0 / 17 | 0 / 20 | 0 / 20 |
+| Status accuracy | 46 / 59 | 56 / 59 | 57 / 59 |
+| Reason-code accuracy | 46 / 59 | 56 / 59 | 57 / 59 |
+| Source retrieval | 37 / 41 | 40 / 41 | 41 / 41 |
+| Reference accuracy | 37 / 41 | 40 / 41 | 41 / 41 |
+| Extraction recall | 47 / 59 | 56 / 59 | 58 / 59 |
+| Extraction precision | 47 / 47 | 56 / 59 | 58 / 59 |
+| Abstention | 13 / 21 | 19 / 21 | 20 / 21 |
+| Requests given the scope message | 0 / 2 | 2 / 2 | 2 / 2 |
+| Cases right | 36 / 51 | 45 / 51 | 48 / 51 |
+
+The two groups, held-out, `merged`: the first 50 give status 30 / 32 and cases right 28 / 30; the
+35 added give status 27 / 27 and cases right 20 / 21 (they are not blind: section 8). Tune split,
+`merged`: status 37 / 37, false confirmations 0 / 13, cases right 32 / 34.
+
+**What the LLM adds to the regex baseline (held-out).** 13 cases are right with it and wrong
+without it: quotes behind an attribution phrase the regex list does not hold, claims and rulings
+(which only an extractor that reads sentences can find), and the two requests. Extraction recall
+goes from 47 / 59 to 58 / 59. One case is right without it and wrong with it (`H-033`: the model
+also returned a sentence of the writer as a claim, which ends `NEEDS_SPECIALIST`). It added no
+false confirmation. Of the `DIFFERS` items returned in `merged` mode, 16 / 17 carry a generated
+explanation that passed the validator (tune: 10 / 11).
+
+**What it costs.** Latency per draft p50 / p95: 4 / 12 ms without the LLM, 2513 / 7534 ms with it
+(held-out, `merged`). Tokens per draft, as the SDK reported them: 1154 in, 224 out, over 68 calls
+for 51 drafts (one extraction per draft, plus one call per explained item). No LLM call failed or
+timed out in the reported run.
+
+**The three held-out cases still wrong in `merged` mode.** None is a false confirmation.
+
+| Case | Category | What happened |
+|---|---|---|
+| `H-010` | WORDING_ERROR, critical | Expected `DIFFERS / WORDING_DIFF`, got `NEEDS_SPECIALIST / LOW_CONFIDENCE_MATCH`: the tool abstained where the label wants the difference shown. In `llm` mode the item was not returned at all (`NOT_A_DRAFT`) |
+| `H-027` | AMBIGUOUS | A ruling for a personal case was not extracted in any mode: the writer is shown nothing for it |
+| `H-033` | WORDING_ERROR, critical | The labeled item is right; the model added an item no label expects (`NEEDS_SPECIALIST / INTERPRETIVE_CLAIM`) |
+
+**Stability.** Held-out, `merged`, three runs: 1 item of 59 did not end the same way (`H-040`: the
+personal ruling was returned in two runs and missing in one). No item changed from one status to
+another.
+
+**Findings on labels.** No label was changed (`docs/DECISIONS.md` D-27).
+
+- *Unlabeled sentences returned as claims.* In `llm` or `merged` mode the model returned the
+  writer's closing sentence as an `interpretive_claim` in `T-001`, `T-006`, `T-018`, `T-022`,
+  `T-025` (tune) and `H-017`, `H-033`, `H-036` (held-out). The tune sentences were read: three are
+  the writer's own exhortation (for example «فباب التوبة مفتوح ما دامت الروح في الجسد»), which the
+  extraction prompt says not to extract; the one of `T-018` («فمن صلى في بيته بلا عذر فهو آثم»)
+  continues the ruling the case already labels, and the one of `T-025` («فلا تبع ما لم يتبين
+  صلاحه») restates the hadith as an instruction. The labels follow the form of the sentence (D-26
+  item 3) and take no side, so no outside source bears on them; they stand, and each of these is
+  counted as a returned item with no label. The cost to the writer is a cautious extra
+  `NEEDS_SPECIALIST` card, never a `MATCH`. Whether `T-018` and `T-025` should carry a second claim
+  label is a limit of the set; it was not changed after seeing the tool's output.
+- *`H-010`.* The label stands (section 6 item 8, and the package's own test example). The tool's
+  answer is a cautious miss, of the kind section 6 item 7 foresaw for other cases.
+
+**Limits.**
+
+- 85 cases, 59 held-out expected items: a small sample. One item is 1.7 % of a held-out number.
+- One model, one day, one run reported. The model is not deterministic: an earlier full run the
+  same day (replaced because its stability table compared spans by exact offsets) gave held-out
+  `merged` status 56 / 59 and cases right 47 / 51, with `H-041` ending
+  `NEEDS_SPECIALIST / UNCLEAR_ATTRIBUTION` in one run of three and `MATCH` in the other two, and
+  tune `T-027` not extracted in `merged` mode. Both runs had zero false confirmations.
+- The 35 added cases are not blind (section 8), and the held-out split is not fully unseen for the
+  reference parser (the note of 2026-10-03 above). This run exposed nothing more: the report and
+  the console show held-out cases by id only, and no held-out draft was read to write this section.
+- Latency was measured on a developer machine, one draft at a time, with the corpus already
+  loaded; it is the provider's latency on that day, not a service-level number.
+- `regex` mode cannot answer a request with the scope message: only the LLM says an input is not
+  a draft. Its 0 / 2 is a property of the baseline, not a regression.
+- Not measured: whether a generated explanation is true (only that it passed the validator), and
+  the `citedReference` and `attributionPhrase` fields of the model's output.
+- Nothing was fixed in this step. The failures above are the input of the next one (P15), which
+  may tune on the tune split only.
