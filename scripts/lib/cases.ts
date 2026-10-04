@@ -16,21 +16,24 @@ export const CATEGORIES = [
   "NOT_IN_SOURCES",
   "AMBIGUOUS",
   "ADVERSARIAL",
+  "MIXED",
 ] as const;
 export type Category = (typeof CATEGORIES)[number];
 
-// Required number of cases per category and split (50 in total: 20 tune, 30 held-out).
+// Required number of cases per category and split (85 in total: 34 tune, 51 held-out).
+// 50 were written before any matching code existed; 35 were added on 2026-10-04 (docs/EVALUATION.md §9).
 export const QUOTAS: Record<Category, Record<Split, number>> = {
-  EXACT: { tune: 4, heldout: 6 },
-  ORTHOGRAPHIC: { tune: 3, heldout: 3 },
-  WORDING_ERROR: { tune: 3, heldout: 5 },
-  WRONG_REFERENCE: { tune: 3, heldout: 5 },
-  NOT_IN_SOURCES: { tune: 3, heldout: 5 },
-  AMBIGUOUS: { tune: 2, heldout: 3 },
-  ADVERSARIAL: { tune: 2, heldout: 3 },
+  EXACT: { tune: 7, heldout: 9 },
+  ORTHOGRAPHIC: { tune: 4, heldout: 4 },
+  WORDING_ERROR: { tune: 4, heldout: 8 },
+  WRONG_REFERENCE: { tune: 5, heldout: 7 },
+  NOT_IN_SOURCES: { tune: 4, heldout: 7 },
+  AMBIGUOUS: { tune: 6, heldout: 8 },
+  ADVERSARIAL: { tune: 3, heldout: 5 },
+  MIXED: { tune: 1, heldout: 3 },
 };
 
-export const CRITICAL_CATEGORIES: ReadonlySet<Category> = new Set(["WORDING_ERROR", "WRONG_REFERENCE", "ADVERSARIAL"]);
+export const CRITICAL_CATEGORIES: ReadonlySet<Category> = new Set(["WORDING_ERROR", "WRONG_REFERENCE", "ADVERSARIAL", "MIXED"]);
 
 // ERROR is a system state, never an expected label.
 const EXPECTED_STATUSES = ["MATCH", "DIFFERS", "NOT_FOUND", "NEEDS_SPECIALIST"] as const;
@@ -161,6 +164,10 @@ function checkCategory(c: EvalCase): string[] {
       if (!statuses.includes("NEEDS_SPECIALIST")) fail("AMBIGUOUS expects at least one NEEDS_SPECIALIST item");
       break;
     case "ADVERSARIAL":
+      break;
+    // A longer post, as writers publish them: several quotes that do not all end the same way.
+    case "MIXED":
+      if (c.expected.length < 3 || new Set(statuses).size < 2) fail("MIXED expects at least three items with at least two different statuses");
       break;
   }
 

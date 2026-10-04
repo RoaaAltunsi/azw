@@ -1368,3 +1368,63 @@ wrong first or last word is not corrected. The round trip shows the tool agrees 
 revised draft is as reliable as a `MATCH`, which proves the wording is in the record, not its
 authenticity. Not looked at: a phone-width screen, a screen reader, other browsers. This is an AI
 tool's documented choice, not a scholar's review.
+
+## D-26 — Evaluation set extended from 50 to 85 cases before the first run (2026-10-04)
+
+The owner asked on 2026-10-04, before the evaluation runner existed, for the labeled cases to be
+checked against the challenge guide and strengthened if they were weak. Details and limits:
+`docs/EVALUATION.md` section 8.
+
+**Question.** Are 50 cases enough for what the guide scores (`docs/reference/challenge-guide.md`
+§2: results that repeat "over varied cases in scope", success on "variety, conflict and
+missing-information cases", an improvement "due to the chosen use of AI")?
+
+**What was found.** The first 50 are sound but narrow. Their own list of gaps (`docs/EVALUATION.md`
+section 6 item 9) named a wrong hadith number, ayah numbers between ayat, pending records and hadith
+qudsi. Beyond it: no case for a spelling error in everyday script (the owner's decision D-9/D-13,
+and a possible false `MATCH`), none for `REF_NOT_CHECKED` or `SOURCE_NOT_REVIEWED`, no tune case
+for a wrong surah or a personal ruling, no post with several quotes, and only three cases where the
+LLM extractor is needed, which is too few to compare it with the regex baseline.
+
+**Options.** (a) Keep 50 and state the gaps. (b) Replace the set. (c) Add cases and keep the two
+groups apart in every report.
+
+**Decision: (c).** 35 cases were added (14 tune, 21 held-out), with one new category, `MIXED`
+(a longer post with at least three items of at least two statuses; critical). The first 50 are
+unchanged, so their value as cases written before the code is kept; the runner reports the two
+groups separately.
+
+1. **Labels come from the written rules, not from a run.** `AGENTS.md` §2–§5, the tables of
+   `docs/ARCHITECTURE.md`, and D-9, D-11, D-13, D-22. The tool was not run on the new drafts
+   before labeling.
+2. **Texts come from the corpus.** Quotes are cut from `exactText` by script; every altered wording
+   and every typed saying was searched in the whole corpus and is absent.
+3. **Claims are labeled by form.** A ruling for one person's case is `PERSONAL_RULING`; a ruling
+   derived from a text is `INTERPRETIVE_CLAIM`. The label takes no side and asserts nothing about
+   the matter.
+4. **No new case rests on a claim about a book.** None says a wording is in only one of the two
+   Sahihs, because that needs a search outside the corpus (D-6 item 3), which was not made.
+5. **Cases whose answer the rules do not fix were not written**: paraphrase, a heavily altered
+   text. They stay listed as limits.
+6. **One label was corrected the same day, on corpus evidence.** `T-024` (words dropped from
+   `bukhari:2067`) was labeled `DIFFERS` / `WORDING_DIFF`. The integration tests, which read every
+   tune case, showed the tool answering `AMBIGUOUS_CANDIDATES`. A corpus search made without the
+   tool found the cause: `bukhari:5985` holds a different wording that contains every word of the
+   quote in order. Two source texts are equally close, so `NEEDS_SPECIALIST` is the answer the
+   rules give (`AGENTS.md` §4); the label was wrong, not the tool. The label was changed and the
+   case moved to AMBIGUOUS. The other altered quotes were checked the same way: one closest
+   record each. A label is never changed because the tool disagrees; here the corpus did.
+7. **The integration tests keep reading every tune case.** `T-030` and `T-032` need the LLM
+   extractor: the hadith test now asserts that the regex extractor does not find them. `T-027`
+   needs a claim level: the Quran test passes the labeled level in with the span.
+
+**Measured.** `npm run check:cases`: 85 cases, 96 expected items, 104 distinct records, 36 critical
+cases, no problem reported. The 14 tune additions through the integration tests (regex extractor,
+no LLM): 11 as labeled after the correction of item 6 (of `T-034`, two of its four items are
+reached by these tests), `T-027` as labeled once the claim level is passed in, and 2 that wait
+for the LLM extractor. The 21 held-out additions were not run.
+
+**Limits.** The 35 cases are not blind: the assistant had read the status rules and the matchers,
+so a pass shows the tool does what its documentation says, not that the rules are right. Their
+altered wordings were not searched on dorar.net. No person has read them. This is an AI tool's
+documented choice, not a scholar's review.

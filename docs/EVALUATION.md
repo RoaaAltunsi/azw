@@ -1,14 +1,23 @@
 # Evaluation set
 
-The labeled cases Azw is measured against. They were written on 2026-10-02, before any matching
-code existed (there was no `src/` directory), so the matching logic cannot have been tuned to them.
+The labeled cases Azw is measured against: 85 cases in two groups.
 
-- `eval/cases/tune.jsonl` — 20 cases. Thresholds and rules may be tuned on these only.
-- `eval/cases/heldout.jsonl` — 30 cases. Never used for tuning; reported as the result.
+- **The first 50** (`T-001`–`T-020`, `H-001`–`H-030`) were written on 2026-10-02, before any matching
+  code existed (there was no `src/` directory), so the matching logic cannot have been tuned to them.
+- **35 more** (`T-021`–`T-034`, `H-031`–`H-051`) were added on 2026-10-04, after the pipeline was
+  built, to cover what the first 50 left out. They are not blind in the same way: section 8 says
+  how they were made and how to read results on them. Results are reported for the two groups
+  separately.
+
+The files:
+
+- `eval/cases/tune.jsonl` — 34 cases. Thresholds and rules may be tuned on these only.
+- `eval/cases/heldout.jsonl` — 51 cases. Never used for tuning; reported as the result.
 - `scripts/check-cases.ts` — checks the labels against `data/corpus` (`npx tsx scripts/check-cases.ts`
   or `npm run check:cases`). The rules are in `scripts/lib/cases.ts`, tested in `scripts/lib/cases.test.ts`.
 
-Corpus version at labeling time: `p0-a6d2d36b84e8` (`data/corpus/manifest.json`).
+Corpus version at labeling time: `p0-a6d2d36b84e8` for the first 50, `p2-e2bfaf5a3ad2` for the 35
+added (`data/corpus/manifest.json`).
 
 **Held-out exposure (2026-10-03).** While the reference parser was being built (P3), the AI
 assistant printed the text around the quotes in both `tune.jsonl` and `heldout.jsonl` to see which
@@ -30,8 +39,9 @@ below are not open decisions; they are checks a person can still add.
 |---|---|---|---|---|
 | AI source check | All 50 cases, against Tanzil, dorar.net and published fatwa pages | Claude (AI assistant), at the owner's request | 2026-10-02 | Done. No label changed; 7 notes extended. Findings in section 7 |
 | Points in section 6 | 9 points | Claude (AI assistant), under the owner's delegation | 2026-10-03 | Closed. No label changed. Decisions in `docs/DECISIONS.md` D-6 and below each point |
-| Read all 50 cases | `tune.jsonl`, `heldout.jsonl` | — | — | Not done by a person |
-| Specialist review of the critical cases | 21 cases: WORDING_ERROR, WRONG_REFERENCE, ADVERSARIAL | — | — | Not done (no specialist was available) |
+| Cases added | 35 cases (section 8) | Claude (AI assistant), at the owner's request | 2026-10-04 | Written from corpus records and checked against the corpus by script. No outside source was searched for them |
+| Read all 85 cases | `tune.jsonl`, `heldout.jsonl` | — | — | Not done by a person |
+| Specialist review of the critical cases | 36 cases: WORDING_ERROR, WRONG_REFERENCE, ADVERSARIAL, MIXED | — | — | Not done (no specialist was available) |
 
 Record here who reviewed, on what date, against which printed or online reference, and every label
 that was changed.
@@ -57,13 +67,13 @@ One JSON object per line:
 
 | Field | Meaning |
 |---|---|
-| `id` | `T-001`…`T-020` (tune), `H-001`…`H-030` (held-out) |
-| `critical` | `true` for WORDING_ERROR, WRONG_REFERENCE and ADVERSARIAL |
+| `id` | `T-001`…`T-034` (tune), `H-001`…`H-051` (held-out) |
+| `critical` | `true` for WORDING_ERROR, WRONG_REFERENCE, ADVERSARIAL and MIXED |
 | `draft` | The writer's input: 1–4 sentences in the style of a da'wah post |
 | `expected[].quote` | The quoted span. An exact substring of `draft` that occurs once |
 | `expected[].kind` | What the draft presents the quote as (`ReviewItem.claimedKind`): `quran`, `hadith`, `unclear_attribution`, `interpretive_claim`. A verse introduced with «قال رسول الله ﷺ» has kind `hadith` |
 | `expected[].status` | `MATCH`, `DIFFERS`, `NOT_FOUND` or `NEEDS_SPECIALIST` |
-| `expected[].recordIds` | See below. Empty for `NOT_FOUND` and for claims |
+| `expected[].recordIds` | See below. Empty for `NOT_FOUND` and for claims. For `SOURCE_NOT_REVIEWED` and `REF_NOT_CHECKED`: the records that hold the text |
 | `expected[].reasonCode` | See section 4 |
 | `expected[].contentLevel` | Optional. Set only on interpretive and ruling claims (`C` or `D`) |
 | `expectScopeMessage` | Optional. `true` = the input is a request, not a draft: zero items plus the scope message |
@@ -84,21 +94,25 @@ to carry the expectation) and `contentLevel` (to tell a level C claim from a lev
 
 | Category | Cases (tune + held-out) | Critical | Expected |
 |---|---|---|---|
-| EXACT | 10 (4 + 6) | no | `MATCH` |
-| ORTHOGRAPHIC | 6 (3 + 3) | no | `MATCH`; `DIFFERS` here is a failure |
-| WORDING_ERROR | 8 (3 + 5) | yes | `DIFFERS` |
-| WRONG_REFERENCE | 8 (3 + 5) | yes | `DIFFERS` |
-| NOT_IN_SOURCES | 8 (3 + 5) | no | `NOT_FOUND`, never worded as false or fabricated |
-| AMBIGUOUS | 5 (2 + 3) | no | `NEEDS_SPECIALIST` |
-| ADVERSARIAL | 5 (2 + 3) | yes | No `MATCH` for anything unsupported; a request gives zero items and the scope message |
+| EXACT | 16 (7 + 9) | no | `MATCH` |
+| ORTHOGRAPHIC | 8 (4 + 4) | no | `MATCH`; `DIFFERS` here is a failure |
+| WORDING_ERROR | 12 (4 + 8) | yes | `DIFFERS` |
+| WRONG_REFERENCE | 12 (5 + 7) | yes | `DIFFERS` |
+| NOT_IN_SOURCES | 11 (4 + 7) | no | `NOT_FOUND`, never worded as false or fabricated |
+| AMBIGUOUS | 14 (6 + 8) | no | `NEEDS_SPECIALIST` |
+| ADVERSARIAL | 8 (3 + 5) | yes | No `MATCH` for anything unsupported; a request gives zero items and the scope message |
+| MIXED | 4 (1 + 3) | yes | A longer post with at least three items of at least two statuses; each item as labeled |
 
-The 20/30 split of 6, 8, 8 and 8 does not divide evenly (2.4, 3.2, 3.2, 3.2 for tune). The spare
-tune case went to ORTHOGRAPHIC, the largest remainder.
+Of these, the first 50 are 10, 6, 8, 8, 8, 5, 5 and 0 (20 tune + 30 held-out). Their 20/30 split of
+6, 8, 8 and 8 does not divide evenly (2.4, 3.2, 3.2, 3.2 for tune); the spare tune case went to
+ORTHOGRAPHIC, the largest remainder. The 35 added are described in section 8.
 
-The two cases adapted from the package's test examples:
+The cases adapted from the package's test examples:
 
 - «سؤال يتضمن آية منقولة بخطأ» → `H-010` (a question containing الذاريات 56 with two words swapped).
 - «أعطني حديثاً يثبت هذا الكلام» → `T-019` (a request; zero items and the scope message).
+- «أنا في دولة كذا، هل يجوز لي فعل كذا في زواجي؟» → `H-048` (a personal question; zero items and the
+  scope message) and `H-040` (a writer who answers such a question: `PERSONAL_RULING`).
 
 ## 4. Reason codes
 
@@ -120,11 +134,13 @@ Codes settled when `src/core/status` was written (P5); the list lives in
 | `AMBIGUOUS_CANDIDATES` | `NEEDS_SPECIALIST` | Two or more close candidates with different texts |
 | `SOURCE_NOT_REVIEWED` | `NEEDS_SPECIALIST` | The text was found only in records that are still pending |
 
-No case uses the last four yet. `scripts/lib/cases.ts` takes its list from `src/core/status`,
+Of the last four, `REF_NOT_CHECKED` and `SOURCE_NOT_REVIEWED` are used by cases added on 2026-10-04;
+`AMBIGUOUS_CANDIDATES` is used by `T-024`; no case uses `LOW_CONFIDENCE_MATCH` (section 8, limits).
+`scripts/lib/cases.ts` takes its list from `src/core/status`,
 which since P11 holds the hadith matcher's `REF_MISMATCH_COLLECTION`, `REF_MISMATCH_NUMBER` and
 `REF_NOT_AGREED_UPON`.
 
-`REF_MISMATCH_NUMBER` is accepted by the checker but no case uses it yet.
+`REF_MISMATCH_NUMBER` is used by `T-021`, `H-031`, `H-032` and `H-051`.
 
 ## 5. How the texts were produced
 
@@ -187,9 +203,10 @@ question is not answered; (9) the listed gaps are limits of the set, to be state
    them in the middle band instead; that would count as a miss on these cases.
 8. **`H-010` is a question, not a post.** The misquoted verse is still reviewed (one `DIFFERS` item)
    and the question is not answered. A request with nothing quoted (`T-019`, `H-030`) gives zero items.
-9. **Not covered by this set:** a wrong hadith number (`REF_MISMATCH_NUMBER`), quotes with ayah
+9. **Not covered by the first 50:** a wrong hadith number (`REF_MISMATCH_NUMBER`), quotes with ayah
    numbers between the ayat («… (1) … (2)»), records that are `pending`, texts from the 71 missing
-   Muslim numbers, hadith qudsi, and paraphrase presented as a quote.
+   Muslim numbers, hadith qudsi, and paraphrase presented as a quote. The cases added on 2026-10-04
+   cover the first three and hadith qudsi (section 8); the other two are still not covered.
 
 ## 7. AI source check (2026-10-02)
 
@@ -276,7 +293,100 @@ or D is the right handling:
 pages were read through a search summary, not in full. The Quran comparison used a digital text, not
 a printed mushaf. Dorar responses are cached in the gitignored `data/raw/dorar-cache/`.
 
-## 8. Case index
+## 8. Cases added on 2026-10-04
+
+**Why.** The challenge guide scores reliability and benefit on "varied cases in scope" and on
+"variety, conflict and missing-information cases" (`docs/reference/challenge-guide.md` §2). The
+first 50 cases left out things the tool already handles and a judge can try in a minute, and held
+too few cases where the LLM extractor can show what it adds to the regex baseline. The owner asked
+on 2026-10-04 for the set to be strengthened before the evaluation was run.
+
+**What was added** (35 cases: 14 tune, 21 held-out). Every theme has at least one tune case, so that
+a fix never needs a held-out text.
+
+| Theme | Cases | Expected |
+|---|---|---|
+| A wrong hadith number, Bukhari and Muslim (Abd al-Baqi number) | `T-021`, `H-031`, `H-032`, `H-051` | `DIFFERS` / `REF_MISMATCH_NUMBER` |
+| A wrong surah (tune had none) | `T-022` | `DIFFERS` / `REF_MISMATCH_SURAH` |
+| A spelling error in everyday script: «ذالك», «هاذا» (D-9, D-13) | `T-023`, `H-033` | `DIFFERS` / `WORDING_DIFF`, never `MATCH` |
+| One word swapped in a hadith or a verse | `H-034`, `H-035` | `DIFFERS` / `WORDING_DIFF` |
+| A shortened wording that two different source texts hold equally | `T-024` | `NEEDS_SPECIALIST` / `AMBIGUOUS_CANDIDATES` |
+| Text found only in pending records | `T-025`, `H-036`, `H-037` | `NEEDS_SPECIALIST` / `SOURCE_NOT_REVIEWED` |
+| A text of the Sahihayn cited to a book the tool has no copy of | `T-026`, `H-038` | `NEEDS_SPECIALIST` / `REF_NOT_CHECKED` |
+| A ruling for a personal case; a ruling derived from a hadith | `T-027`, `H-040`; `H-039` | `NEEDS_SPECIALIST` / `PERSONAL_RULING`, `INTERPRETIVE_CLAIM` |
+| Hadith qudsi presented as a hadith | `T-028`, `H-041` | `MATCH` |
+| Ayah numbers typed between the ayat | `T-029`, `H-042` | `MATCH` |
+| A verse the Quran repeats, cited to one of its places | `T-031`, `H-044` | `MATCH` / `MATCH_REF_OK` |
+| An attribution phrase outside the regex extractor's list | `T-030`, `T-032`, `H-035`, `H-043`, `H-045`, `H-046` | as labeled; these show what the LLM extractor adds |
+| An instruction to the tool: beside a fake reference; inside the quotation marks | `T-033`, `H-047` | `NOT_FOUND` |
+| The package's personal question on marriage | `H-048` | zero items + scope message |
+| A longer post with three or four quotes of different statuses (`MIXED`) | `T-034`, `H-049`, `H-050`, `H-051` | each item as labeled |
+
+**How the texts were produced.** As in section 5, by a throwaway script that is not in the
+repository and uses no product code (its own diacritic removal and letter folding, and an exact
+substring search over the whole corpus):
+
+- Every source quote was cut from the record's `exactText`. The Uthmani-script ayah in `H-049` was
+  cut from Quranpedia mushaf 2 (`data/raw/quranpedia/mushafs-2.json`), whole.
+- Every altered wording was searched for in the whole corpus and occurs nowhere. Every saying
+  typed by the labeler (the `NOT_FOUND` items, the vague attribution, the instruction in `H-047`)
+  was searched the same way and occurs nowhere.
+- For hadith, `recordIds` lists every record that holds the wording. For a wrong number, no record
+  that carries the cited number holds the wording.
+- A Quran quote that maps to one ayah occurs in that ayah only among the Quran records, except the
+  two repeated verses (`T-031`, `H-044`), which are in the set for that reason. A hadith record may
+  quote the same verse (`T-022`: `bukhari:4810`); the verse in `H-049` that is attributed as a
+  hadith is in no hadith record.
+- The records behind `SOURCE_NOT_REVIEWED` are all `pending`, and the text is in no reviewed
+  record. The records behind an expected `MATCH` are all `reviewed`.
+- No added case uses a record of the first 50, and no record is used in both splits (checked).
+
+**Where the labels come from.** From the rules the project had already written down, not from a
+run of the tool: `AGENTS.md` §2–§5 and the tables of `docs/ARCHITECTURE.md` ("The cited
+reference", "Status rules"), with D-9 and D-13 (a spelling error never ends `MATCH`), D-11 and
+D-22 (`REF_NOT_CHECKED`, pending records, hadith qudsi). The labels of the two rulings and the two
+derived claims rest on the form of the sentence; the tool takes no side, and no source was
+searched to show that the matter is disputed. No hadith is graded and no verse is interpreted by
+a label. Decision: `docs/DECISIONS.md` D-26.
+
+**How to read results on them (limits).**
+
+- These 35 cases are **not blind**. They were written by the AI assistant after it had read the
+  status rules and the matchers, and it chose inputs the documented rules give one answer for. A
+  pass on them shows that the tool does what its documentation says on texts it was not built
+  with; it does not show that the rules are right. The first 50 remain the stricter test, and the
+  two groups are reported separately.
+- The tool was not run on the 35 drafts before they were labeled. One exception to "not seen":
+  earlier the same day the assistant had run the repeated verse of `T-031` (a tune case) through
+  the tool without a reference, while explaining the pipeline to the owner.
+- **After labeling, the 14 tune additions were run**, because two integration tests read every tune
+  case (`src/server/*-review.integration.test.ts`, regex extractor, no LLM). Ten agreed with their
+  labels as far as the tests reach (of `T-034` they run the verse and the vague attribution, not
+  the hadith quote and the saying). Four did not:
+  - `T-024` was first labeled `DIFFERS` / `WORDING_DIFF` (words dropped from `bukhari:2067`). The
+    tool answered `AMBIGUOUS_CANDIDATES`. A search of the corpus, made with the labeling script and
+    not with the tool, then showed that `bukhari:5985` holds a different wording that also contains
+    every word of the quote in order. Two different source texts are equally close, which the
+    rules answer with `NEEDS_SPECIALIST` (`AGENTS.md` §4). **The label was corrected on that corpus
+    evidence**, and the case moved from WORDING_ERROR to AMBIGUOUS. The same search was then run
+    on the other altered quotes (`T-034`, `H-033`, `H-034`, `H-035`): each has one closest record.
+  - `T-030` and `T-032` are not found by the regex extractor, as intended: their phrase is outside
+    its list. The test now pins that, and the cases wait for the runner's LLM modes.
+  - `T-027` needs the claim level that only an extractor supplies; the test now passes the labeled
+    level in, as it passes the span in.
+- **The 21 held-out additions were never run.** They were written by the labeler and are held-out
+  for whoever tunes the pipeline afterwards.
+- The altered wordings were not searched on dorar.net, unlike those of the first 50 (section 7):
+  an alteration may happen to be a narration of a book outside the corpus. The label only says
+  that the wording differs from the record the draft is closest to.
+- Still not covered, because the documented rules do not fix one expected answer without a run:
+  paraphrase presented as a quote, a heavily altered text (`LOW_CONFIDENCE_MATCH`), and texts from
+  the 71 missing Muslim numbers. Two close candidates (`AMBIGUOUS_CANDIDATES`) have one tune case
+  (`T-024`) and no held-out case. No new case
+  rests on a claim that a wording is in only one of the two books.
+- 85 cases is still a small sample. Report counts, not only percentages.
+
+## 9. Case index
 
 <!-- AUTO:case-index:START -->
 | Case | Category | Expected | Records | Tests |
@@ -331,4 +441,39 @@ a printed mushaf. Dorar responses are cached in the gitignored `data/raw/dorar-c
 | `H-028` | ADVERSARIAL | NOT_FOUND / NO_RECORD_IN_COVERED_SOURCES | — | Fake reference |
 | `H-029` | ADVERSARIAL | MATCH / MATCH_REF_OK<br>NOT_FOUND / NO_RECORD_IN_COVERED_SOURCES | `quran:20:114`<br>— | Instruction to the model at the top of the draft, then one supported and one unsupported quote |
 | `H-030` | ADVERSARIAL | zero items + scope message | — | A request for a ruling and for evidence, not a draft (level D) |
+| `T-021` | WRONG_REFERENCE | DIFFERS / REF_MISMATCH_NUMBER | `bukhari:6014` | Hadith text is the matn of bukhari:6014 (diacritics removed, wording unchanged) |
+| `T-022` | WRONG_REFERENCE | DIFFERS / REF_MISMATCH_SURAH | `quran:39:53` | Verse text verbatim from quran:39:53 (first part of the ayah, without the leading ۞) |
+| `T-023` | WORDING_ERROR | DIFFERS / WORDING_DIFF | `quran:2:2` | A spelling error in everyday script |
+| `T-024` | AMBIGUOUS | NEEDS_SPECIALIST / AMBIGUOUS_CANDIDATES | `bukhari:2067` +1 | A shortened wording that two different source texts hold equally |
+| `T-025` | AMBIGUOUS | NEEDS_SPECIALIST / SOURCE_NOT_REVIEWED | `bukhari:2183` +1 | Text found only in records that are still pending |
+| `T-026` | AMBIGUOUS | NEEDS_SPECIALIST / REF_NOT_CHECKED | `bukhari:6474` | Text copied from bukhari:6474 (diacritics removed, wording unchanged), cited to al-Tirmidhi, a book the tool has no copy of |
+| `T-027` | AMBIGUOUS | NEEDS_SPECIALIST / PERSONAL_RULING | — | A ruling given for one person's case (level D), with no quoted text |
+| `T-028` | EXACT | MATCH / MATCH_REF_OK | `bukhari:7505` +4 | A hadith qudsi introduced with two phrases |
+| `T-029` | ORTHOGRAPHIC | MATCH / MATCH_REF_OK | `quran:108:1` +2 | Ayah numbers typed between the ayat |
+| `T-030` | EXACT | MATCH / MATCH_REF_OK | `muslim:5587` | Hadith matn copied verbatim from muslim:5587 = صحيح مسلم 2132, introduced with «يقول النبي ﷺ», an attribution phrase outside the regex extractor's list (docs/ARCHITECTURE.md, "Regex extractor", Limits) |
+| `T-031` | EXACT | MATCH / MATCH_REF_OK | `quran:55:13` | A verse the Quran repeats |
+| `T-032` | NOT_IN_SOURCES | NOT_FOUND / NO_RECORD_IN_COVERED_SOURCES | — | Well-known saying attributed to the Prophet ﷺ with «يقول النبي ﷺ», an attribution phrase outside the regex extractor's list |
+| `T-033` | ADVERSARIAL | NOT_FOUND / NO_RECORD_IN_COVERED_SOURCES | — | Fake reference plus an instruction to the tool |
+| `T-034` | MIXED | MATCH / MATCH_REF_OK<br>DIFFERS / WORDING_DIFF<br>NOT_FOUND / NO_RECORD_IN_COVERED_SOURCES<br>NEEDS_SPECIALIST / UNCLEAR_ATTRIBUTION | `quran:49:10`<br>`bukhari:6058`<br>—<br>— | A longer post with four quotes, one of each status |
+| `H-031` | WRONG_REFERENCE | DIFFERS / REF_MISMATCH_NUMBER | `bukhari:4704` | Hadith matn verbatim from bukhari:4704 |
+| `H-032` | WRONG_REFERENCE | DIFFERS / REF_MISMATCH_NUMBER | `muslim:5919` | Hadith text is the matn of muslim:5919 = صحيح مسلم 2266 (diacritics removed, wording unchanged) |
+| `H-033` | WORDING_ERROR | DIFFERS / WORDING_DIFF | `quran:17:9` | A spelling error in everyday script |
+| `H-034` | WORDING_ERROR | DIFFERS / WORDING_DIFF | `muslim:578` | One word swapped |
+| `H-035` | WORDING_ERROR | DIFFERS / WORDING_DIFF | `quran:13:11` | One word swapped |
+| `H-036` | AMBIGUOUS | NEEDS_SPECIALIST / SOURCE_NOT_REVIEWED | `bukhari:3426` +1 | Text found only in records that are still pending |
+| `H-037` | AMBIGUOUS | NEEDS_SPECIALIST / SOURCE_NOT_REVIEWED | `muslim:7080` +1 | Text found only in records that are still pending |
+| `H-038` | AMBIGUOUS | NEEDS_SPECIALIST / REF_NOT_CHECKED | `muslim:6953` | Text copied from muslim:6953 = صحيح مسلم 2675 (diacritics removed, wording unchanged), cited to Ibn Majah, a book the tool has no copy of |
+| `H-039` | AMBIGUOUS | MATCH / MATCH_REF_OK<br>NEEDS_SPECIALIST / INTERPRETIVE_CLAIM | `muslim:3511`<br>— | A correctly quoted hadith (matn of muslim:3511 = صحيح مسلم 1429, diacritics removed, «رواه مسلم» correct → MATCH) followed by a ruling the writer derives from it |
+| `H-040` | AMBIGUOUS | NEEDS_SPECIALIST / PERSONAL_RULING | — | A ruling given for one person's case (level D), with no quoted text |
+| `H-041` | EXACT | MATCH / MATCH_NO_REFERENCE | `bukhari:5352` | A hadith qudsi cited with «قال الله تعالى في الحديث القدسي» |
+| `H-042` | ORTHOGRAPHIC | MATCH / MATCH_REF_OK | `quran:93:9` +2 | Ayah numbers typed between the ayat |
+| `H-043` | EXACT | MATCH / MATCH_REF_OK | `muslim:152` | Hadith matn copied verbatim from muslim:152 = صحيح مسلم 35 |
+| `H-044` | EXACT | MATCH / MATCH_REF_OK | `quran:77:19` | A verse the Quran repeats |
+| `H-045` | NOT_IN_SOURCES | NOT_FOUND / NO_RECORD_IN_COVERED_SOURCES | — | Well-known saying attributed to the Prophet ﷺ with «جاء عنه ﷺ أنه قال», an attribution phrase outside the regex extractor's list |
+| `H-046` | NOT_IN_SOURCES | NOT_FOUND / NO_RECORD_IN_COVERED_SOURCES | — | Well-known saying attributed to the Prophet ﷺ with «قال المصطفى ﷺ», an attribution phrase outside the regex extractor's list |
+| `H-047` | ADVERSARIAL | NOT_FOUND / NO_RECORD_IN_COVERED_SOURCES | — | An instruction to the model written inside the quotation marks, in the place of a hadith |
+| `H-048` | ADVERSARIAL | zero items + scope message | — | Adapted from the package's test example «أنا في دولة كذا، هل يجوز لي فعل كذا في زواجي؟» |
+| `H-049` | MIXED | MATCH / MATCH_REF_OK<br>DIFFERS / KIND_MISMATCH<br>NOT_FOUND / NO_RECORD_IN_COVERED_SOURCES | `quran:9:119`<br>`quran:33:70`<br>— | A longer post with three quotes |
+| `H-050` | MIXED | DIFFERS / REF_MISMATCH_AYAH<br>MATCH / MATCH_REF_OK<br>NEEDS_SPECIALIST / INTERPRETIVE_CLAIM | `quran:2:45`<br>`bukhari:552` +1<br>— | A longer post with three items |
+| `H-051` | MIXED | DIFFERS / REF_MISMATCH_NUMBER<br>MATCH / MATCH_REF_OK<br>NOT_FOUND / NO_RECORD_IN_COVERED_SOURCES | `muslim:5307`<br>`bukhari:5392` +1<br>— | A longer post with three hadith quotes |
 <!-- AUTO:case-index:END -->

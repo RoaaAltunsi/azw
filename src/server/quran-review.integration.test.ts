@@ -29,11 +29,11 @@ interface Reviewed {
 
 // One quote through the orchestrator. The span is given by hand ("manual"), so that these tests
 // do not depend on what the extractor recognises.
-async function review(draft: string, quote: string, claimedKind: ClaimedKind = "quran"): Promise<Reviewed> {
+async function review(draft: string, quote: string, claimedKind: ClaimedKind = "quran", claimLevel?: "C" | "D"): Promise<Reviewed> {
   const start = draft.indexOf(quote);
   expect(start).toBeGreaterThanOrEqual(0);
   const span = { start, end: start + quote.length, text: quote };
-  const manual: Extractor = () => [{ span, claimedKind, extractedBy: "manual" }];
+  const manual: Extractor = () => [{ span, claimedKind, ...(claimLevel ? { claimLevel } : {}), extractedBy: "manual" }];
   const result = await runReview(draft, { ...corpus, extractors: [manual], now: () => 0 });
   expect(ReviewResultSchema.safeParse(result).success).toBe(true);
   expect(result.items).toHaveLength(1);
@@ -308,7 +308,7 @@ describe("kind and coverage", () => {
 interface TuneCase {
   id: string;
   draft: string;
-  expected: Array<{ quote: string; kind: string; status: string; reasonCode: string; recordIds: string[] }>;
+  expected: Array<{ quote: string; kind: string; status: string; reasonCode: string; recordIds: string[]; contentLevel?: string }>;
 }
 const tune = readFileSync(`${ROOT}/eval/cases/tune.jsonl`, "utf8")
   .split("\n")
@@ -324,7 +324,8 @@ describe("tune cases on Quran records and claims", () => {
   });
 
   test.each(quranItems)("$id $kind → $status / $reasonCode", async (item) => {
-    const r = await review(item.draft, item.quote, item.kind);
+    // The level of a claim comes from whoever extracted it; here the label stands for the extractor.
+    const r = await review(item.draft, item.quote, item.kind, item.contentLevel === "D" ? "D" : undefined);
     expect(outcome(r)).toBe(`${item.status}/${item.reasonCode}`);
     expect(r.ids.slice(0, item.recordIds.length)).toEqual(item.recordIds);
   });

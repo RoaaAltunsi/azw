@@ -48,7 +48,7 @@ const evalCase = (over: Partial<EvalCase> = {}): EvalCase => ({
   ...over,
 });
 
-// Quotas only hold for the full 50-case set, so they are checked separately.
+// Quotas only hold for the full case set, so they are checked separately.
 const problems = (cases: EvalCase[]): string[] => checkCases(cases, RECORDS).filter((e) => !e.startsWith("quota:"));
 
 const table: Array<[string, EvalCase, RegExp | null]> = [
@@ -64,6 +64,7 @@ const table: Array<[string, EvalCase, RegExp | null]> = [
     /must not list recordIds/,
   ],
   ["reason code of another status", evalCase({ expected: [item({ reasonCode: "WORDING_DIFF" })] }), /is not a MATCH code/],
+  ["a MIXED case with one item", evalCase({ category: "MIXED", critical: true }), /MIXED expects at least three items/],
   [
     "MATCH on a pending record",
     evalCase({ category: "ORTHOGRAPHIC", expected: [item({ quote: "نص الحديث", kind: "hadith", recordIds: ["muslim:9"] })] }),
@@ -170,8 +171,8 @@ test("checkCases: duplicate ids and a record shared by both splits are reported"
 
 test("checkCases: quotas are reported per category and split", () => {
   const errors = checkCases([evalCase()], RECORDS).filter((e) => e.startsWith("quota:"));
-  assert.ok(errors.includes("quota: EXACT/tune has 1 case(s), expected 4"));
-  assert.ok(errors.includes("quota: ADVERSARIAL/heldout has 0 case(s), expected 3"));
+  assert.ok(errors.includes("quota: EXACT/tune has 1 case(s), expected 7"));
+  assert.ok(errors.includes("quota: ADVERSARIAL/heldout has 0 case(s), expected 5"));
 });
 
 test("parseCases: reports bad JSON, schema errors and a wrong split by line", () => {
