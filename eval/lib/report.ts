@@ -5,6 +5,7 @@ import { CATEGORIES, type EvalCase, type Split } from "../../scripts/lib/cases.j
 import { STATUSES } from "../../src/core/types.js";
 import {
   confusion,
+  criticalCounts,
   isWrong,
   LLM_UNAVAILABLE,
   NONE,
@@ -47,7 +48,8 @@ export interface ReportInput {
   cases: readonly EvalCase[];
   runs: readonly ModeRun[];
   // Held-out, merged mode, run several times; the first run is the one reported in the tables.
-  stability?: { runs: number; items: number; unstable: Unstable[]; errorsWithEvidence: number };
+  // `passes`: the scores of every run, the first included, for the per-run counts.
+  stability?: { runs: number; items: number; unstable: Unstable[]; errorsWithEvidence: number; passes?: CaseScore[][] };
 }
 
 // Characters per token, for the estimate used when the provider reports no token count.
@@ -127,6 +129,11 @@ function confusionTable(scores: readonly CaseScore[]): string {
       ...columns.map((actual) => String(counts[expected]?.[actual] ?? 0)),
     ]);
   return table(["Expected ↓ / returned →", ...STATUSES, "(not extracted)"], rows);
+}
+
+function criticalRow(scores: readonly CaseScore[]): string[] {
+  const c = criticalCounts(scores);
+  return [String(c.cases), `${c.right} / ${c.cases}`, String(c.wrongWithoutFalseConfirmation), String(c.withFalseConfirmation)];
 }
 
 const total = (usage: readonly Usage[], value: (u: Usage) => number): number => usage.reduce((sum, u) => sum + value(u), 0);
@@ -304,6 +311,16 @@ export function renderReport(input: ReportInput): string {
     "",
     ...gate.lines.map((line) => `- ${line.result} — ${line.label}: ${line.detail}.`),
     "",
+    "## Critical cases",
+    "",
+    "The gate counts false confirmations only. This table says how many critical cases are fully as labeled. A case that is wrong",
+    "without a false confirmation erred on the cautious side: the tool abstained, missed an item, or returned an item no label expects.",
+    "",
+    table(
+      ["Split", "Mode", "Critical cases", "Fully as labeled", "Wrong, no false confirmation", "With a false confirmation"],
+      input.runs.map((run) => [SPLIT_TITLE[run.split], run.mode, ...criticalRow(run.scores)]),
+    ),
+    "",
     "## Baseline comparison: regex against merged",
     "",
     ...splits.flatMap((split) => [baseline(input.runs, split), ""]),
@@ -336,6 +353,20 @@ export function renderReport(input: ReportInput): string {
         table(
           ["Case", "Category", "Item (characters of the draft)", ...Array.from({ length: runs }, (_, i) => `Run ${i + 1}`)],
           unstable.map((u) => [`\`${u.caseId}\``, category(u.caseId), `${u.span.start}–${u.span.end}`, ...u.statuses]),
+        ),
+        "",
+      );
+    }
+    if (input.stability.passes) {
+      out.push(
+        "Each run on its own (run 1 is the one in the tables above):",
+        "",
+        table(
+          ["Run", "Cases right", "False confirmations / MATCH returned", "Status", "Precision", "Critical cases", "Fully as labeled", "Wrong, no false confirmation", "With a false confirmation"],
+          input.stability.passes.map((scores, i) => {
+            const m = summarize(scores);
+            return [String(i + 1), ratio(m.casesRight), ratio(m.falseConfirmations), ratio(m.status), ratio(m.precision), ...criticalRow(scores)];
+          }),
         ),
         "",
       );

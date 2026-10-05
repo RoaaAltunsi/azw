@@ -4,6 +4,16 @@ import { t, type MessageKey } from "@/i18n/ar";
 import { Icon } from "./Icon";
 import { Logo, LogoMark } from "./Logo";
 
+// Shown on every page: the tool is AI-assisted, not a scholar (AGENTS.md §2 rule 7).
+export function AiBanner() {
+  return (
+    <p role="note" className="flex items-center justify-center gap-1.5 bg-ink px-4 py-1.5 text-center text-xs text-white">
+      <Icon name="spark" size={14} />
+      {t("banner.aiTool")}
+    </p>
+  );
+}
+
 const NAV_LINKS: ReadonlyArray<{ href: string; label: MessageKey }> = [
   { href: "/how-it-works", label: "footer.how" },
   { href: "/sources", label: "footer.sources" },

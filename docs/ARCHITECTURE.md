@@ -501,7 +501,7 @@ interface MatchCandidate {
 | `matchers`, `getMatcher(kind)` | The registry, by kind: `quran` and `hadith`. A new kind adds one line |
 | `matchAll(quote, index)` | Runs every registered matcher, whatever the claimed kind (a "hadith" may be a verse) |
 | `quranMatcher`, `hadithMatcher` | The two matchers ("Hadith matcher" below) |
-| `inVerseMarks(draft, span)` | Whether a span stands between `﴿` and `﴾` in the draft: `QuoteInput.verseMarks` |
+| `inVerseMarks(draft, span)` | Whether a span stands inside one `﴿…﴾` pair of the draft: `QuoteInput.verseMarks`. The span need not fill the pair: it may hold the brackets itself, or be a part of the bracketed words (D-31). A span that runs out of the pair is not inside it |
 | `hasUthmaniSigns(text)` | Whether a span carries a sign that only Uthmani-script texts have. The one place this check lives (`uthmani-spelling.ts`) |
 | `evidenceOf(candidate)` | The `Evidence[]` of a `ReviewItem`: one entry per record (as an `ApiSourceRecord`, without the retrieval keys: see "API v1"), each with the part of the word diff that concerns it. An `insert` (no source) goes with the record of the op before it, or the first |
 
@@ -715,7 +715,9 @@ item 9). The extractor gives such a quote the kind `quran`. So that a hadith qud
 does not end `DIFFERS` / `KIND_MISMATCH`:
 
 - `QuoteInput.verseMarks` says whether the span stands between `﴿` and `﴾` in the draft
-  (`inVerseMarks`, set by the orchestrator, whoever extracted the span).
+  (`inVerseMarks`, set by the orchestrator, whoever extracted the span). The merge keeps the
+  model's span, which may hold the brackets or only a part of the bracketed words; the words are
+  still inside the pair, so the claim of a verse holds (D-31).
 - The hadith matcher sets `claimAdmitted: true` on its candidates when the claimed kind is `quran`
   and the span is not in verse marks.
 - `decide()` reads `claimAdmitted` only when no exact hit is of the claimed kind: the admitted

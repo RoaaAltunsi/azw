@@ -200,6 +200,22 @@ describe("kind", () => {
     expect(item.reasonAr).toContain("بوصفه حديث نبوي (صحيح البخاري، حديث رقم 7405");
   });
 
+  // docs/DECISIONS.md D-31. The merge keeps the model's span. Whether it returns the words with
+  // their ﴿ ﴾, or a part of them, they still stand in the brackets, which claim a verse.
+  test.each([
+    ["with the brackets in the quote", `﴿${INTENTIONS}﴾`],
+    ["a part of the bracketed words", "الأعمال بالنيات"],
+  ])("a hadith in ﴿…﴾ stays KIND_MISMATCH when the model returns it %s", async (_, quote) => {
+    const draft = `قال تعالى: ﴿${INTENTIONS}﴾.`;
+    expect(outcome(await one(draft))).toBe("DIFFERS/KIND_MISMATCH");
+    const llm = {
+      extractQuotes: async () => ({ items: [{ quote, kind: "hadith" as const, claimLevel: null, citedReference: null, attributionPhrase: null }], isDraft: true }),
+      explainDiff: async () => null,
+    };
+    const result = await runReview(draft, { ...deps, llm });
+    expect(result.items.map((item) => [item.span.text, item.claimedKind, outcome(item)])).toEqual([[quote, "quran", "DIFFERS/KIND_MISMATCH"]]);
+  });
+
   test("a verse after «قال الله تعالى» in «…» is still answered by the Quran alone", async () => {
     const item = await one("قال الله تعالى: «استعينوا بالصبر والصلاة».");
     expect(outcome(item)).toBe("MATCH/MATCH_NO_REFERENCE");

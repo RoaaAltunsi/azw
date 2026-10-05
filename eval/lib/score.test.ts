@@ -2,7 +2,7 @@
 import { describe, expect, test } from "vitest";
 import type { EvalCase, ExpectedItem } from "../../scripts/lib/cases.js";
 import type { ReviewItem, Status } from "../../src/core/types.js";
-import { confusion, groupOf, iou, isWrong, NONE, pairSpans, percentile, scoreCase, summarize, unstableItems } from "./score.js";
+import { confusion, criticalCounts, groupOf, iou, isWrong, NONE, pairSpans, percentile, scoreCase, summarize, unstableItems } from "./score.js";
 
 const DRAFT = "aaaa QUOTE-ONE bbbb QUOTE-TWO cccc";
 
@@ -279,5 +279,26 @@ describe("unstableItems", () => {
   test("the same span in two cases is two items", () => {
     const one = run([["H-001", 0, 9, "MATCH"], ["H-002", 0, 9, "DIFFERS"]]);
     expect(unstableItems([one, one])).toEqual({ items: 2, unstable: [] });
+  });
+});
+
+describe("criticalCounts", () => {
+  const critical = { category: "WORDING_ERROR" as const, critical: true };
+  const label = [expected("QUOTE-ONE", "DIFFERS", "WORDING_DIFF", ["bukhari:1"])];
+
+  test("fully as labeled, wrong on the cautious side, and with a false confirmation are counted apart", () => {
+    const scores = [
+      scoreCase(evalCase(label, critical), result([returned("QUOTE-ONE", "DIFFERS", "WORDING_DIFF", ["bukhari:1"])])),
+      scoreCase(evalCase(label, critical), result([returned("QUOTE-ONE", "NEEDS_SPECIALIST", "LOW_CONFIDENCE_MATCH", ["bukhari:1"])])),
+      scoreCase(evalCase(label, critical), result([returned("QUOTE-ONE", "DIFFERS", "WORDING_DIFF", ["bukhari:1"]), returned("QUOTE-TWO", "NEEDS_SPECIALIST", "INTERPRETIVE_CLAIM")])),
+      scoreCase(evalCase(label, critical), result([returned("QUOTE-ONE", "MATCH", "MATCH_REF_OK", ["bukhari:1"])])),
+      // Not critical: left out, although it holds a false confirmation.
+      scoreCase(evalCase(label), result([returned("QUOTE-ONE", "MATCH", "MATCH_REF_OK", ["bukhari:1"])])),
+    ];
+    expect(criticalCounts(scores)).toEqual({ cases: 4, right: 1, wrongWithoutFalseConfirmation: 2, withFalseConfirmation: 1 });
+  });
+
+  test("no critical case gives zeros", () => {
+    expect(criticalCounts([])).toEqual({ cases: 0, right: 0, wrongWithoutFalseConfirmation: 0, withFalseConfirmation: 0 });
   });
 });

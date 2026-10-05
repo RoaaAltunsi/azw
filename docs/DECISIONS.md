@@ -1682,3 +1682,57 @@ The regex latency of this run (17 / 97 ms) is higher than before because the lin
 same machine during it. The cold start (loading the corpus, 1 to 3 s once per server instance)
 is not changed. The deployment decides the setting: `LLM_REASONING_EFFORT=none` must be set on
 the host for the measured latency to hold there.
+
+## D-31 — A span inside ﴿…﴾ is claimed as a verse, whether or not it fills the brackets (2026-10-05)
+
+**What was found.** The evaluation runs of 2026-10-05 showed a false confirmation on a critical
+held-out case, `H-017` (a hadith attributed as a verse): `MATCH / MATCH_NO_REFERENCE` where the
+label says `DIFFERS / KIND_MISMATCH`. It appeared in `llm` mode with the reasoning effort `medium`
+(one run) and in `merged` mode with the effort `none` (one run of three); the release gate of
+that run failed. The regex mode was right every time.
+
+**The cause.** D-22 item 2 reads a `quran` claim outside `﴿…﴾` as admitting a hadith (the hadith
+qudsi form), and keeps `KIND_MISMATCH` for a quote inside `﴿…﴾`. `inVerseMarks` decided "inside"
+by looking at the characters just before and just after the span, so the span had to fill the
+brackets exactly. The merge keeps the model's span (D-21 item 3), and the model does not always
+return the bracketed words exactly: it may include the brackets in its quote, or return a part of
+the words. The span then no longer filled the brackets, the claim of a verse was lost, and a
+hadith text ended `MATCH`. Reproduced on a draft written for the test («قال تعالى: ﴿إنما الأعمال
+بالنيات﴾» with a model answer that holds the brackets, and one that holds two of the three words):
+both ended `MATCH` before the change.
+
+**Options.**
+
+| Option | For | Against |
+|---|---|---|
+| Keep the regex span when the regex quote is a `﴿…﴾` quote | No change to `inVerseMarks` | It does not cover the `llm` mode, nor a bracketed quote the regex extractor did not return |
+| Strip the brackets from the model's quote in `validateSpans` | Small | It does not cover a part of the bracketed words |
+| **A span inside one `﴿…﴾` pair is in verse marks** (chosen) | It reads the draft only, whoever extracted the span; it covers both forms and every mode | A part of a bracketed text is now also held to the claim of a verse, which is what the writer wrote |
+
+**The rule.** The words of the span (without brackets and whitespace at its own edges) stand
+between a `﴿` and the next `﴾`, with no other bracket of either kind between the two. A span that
+runs out of the pair, stands between two pairs, or follows a bracket that is never closed is not
+inside. The rule only ever keeps a claim of a verse that the writer made with the brackets: it
+can turn a `MATCH` into `KIND_MISMATCH`, never the reverse. It grades nothing and edits no text.
+
+**Tested.** `src/core/matchers/hadith.test.ts` ("inVerseMarks": ten placements of a span);
+`src/server/hadith-review.integration.test.ts` (the two model answers above stay
+`DIFFERS / KIND_MISMATCH` on the real corpus). All tune cases are unchanged.
+
+**Measured** (`eval/results/2026-10-05-p2-e2bfaf5a3ad2.md`; before:
+`…-before-d31.md`): release gate FAIL → PASS; `H-017` as labeled in `llm` mode and in the three
+`merged` runs; false confirmations 0 / 20 on held-out in `merged` and `llm` mode; nothing else
+moved beyond the run-to-run variation.
+
+**Held-out exposure, and the limits.** The rule was written because a held-out case failed. Its
+draft was not read: the failure was seen by id, category, statuses and reason codes, and the
+cause was found in the code. `H-017` is therefore not a blind case for this rule. That this was
+its cause is inferred, not shown: the case failed in two runs of eight before the change and in
+none of four after it, and the model is not deterministic. Not covered: a quote that only the
+model returns, outside any bracket, takes the kind the model gives it; the prompt tells the model
+to give the kind the draft claims (D-28), and nothing checks that in code (`docs/BACKLOG.md`).
+
+**Also in this step, for the evaluation only.** The report prints how many critical cases are
+fully as labeled, per mode and per stability run, beside the gate (`criticalCounts`): the gate
+counts false confirmations only and must not be read as "every critical case passes". The two
+reasoning efforts were compared on held-out, three runs each: `docs/EVALUATION.md` section 15.

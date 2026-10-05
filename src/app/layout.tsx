@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Amiri, IBM_Plex_Sans_Arabic } from "next/font/google";
 import type { ReactNode } from "react";
-import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
+import { AiBanner, SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import { t } from "@/i18n/ar";
 import "./globals.css";
 
@@ -38,6 +38,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
         >
           {t("a11y.skipToContent")}
         </a>
+        <AiBanner />
         <SiteHeader />
         <div className="flex-1">{children}</div>
         <SiteFooter />

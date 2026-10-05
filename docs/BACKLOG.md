@@ -247,6 +247,14 @@ is built until it is moved into a prompt's scope.
   - Latency with the LLM is 2.5 s p50 and 7.5 s p95 per draft; the regex result could be shown
     first.
 
+- Evaluation, final step (2026-10-05, `docs/EVALUATION.md` section 15, `docs/DECISIONS.md` D-31):
+  - A quote that only the model returns, outside any `﴿…﴾`, takes the kind the model gives it.
+    The prompt asks for the kind the draft claims; nothing checks it in code. The model's
+    `attributionPhrase` could be read with the regex extractor's own phrase list.
+  - With `LLM_REASONING_EFFORT=none` the model returns more sentences of the writer as claims
+    (critical held-out cases fully as labeled: 18–19 of 23, against 21 with `medium`). All end
+    `NEEDS_SPECIALIST`. `low` was not measured.
+
 ## Ideas for after the challenge
 
 - Normalization: more honorific phrases found in the hadith corpus and left in `searchText` —

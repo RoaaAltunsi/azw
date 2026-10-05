@@ -1,5 +1,6 @@
 "use client";
 
+import { AiBanner } from "@/components/SiteChrome";
 import { Notice } from "@/components/Notice";
 import { t } from "@/i18n/ar";
 import "./globals.css";
@@ -11,6 +12,7 @@ export default function GlobalError({ reset }: { error: Error; reset: () => void
   return (
     <html lang="ar" dir="rtl">
       <body className="flex min-h-dvh flex-col font-sans antialiased">
+        <AiBanner />
         <main id="main" className="mx-auto w-full max-w-3xl px-4 py-8">
           <Notice tone="error" role="alert" title={t("state.error.title")}>
             <p>{t("state.error.page")}</p>

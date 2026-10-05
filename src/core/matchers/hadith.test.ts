@@ -262,6 +262,23 @@ describe("inVerseMarks", () => {
     const start = draft.indexOf("نص");
     expect(inVerseMarks(draft, { start, end: start + 2 })).toBe(expected);
   });
+
+  // The span need not fill the pair (docs/DECISIONS.md D-31).
+  test.each([
+    ["the span holds its own brackets", "قال: ﴿نص من كلام﴾ ثم", "﴿نص من كلام﴾", true],
+    ["a part of the bracketed words", "قال: ﴿نص من كلام﴾ ثم", "من كلام", true],
+    ["the first words, with the opening bracket", "قال: ﴿نص من كلام﴾ ثم", "﴿نص من", true],
+    ["words before the pair", "كلمة قبل ﴿نص من كلام﴾", "كلمة قبل", false],
+    ["words after the pair", "﴿نص من كلام﴾ كلمة بعد", "كلمة بعد", false],
+    ["between two pairs", "﴿نص﴾ كلمة بين ﴿كلام﴾", "كلمة بين", false],
+    ["a span that runs out of the pair", "﴿نص من كلام﴾ كلمة بعد", "كلام﴾ كلمة", false],
+    ["a span over two pairs", "﴿نص﴾ و ﴿كلام﴾", "﴿نص﴾ و ﴿كلام﴾", false],
+    ["an opening bracket never closed", "قال: ﴿نص من كلام", "من كلام", false],
+    ["only brackets", "﴿ ﴾", "﴿ ﴾", false],
+  ])("%s → %s", (_, draft, text, expected) => {
+    const start = draft.indexOf(text);
+    expect(inVerseMarks(draft, { start, end: start + text.length })).toBe(expected);
+  });
 });
 
 describe("the matcher adds no grade", () => {

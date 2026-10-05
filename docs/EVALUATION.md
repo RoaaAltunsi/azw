@@ -539,6 +539,11 @@ loaded. Tokens are the provider's own count: the runner reads the `usage` number
 through a wrapper around `fetch`, so `LlmPort` is unchanged. When a provider reports none, the
 report gives an estimate from the text lengths (characters ÷ 3) and labels it as an estimate.
 
+**Critical cases.** Beside the gate the report counts the critical cases three ways, per mode and
+per stability run: fully as labeled; wrong without a false confirmation (the tool abstained,
+missed an item, or returned an item no label expects); and with a false confirmation. The gate
+reads the last count only, so "gate PASS" does not mean every critical case is as labeled.
+
 **Release gate.** `PASS` only when all three hold, each one measured: zero false confirmations on
 the critical held-out cases in `merged` mode; the same in `regex` mode; no `ERROR` item carries
 evidence in any run. A mode that did not run cannot pass. `npm run eval` exits with code 1 on `FAIL`.
@@ -758,6 +763,13 @@ an item no label expects, returned in one run of three (`H-004`, `H-031`:
   2091 / 7689 ms), 96 output tokens per draft (before: 236), false confirmations 0 / 20, status
   58 / 59, release gate PASS; accepted explanations 14 / 17. Report:
   `eval/results/2026-10-05-p2-e2bfaf5a3ad2.md`; method and limits: `docs/DECISIONS.md` D-30.
+- **The critical cases in that run of 2026-10-05.** Of the 23 critical held-out cases in `merged`
+  mode, 18 are fully as labeled (21 in the run above), 5 are wrong and end in a referral to a
+  specialist, and none is a false confirmation. `H-010` is as before; in the other four (`H-011`,
+  `H-018`, `H-033`, `H-034`) the labeled item is right and the model added a `NEEDS_SPECIALIST`
+  card that no label expects. Extraction precision went from 59 / 60 to 59 / 63. Whether the
+  extra cards come from the reasoning effort set to none or from run-to-run variation was not
+  separated: it is one run of each setting.
 
 ## 13. Cost per review (2026-10-04)
 
@@ -781,6 +793,13 @@ cost per review = (1526 × $0.10 + 237 × $0.50) ÷ 1,000,000
 
 One full evaluation (272 reviews with the LLM) costs about $0.07.
 
+**After the latency change of 2026-10-05 (D-30).** With the reasoning effort set to none the model
+writes fewer output tokens: 1540 in, 96 out per draft (held-out, `merged`, report of 2026-10-05).
+
+```
+cost per review = (1540 × $0.10 + 96 × $0.50) ÷ 1,000,000 = $0.00020   → about $0.20 per 1,000 reviews
+```
+
 **Limits.**
 
 - The evaluation drafts are short (1–4 sentences). Of the 1526 input tokens most are the fixed
@@ -795,12 +814,12 @@ One full evaluation (272 reviews with the LLM) costs about $0.07.
 (`LLM_UNAVAILABLE_REGEX_ONLY`). That mode is measured, not assumed: held-out status 48 / 59 and
 zero false confirmations, against 58 / 59 with the LLM (section 12).
 
-## 14. Comparison with checking by hand (protocol; not run yet)
+## 14. Comparison with checking by hand (run on 2026-10-05)
 
 **Why.** The guide scores innovation on a proven addition "compared with a named alternative or
 current practice" (`docs/reference/challenge-guide.md` §2). The current practice of a writer is
-to search each quote by hand. **This comparison has not been run. No number below is a result
-until a person fills the table.**
+to search each quote by hand. The owner ran the protocol below on 2026-10-05; the times and the
+observations are theirs, as reported.
 
 **The named alternative.** A writer checks a draft by hand: Quran quotes on quranpedia.net, hadith
 quotes on dorar.net.
@@ -828,13 +847,148 @@ every draft is wrong:
 
 **Results.**
 
+Time by hand, per draft, by stopwatch:
+
+| Kind | Case | Time by hand |
+|---|---|---|
+| Wording error | `T-008` | 2 min 40 s |
+| Wording error | `T-009` | 2 min 00 s |
+| Wording error | `T-010` | 1 min 57 s |
+| Wording error (spelling) | `T-023` | 2 min 30 s |
+| Wrong reference | `T-011` | 1 min 50 s |
+| Wrong reference (a verse attributed as a hadith) | `T-012` | 3 min 08 s |
+| Wrong reference | `T-013` | 1 min 20 s |
+| Wrong reference (hadith number) | `T-021` | 2 min 03 s |
+| Wrong reference | `T-022` | 2 min 37 s |
+| Not in the covered sources | `T-014` | 1 min 00 s |
+| Correct | `T-001` | 1 min 15 s |
+| Correct | `T-003` | 2 min 20 s |
+
 | | By hand | Azw (`merged`) |
 |---|---|---|
-| Drafts answered as labeled | not run | 12 / 12 (run of section 12) |
-| Time per draft | not run | p50 2.3 s, p95 7.5 s (all 34 tune drafts) |
-| Shows the source text and a word-level difference | — | yes |
+| Time for the 12 drafts | 24 min 40 s | about 17 s (12 × the p50 below; not timed on these 12 alone) |
+| Time per draft | median 2 min 02 s, shortest 1 min 00 s, longest 3 min 08 s | p50 1.4 s, p95 2.7 s (all 34 tune drafts, final run of 2026-10-05, section 15) |
+| Drafts answered as labeled | 12 / 12 by kind of error, as the checker reported | 12 / 12 (run of 2026-10-05) |
+| Shows the source text and a word-level difference | no | yes |
 
-**Limits to state with the result.** One person and 12 short drafts. The tool's rules were tuned
-on these same tune cases, so its 12 / 12 is not a blind result; the blind numbers are those of
-the held-out split (section 12). The person who labeled or built the cases knows the answers and
-should not be the checker.
+At the median, checking one short draft by hand took more than 70 times as long as the tool
+(122 s against 1.4 s; 1.6 s in an earlier run of the same day).
+
+**What the checker observed while searching by hand** (the owner's notes on the two sites as they
+behaved on 2026-10-05; they were not tested again for this document):
+
+| Observation by hand | What Azw does with the same input |
+|---|---|
+| 1. The sites search for the exact wording: a small spelling error returns no result, even when the quotation is otherwise right | The match is made on normalized text and a near match is still found: the result is `DIFFERS` with the differing word shown (`T-023`) |
+| 2. Pasting the quote with its introduction («قال تعالى», «قال ﷺ») returns no result | The extractor cuts the quote out of the sentence; the writer pastes the whole draft |
+| 3. Text copied from the Quran site often arrives garbled, and the verse has to be found again in another browser to copy it with its diacritics | The card shows the source text with its diacritics, and the writer can apply it to a copy of the draft (D-25) |
+| 4. When a hadith is found by its text, the number cited in the draft is easily left unchecked | The cited reference is checked on every quote: a wrong number ends `DIFFERS / REF_MISMATCH_NUMBER` (`T-021`) |
+| 5. Searching the hadith site with diacritics returns no result | Diacritics are removed for the search only; the text shown is the source's own |
+| 6. The sites show the source text only: the checker finds the error by comparing word by word and by trying several searches | The card marks the differing words (word-level diff) and names the kind of difference |
+
+**Limits to state with the result.**
+
+- One person, one sitting, 12 short drafts with one quote each. A longer post takes longer by
+  hand in proportion to its quotes; that was not timed.
+- **The comparison shows a difference in time, not in errors caught.** By hand the checker found
+  the kind of error in all 12 drafts, the same as the tool. The count by hand is the checker's
+  own report of what they found (wording, reference, not found, or nothing), not answers written
+  down and marked by a second person. Observation 4 says a wrong number can be missed by hand; on
+  these 12 it was not.
+- The checker is the project owner, not a writer from the target group, and not a blind checker.
+- The tool's rules were tuned on these same tune cases, so its 12 / 12 is not a blind result; the
+  blind numbers are those of the held-out split (section 12).
+- The tool's time is the review call alone: it does not include pasting the draft or reading the
+  cards. The time by hand includes reading the search results.
+
+## 15. Final results (2026-10-05): the numbers to quote
+
+This section replaces the numbers of sections 11 and 12 for the code as it stands. Full report:
+`eval/results/2026-10-05-p2-e2bfaf5a3ad2.md`.
+
+- **Date:** 2026-10-05. **Corpus version:** `p2-e2bfaf5a3ad2` (quran, bukhari, muslim).
+- **Model:** provider `openai`, model `gpt-5.6-luna`, reasoning effort `none`, time budget 15 s.
+  Extraction prompt version 3, explanation prompt version 2.
+- **No person has reviewed the cases.** They were drafted and checked by an AI assistant
+  (section 1).
+
+**Release gate: PASS**, after one fix (below). Zero false confirmations on the 23 critical
+held-out cases in `merged` and in `regex` mode, in each of the three `merged` runs.
+
+**Held-out split (51 cases, 59 expected items).**
+
+| Metric | regex (baseline) | merged (production) |
+|---|---|---|
+| False confirmations / `MATCH` returned (primary) | 0 / 17 | 0 / 20 |
+| Status accuracy | 48 / 59 | 58 / 59 |
+| Source retrieval | 37 / 41 | 41 / 41 |
+| Extraction recall | 49 / 59 | 59 / 59 |
+| Extraction precision | 49 / 49 | 59 / 63 |
+| Abstention | 15 / 21 | 21 / 21 |
+| Requests given the scope message | 0 / 2 | 2 / 2 |
+| Cases right | 38 / 51 | 46 / 51 |
+| Latency per draft, p50 / p95 | 4 / 15 ms | 1498 / 3676 ms |
+
+12 held-out cases are right with the LLM and wrong without it; 4 are right without it and wrong
+with it, each because the model added a `NEEDS_SPECIALIST` card that no label expects. Tune split,
+`merged`: status 37 / 37, false confirmations 0 / 13, cases right 33 / 34.
+
+**The critical cases, stated exactly** (the report now prints this table itself, per mode and per
+run):
+
+| 23 critical held-out cases, `merged` | Run 1 | Run 2 | Run 3 |
+|---|---|---|---|
+| Fully as labeled | 19 | 18 | 19 |
+| Wrong, no false confirmation | 4 | 5 | 4 |
+| With a false confirmation | 0 | 0 | 0 |
+
+The wrong ones in run 1: `H-010` (the tool abstains where the label wants the difference shown),
+and `H-011`, `H-018`, `H-033` (the labeled item is right; the model added a referral card). All 13
+critical tune cases are fully as labeled.
+
+**A false confirmation was found and fixed on 2026-10-05 (`docs/DECISIONS.md` D-31).**
+
+```
+what the runs showed   H-017 (critical, a hadith attributed as a verse) ended MATCH instead of
+                       DIFFERS / KIND_MISMATCH: in llm mode with effort medium (1 run), and in
+                       merged mode with effort none (1 run of 3). The gate of that run: FAIL
+                       (kept as …-before-d31.md)
+the cause, reproduced  on a hand-made draft, not on the held-out text: the merge keeps the
+                       model's span. When the model returns a ﴿…﴾ quote with its brackets, or
+                       only a part of it, the span no longer "fills" the brackets, the claim of
+                       a verse was lost, and a hadith text then ended MATCH
+the rule               a span inside one ﴿…﴾ pair is claimed as a verse, whether or not it
+                       fills the pair (inVerseMarks)
+after the fix          H-017 as labeled in llm mode and in the three merged runs; gate PASS
+```
+
+**Held-out exposure.** The failure was seen by id, category, statuses and reason codes only; the
+draft of `H-017` was not read, and the cause was found from the code and reproduced on a draft
+written for the test. But the rule was written because a held-out case failed, so `H-017` is no
+longer a blind case for this rule. That it was this cause, and not another, is inferred from the
+case passing in four runs after the fix; it failed in two runs of eight before.
+
+**The reasoning effort: faster against fewer extra cards.** Held-out, `merged`, three runs each,
+on the same day and code (the `medium` runs were made before the fix; they had no false
+confirmation in `merged` mode). Report of the `medium` run: `…-effort-medium-heldout.md`.
+
+| | `none` (the setting in use) | `medium` (the model's default) |
+|---|---|---|
+| Latency p50 / p95 | 1498 / 3676 ms | 2804 / 5289 ms |
+| Critical cases fully as labeled, per run | 19, 18, 19 of 23 | 21, 21, 21 of 23 |
+| Extraction precision, per run | 59 / 63, 59 / 64, 59 / 63 | 59 / 60, 59 / 61, 59 / 61 |
+| False confirmations | 0 in each run | 0 in each run |
+| Tokens out per draft | 97 | 255 |
+
+With `none` the model more often returns a sentence of the writer as a claim or a vague
+attribution. Each such card says `NEEDS_SPECIALIST`; none is a `MATCH`. The owner chose `none`
+for latency (D-30); the numbers of this section are those of that setting.
+
+**Stability.** Held-out, `merged`, three runs: 1 item of 64 did not end the same way (an item no
+label expects, returned in one run). No labeled item changed status.
+
+**Limits.** Those of sections 11 and 12 hold: a small sample, one model, cases not reviewed by a
+person, the 35 added cases not blind, latency from a developer machine. Held-out has now been run
+several times while the code changed (sections 12 and 15); each time its failures were seen by id
+only, and one rule (D-31) was written after such a failure. The comparison of the two efforts is
+three runs of each.

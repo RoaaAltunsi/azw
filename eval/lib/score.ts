@@ -134,6 +134,23 @@ export function isWrong(score: CaseScore): boolean {
   );
 }
 
+// The critical cases, three ways: fully as labeled; wrong, but with no false confirmation (an
+// abstention, a missed item, an item no label expects); and with a false confirmation. The
+// release gate reads the last count only, so the report states the first two beside it.
+export interface CriticalCounts {
+  cases: number;
+  right: number;
+  wrongWithoutFalseConfirmation: number;
+  withFalseConfirmation: number;
+}
+
+export function criticalCounts(scores: readonly CaseScore[]): CriticalCounts {
+  const critical = scores.filter((score) => score.critical);
+  const withFalseConfirmation = critical.filter((score) => score.falseConfirmations.length > 0).length;
+  const right = critical.filter((score) => !isWrong(score)).length;
+  return { cases: critical.length, right, wrongWithoutFalseConfirmation: critical.length - right - withFalseConfirmation, withFalseConfirmation };
+}
+
 export interface Metrics {
   cases: number;
   casesRight: Ratio; // cases with nothing wrong (isWrong)

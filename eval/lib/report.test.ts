@@ -150,3 +150,15 @@ describe("renderReport", () => {
     expect(report).toContain("| `H-010` | WORDING_ERROR | 3–9 | DIFFERS | MATCH | DIFFERS |");
   });
 });
+
+describe("critical cases", () => {
+  test("the report counts them three ways, per mode and per stability run", () => {
+    const extra = run("merged", heldout, [item(HELDOUT_DRAFT, "HELDOUT-QUOTE", "DIFFERS"), item(HELDOUT_DRAFT, "more-words", "DIFFERS")]);
+    const stability = { runs: 2, items: 2, unstable: [], errorsWithEvidence: 0, passes: [extra.scores, falseMatch("merged").scores] };
+    const report = renderReport(input([good("regex"), extra], { stability }));
+    expect(report).toContain("| held-out | regex | 1 | 1 / 1 | 0 | 0 |");
+    expect(report).toContain("| held-out | merged | 1 | 0 / 1 | 1 | 0 |");
+    expect(report).toContain("| 1 | 0 / 1 | 0 / 0 | 1 / 1 | 1 / 2 | 1 | 0 / 1 | 1 | 0 |");
+    expect(report).toContain("| 2 | 0 / 1 | 1 / 1 | 0 / 1 | 1 / 1 | 1 | 0 / 1 | 0 | 1 |");
+  });
+});

@@ -166,6 +166,7 @@ async function main(): Promise<void> {
       stability = {
         runs: STABILITY_RUNS,
         ...unstableItems(repeats.map((r) => r.items)),
+        passes: repeats.map((r) => r.run.scores),
         errorsWithEvidence: repeats.slice(1).reduce((n, r) => n + r.run.scores.reduce((t, score) => t + score.errorsWithEvidence, 0), 0),
       };
     }
