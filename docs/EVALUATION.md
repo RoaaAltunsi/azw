@@ -753,6 +753,12 @@ an item no label expects, returned in one run of three (`H-004`, `H-031`:
 - Cost: the longer prompt adds about 370 input tokens per draft (1154 → 1526 on held-out).
   Latency p50 / p95 in `merged` mode: 2372 / 7206 ms (before: 2513 / 7534 ms).
 
+- **Latency after D-30 (2026-10-05).** With the explanations asked for beside the extraction and
+  `LLM_REASONING_EFFORT=none`: p50 / p95 in `merged` mode 1524 / 3100 ms on held-out (before:
+  2091 / 7689 ms), 96 output tokens per draft (before: 236), false confirmations 0 / 20, status
+  58 / 59, release gate PASS; accepted explanations 14 / 17. Report:
+  `eval/results/2026-10-05-p2-e2bfaf5a3ad2.md`; method and limits: `docs/DECISIONS.md` D-30.
+
 ## 13. Cost per review (2026-10-04)
 
 Computed from the tokens the SDK reported in the run of section 12 and the provider's list price.

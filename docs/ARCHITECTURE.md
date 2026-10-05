@@ -1059,7 +1059,8 @@ schema (a status, an offset) is not read.
 |---|---|
 | System prompt | Appendix A1 of the prompt pack, verbatim (`EXTRACT_SYSTEM_PROMPT`, `EXTRACT_PROMPT_VERSION = "3"`), sent as `instructions`. Version 2 says which sentences are an interpretive claim: one that draws a conclusion from a named text, or one that states a ruling in the words of a ruling; the writer's advice or closing remark is not one. Version 3 says the kind is what the draft claims, never what the model recognises: a verse attributed to the Prophet ﷺ is returned as `hadith` (`docs/DECISIONS.md` D-28) |
 | Draft | A user message of its own: `<draft>\n…\n</draft>` |
-| Temperature | 0. A model that refuses the parameter (HTTP 400 naming `temperature`) is called again without it, and without it from then on |
+| Temperature | 0. A model that refuses the parameter (HTTP 400 naming `temperature`) is called again without it, and without it from then on. Each call answers for what it sent itself, so two calls refused side by side are both made again |
+| Reasoning effort | `LLM_REASONING_EFFORT` (`none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`), sent as `reasoning: { effort }` with both calls. Empty or unknown = not sent: the model's own default. A level the model refuses fails the call, and the review runs on the regex extractor. Measured: "Measured" below and `docs/DECISIONS.md` D-30 |
 | Timeout | `LLM_TIMEOUT_MS` (15000) for the extraction as a whole, the retry included: one `AbortSignal`. The explanations of a review have the same budget again ("Explanation") |
 | Retry | One, and only after a connection error, 429 or 5xx. Not after a timeout, a 4xx, a refusal or a cut output. The SDK's own retries are off |
 | Storage | `store: false` |
@@ -1110,9 +1111,11 @@ plus one line that names the validator's vocabulary, built from `EXPLANATION_VOC
 (`EXPLAIN_SYSTEM_PROMPT`, `EXPLAIN_PROMPT_VERSION = "2"`, D-24), sent as `instructions`; the
 input as JSON in the user message. `store: false`, no logging, temperature as for the extraction
 (0, or none once the model refused it). The output is trimmed; `NULL` or an empty output is
-`null`. No retry. Each call has a timeout of `LLM_TIMEOUT_MS`; `review()` starts all calls of a
-review in one pass, in parallel, so they end at one deadline. A review can therefore take up to
-twice `LLM_TIMEOUT_MS` (extraction, then explanations).
+`null`. No retry. Each call has a timeout of `LLM_TIMEOUT_MS`. `review()` asks for the
+explanations of the quotes the extractors found while the extraction runs, and for the rest in
+one pass when it has answered ("Orchestrator", step 6). A review takes at most twice
+`LLM_TIMEOUT_MS` (an extraction that uses its whole budget, then an explanation asked after it);
+when every `DIFFERS` item was found by the extractors it takes at most one.
 
 **The validator.** `validateExplanation(text, input, bookTitles)` returns the trimmed note or
 `null`. The note is accepted only if all of these hold:
@@ -1163,8 +1166,9 @@ of the LLM gives the same result, ids included; a result holds no time.
 
 The order is that of `AGENTS.md` §6.
 
-1. **Extract.** `deps.llm.extractQuotes(draft)` is started, the extractors read the draft, and the
-   LLM's answer is awaited. When no LLM took part (none was passed in, the call failed or timed
+1. **Extract.** `deps.llm.extractQuotes(draft)` is started and the extractors read the draft. The
+   LLM's answer is awaited only after the early explanations of step 6 have been asked for, so
+   the two kinds of call run side by side. When no LLM took part (none was passed in, the call failed or timed
    out, or the answer does not fit `LlmExtractionSchema`) the result carries the warning
    `LLM_UNAVAILABLE_REGEX_ONLY`, and only then.
 2. **Validate.** An extractor's span is kept only if it lies in the draft and
@@ -1199,6 +1203,23 @@ The order is that of `AGENTS.md` §6.
    `deps.llm.explainDiff` → `validateExplanation`, all items in parallel. An accepted note becomes
    `explanation: { text, generated: true }`; anything else leaves the item as it was. The step
    adds no warning and changes no other field.
+   **Early explanations** (`docs/DECISIONS.md` D-30). The model's two jobs do not wait for each
+   other. While the extraction call runs, steps 2 to 5 are run on the quotes the extractors found
+   alone, and the explanation of each `DIFFERS` item among them is asked for at once. This early
+   pass decides nothing of the result: the items are built again from the merged quotes when the
+   extraction answers, and an early answer is used only for a final item whose explanation input
+   is the very same (`JSON.stringify` of the six fields). An item the extraction changed or added
+   is asked about then; the same input is never asked twice. After a failed extraction the early
+   answers are dropped, so the rule "no explanation unless the LLM read the draft" holds.
+
+   ```
+   draft: قال تعالى: ﴿إن مع الصبر يسرا﴾ [الشرح: 6]
+    t=0      extraction call starts (model)
+    t=0      regex finds the quote → matched → DIFFERS → explanation call starts (model)
+    t≈1 s    explanation answers
+    t≈2 s    extraction answers: the same quote → the same item → the early note is used
+    result   after about 2 s, where the two calls one after the other took about 3 s
+   ```
 
 `citedReference` is the attached reference as it was read: `{ raw, span, parsed }`, with `parsed`
 typed by `ParsedReferenceSchema` (`docs/DECISIONS.md` D-17).
@@ -1280,7 +1301,7 @@ validation above and be answered with 500. `grade` is copied only when the recor
 **Settings** (`.env.example`), read on each request; a missing or malformed value falls back to
 the default: `MAX_DRAFT_CHARS` (12000, UTF-16 code units), `RATE_LIMIT_PER_MIN` (10),
 `CORS_ALLOWLIST` (empty). The LLM: `LLM_PROVIDER` (`openai`), `LLM_MODEL`, `LLM_API_KEY`,
-`LLM_TIMEOUT_MS` (15000), read once, on the first request ("LLM extractor").
+`LLM_TIMEOUT_MS` (15000), `LLM_REASONING_EFFORT` (empty), read once, on the first request ("LLM extractor").
 
 **Rate limit.** A token bucket per client in memory: `RATE_LIMIT_PER_MIN` tokens, refilled evenly
 over a minute. The client is the first address of `X-Forwarded-For` (else `X-Real-IP`). Limits:

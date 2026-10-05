@@ -136,32 +136,15 @@ export async function review(draft: string, deps: ReviewDeps): Promise<ReviewRes
   const coverage = searchedCoverage(deps.coverage, deps.index, registry);
   const warnings: string[] = [];
 
-  // 1. Extract: the LLM (if one was passed in) beside the extractors. The warning is added only
-  //    when no LLM took part.
+  // 1. Extract: the LLM (if one was passed in) beside the extractors. Its call starts here and is
+  //    awaited after the early explanations below, so that nothing waits for it without need.
   const llmCall = extractWithLlm(draft, deps.llm);
   const extracted = deps.extractors.flatMap((extract) => extract(draft));
-  const extraction = await llmCall;
-  if (!extraction) warnings.push(WARNINGS.LLM_UNAVAILABLE_REGEX_ONLY);
 
-  // 2. Validate: a span that is not in the draft verbatim is dropped. The LLM returns text, not
-  //    offsets: its quotes are looked up in the draft, and one the draft does not hold is dropped.
+  // 2. Validate: a span that is not in the draft verbatim is dropped.
   const verbatim = extracted.filter((quote) => isVerbatim(quote, draft));
-  const fromLlm = validateSpans(draft, extraction?.items ?? []);
-  if (fromLlm.notInDraft > 0) warnings.push(WARNINGS.LLM_SPAN_NOT_IN_DRAFT);
 
-  // The model's word that the input is not a draft counts only when no extractor found a quote:
-  // its output never removes an item (AGENTS.md §2 rule 9).
-  const notADraft = extraction?.isDraft === false && verbatim.length === 0;
-  if (notADraft) warnings.push(WARNINGS.NOT_A_DRAFT);
-
-  // 3. Merge and dedupe, then the item limit.
-  let quotes = notADraft ? [] : mergeQuotes(draft, [...verbatim, ...fromLlm.quotes]);
-  if (quotes.length > limits.MAX_ITEMS_PER_DRAFT) {
-    quotes = quotes.slice(0, limits.MAX_ITEMS_PER_DRAFT);
-    warnings.push(WARNINGS.ITEM_LIMIT_REACHED);
-  }
-
-  // 4. Cited references, deterministically.
+  // 4. Cited references, deterministically. They depend on the draft alone.
   const references = parseReferences(draft, deps.aliases);
 
   // 5–7. Per item: retrieve across all kinds, score and align (the matchers), decide (the status
@@ -195,39 +178,83 @@ export async function review(draft: string, deps: ReviewDeps): Promise<ReviewRes
     return { item, occurrence: evidence.slice(0, decision.evidence[0]?.records.length ?? 0) };
   };
 
-  const drafted = quotes.map((quote) => {
-    try {
-      return reviewOne(quote);
-    } catch {
-      // Nothing found for this item may be shown: no evidence, no reference, no badge.
-      const item: ReviewItem = {
-        id: itemId(quote),
-        span: quote.span,
-        claimedKind: quote.claimedKind,
-        status: "ERROR",
-        contentLevel: "A",
-        reasonCode: INTERNAL_ERROR,
-        reasonAr: t("item.error.INTERNAL_ERROR"),
-        evidence: [],
-        extractedBy: quote.extractedBy,
-      };
-      return { item, occurrence: [] };
-    }
-  });
-  // A correction that reaches into another item's part of the draft is not offered.
-  const unshared = dropSharedCorrections(drafted.map(({ item }) => item));
-  const reviewed = drafted.map(({ occurrence }, i) => ({ item: unshared[i]!, occurrence }));
+  const reviewAll = (quotes: readonly MergedQuote[]): Array<{ item: ReviewItem; occurrence: Evidence[] }> => {
+    const drafted = quotes.map((quote) => {
+      try {
+        return reviewOne(quote);
+      } catch {
+        // Nothing found for this item may be shown: no evidence, no reference, no badge.
+        const item: ReviewItem = {
+          id: itemId(quote),
+          span: quote.span,
+          claimedKind: quote.claimedKind,
+          status: "ERROR",
+          contentLevel: "A",
+          reasonCode: INTERNAL_ERROR,
+          reasonAr: t("item.error.INTERNAL_ERROR"),
+          evidence: [],
+          extractedBy: quote.extractedBy,
+        };
+        return { item, occurrence: [] };
+      }
+    });
+    // A correction that reaches into another item's part of the draft is not offered.
+    const unshared = dropSharedCorrections(drafted.map(({ item }) => item));
+    return drafted.map(({ occurrence }, i) => ({ item: unshared[i]!, occurrence }));
+  };
 
-  // 8. Grounded explanations: for DIFFERS items only, and only when the LLM read this draft. The
-  //    calls start together, so the adapter's time budget is one for all of them. An explanation
-  //    is added to an item; nothing else of the item or of the result changes with it.
-  const llm = extraction ? deps.llm : undefined;
+  // What step 8 asks the model about an item: DIFFERS items only. The same input is asked once.
+  const explainInputOf = ({ item, occurrence }: { item: ReviewItem; occurrence: Evidence[] }): ExplainDiffInput | undefined =>
+    item.status === "DIFFERS" && occurrence.length > 0 ? buildExplainInput(draft, item, occurrence) : undefined;
   const bookTitles = coverage.map(collectionName);
+  const asked = new Map<string, Promise<string | undefined>>();
+  const explainOnce = (llm: LlmPort, input: ExplainDiffInput): Promise<string | undefined> => {
+    const key = JSON.stringify(input);
+    let answer = asked.get(key);
+    if (!answer) asked.set(key, (answer = explain(llm, input, bookTitles)));
+    return answer;
+  };
+
+  // Early explanations (docs/DECISIONS.md D-30): the quotes the extractors found are decided now,
+  // and their explanations are asked for while the extraction runs. None of this reaches the result
+  // by itself: step 8 takes such an answer only for a final item with the very same input.
+  if (deps.llm) {
+    for (const early of reviewAll(mergeQuotes(draft, verbatim).slice(0, limits.MAX_ITEMS_PER_DRAFT))) {
+      const input = explainInputOf(early);
+      if (input) void explainOnce(deps.llm, input);
+    }
+  }
+
+  // The warning is added only when no LLM took part.
+  const extraction = await llmCall;
+  if (!extraction) warnings.push(WARNINGS.LLM_UNAVAILABLE_REGEX_ONLY);
+
+  // 2. Validate, for the LLM: it returns text, not offsets. Its quotes are looked up in the draft,
+  //    and one the draft does not hold is dropped.
+  const fromLlm = validateSpans(draft, extraction?.items ?? []);
+  if (fromLlm.notInDraft > 0) warnings.push(WARNINGS.LLM_SPAN_NOT_IN_DRAFT);
+
+  // The model's word that the input is not a draft counts only when no extractor found a quote:
+  // its output never removes an item (AGENTS.md §2 rule 9).
+  const notADraft = extraction?.isDraft === false && verbatim.length === 0;
+  if (notADraft) warnings.push(WARNINGS.NOT_A_DRAFT);
+
+  // 3. Merge and dedupe, then the item limit.
+  let quotes = notADraft ? [] : mergeQuotes(draft, [...verbatim, ...fromLlm.quotes]);
+  if (quotes.length > limits.MAX_ITEMS_PER_DRAFT) {
+    quotes = quotes.slice(0, limits.MAX_ITEMS_PER_DRAFT);
+    warnings.push(WARNINGS.ITEM_LIMIT_REACHED);
+  }
+
+  // 8. Grounded explanations: only when the LLM read this draft (after a failed extraction none is
+  //    shown). The calls not made early start together. An explanation is added to an item;
+  //    nothing else of the item or of the result changes with it.
+  const llm = extraction ? deps.llm : undefined;
   const items = await Promise.all(
-    reviewed.map(async ({ item, occurrence }): Promise<ReviewItem> => {
-      if (!llm || item.status !== "DIFFERS" || occurrence.length === 0) return item;
-      const text = await explain(llm, buildExplainInput(draft, item, occurrence), bookTitles);
-      return text === undefined ? item : { ...item, explanation: { text, generated: true } };
+    reviewAll(quotes).map(async (reviewed): Promise<ReviewItem> => {
+      const input = llm && explainInputOf(reviewed);
+      const text = input ? await explainOnce(llm, input) : undefined;
+      return text === undefined ? reviewed.item : { ...reviewed.item, explanation: { text, generated: true } };
     }),
   );
 

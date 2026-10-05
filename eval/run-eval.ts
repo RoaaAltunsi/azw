@@ -176,7 +176,7 @@ async function main(): Promise<void> {
     corpusVersion: corpus.corpusVersion,
     coverage: searchedCoverage(corpus.coverage, corpus.index),
     ...(llm && config
-      ? { llm: { provider: config.provider, model: config.model, timeoutMs: config.timeoutMs, extractPromptVersion: EXTRACT_PROMPT_VERSION, explainPromptVersion: EXPLAIN_PROMPT_VERSION } }
+      ? { llm: { provider: config.provider, model: config.model, timeoutMs: config.timeoutMs, reasoningEffort: config.reasoningEffort, extractPromptVersion: EXTRACT_PROMPT_VERSION, explainPromptVersion: EXPLAIN_PROMPT_VERSION } }
       : {}),
     cases,
     runs,

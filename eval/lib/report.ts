@@ -43,7 +43,7 @@ export interface ReportInput {
   corpusVersion: string;
   coverage: readonly string[];
   // undefined = no LLM settings were found: only the regex mode ran.
-  llm?: { provider: string; model: string; timeoutMs: number; extractPromptVersion: string; explainPromptVersion: string };
+  llm?: { provider: string; model: string; timeoutMs: number; reasoningEffort?: string; extractPromptVersion: string; explainPromptVersion: string };
   cases: readonly EvalCase[];
   runs: readonly ModeRun[];
   // Held-out, merged mode, run several times; the first run is the one reported in the tables.
@@ -289,7 +289,7 @@ export function renderReport(input: ReportInput): string {
     `- Corpus version: \`${input.corpusVersion}\`; collections searched: ${input.coverage.join(", ")}.`,
     `- Cases: ${splits.map((split) => `${input.cases.filter((c) => c.split === split).length} ${SPLIT_TITLE[split]}`).join(", ")}.`,
     llm
-      ? `- LLM: provider \`${llm.provider}\`, model \`${llm.model}\`, time budget ${llm.timeoutMs} ms. Extraction prompt version ${llm.extractPromptVersion}, explanation prompt version ${llm.explainPromptVersion}.`
+      ? `- LLM: provider \`${llm.provider}\`, model \`${llm.model}\`, time budget ${llm.timeoutMs} ms, reasoning effort ${llm.reasoningEffort ?? "the model's default"}. Extraction prompt version ${llm.extractPromptVersion}, explanation prompt version ${llm.explainPromptVersion}.`
       : "- **No usable LLM settings were found (LLM_PROVIDER, LLM_MODEL, LLM_API_KEY). Only the regex mode ran: this report holds no LLM numbers.**",
     ...(llmFailures > 0
       ? [`- **The LLM extraction failed or timed out on ${llmFailures} draft run(s)** (see "Latency and LLM cost per draft"). Such a run went on with what the other extractors found, and its numbers are counted as they came.`]

@@ -139,8 +139,8 @@ is built until it is moved into a prompt's scope.
     `deps.now` is still not read.
 - Explanation and report (P12), for later prompts (`docs/DECISIONS.md` D-23):
   - Not run against the provider: how often the model's note passes the validator, how often it
-    answers `NULL`, and the added latency are unmeasured (P14). A review can now take up to twice
-    `LLM_TIMEOUT_MS`.
+    answers `NULL`, and the added latency are unmeasured (P14). A review can take up to twice
+    `LLM_TIMEOUT_MS` (`docs/DECISIONS.md` D-30: explanations now start beside the extraction).
   - The validator cannot tell a true note from a false one. Done in P13 as far as a validator
     can: a closed vocabulary (`docs/DECISIONS.md` D-24). What is left: a false statement in the
     allowed words, and a note that quotes back an instruction of the draft. Requiring a quoted

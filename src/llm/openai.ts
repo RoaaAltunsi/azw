@@ -4,11 +4,14 @@
 // Privacy (AGENTS.md §2 rule 8): nothing here logs, and the request asks the provider not to store
 // the response (`store: false`). An error is rethrown as it came; the caller reads its class only.
 import OpenAI, { APIConnectionError, APIConnectionTimeoutError, APIError, InternalServerError, RateLimitError } from "openai";
+import type { ReasoningEffort as SdkReasoningEffort } from "openai/resources/shared";
 import { zodTextFormat } from "openai/helpers/zod";
 import { LlmExtractionSchema, type LlmExtraction } from "../core/extract/llm";
 import type { LlmPort } from "../core/review";
 import { EXPLAIN_NO_ANSWER, EXPLAIN_SYSTEM_PROMPT, explainUserMessage } from "./prompts/explain";
 import { EXTRACT_SYSTEM_PROMPT, extractUserMessage } from "./prompts/extract";
+
+export type ReasoningEffort = NonNullable<SdkReasoningEffort>;
 
 export interface OpenAiPortOptions {
   apiKey: string;
@@ -16,6 +19,8 @@ export interface OpenAiPortOptions {
   // For one extraction as a whole, the retry included; and again for the explanations of one
   // review, as a whole.
   timeoutMs: number;
+  // Absent = the model's own default. Sent as it is: a value the model refuses fails the call.
+  reasoningEffort?: ReasoningEffort;
   // A test passes its own; no network is used then.
   client?: Pick<OpenAI, "responses">;
 }
@@ -36,18 +41,35 @@ export function createOpenAiPort(options: OpenAiPortOptions): LlmPort {
   // The SDK's own retries are off: it would also retry a timeout, and more than once.
   const client = options.client ?? new OpenAI({ apiKey: options.apiKey, maxRetries: 0 });
   let sendTemperature = true;
+  const reasoning = options.reasoningEffort ? { reasoning: { effort: options.reasoningEffort } } : {};
+
+  // A call that sent the temperature and was refused for it is made once more without it. The
+  // calls of one review run side by side, so each answers for what it sent itself.
+  const send = async <T>(request: (sampling: { temperature?: 0 }) => Promise<T>): Promise<T> => {
+    if (!sendTemperature) return request({});
+    try {
+      return await request({ temperature: 0 });
+    } catch (error) {
+      if (!refusesTemperature(error)) throw error;
+      sendTemperature = false;
+      return request({});
+    }
+  };
 
   const extract = async (draft: string, signal: AbortSignal): Promise<LlmExtraction> => {
-    const response = await client.responses.parse(
-      {
-        model: options.model,
-        instructions: EXTRACT_SYSTEM_PROMPT,
-        input: extractUserMessage(draft),
-        text: { format: EXTRACTION_FORMAT },
-        store: false,
-        ...(sendTemperature ? { temperature: 0 } : {}),
-      },
-      { signal, maxRetries: 0 },
+    const response = await send((sampling) =>
+      client.responses.parse(
+        {
+          model: options.model,
+          instructions: EXTRACT_SYSTEM_PROMPT,
+          input: extractUserMessage(draft),
+          text: { format: EXTRACTION_FORMAT },
+          store: false,
+          ...reasoning,
+          ...sampling,
+        },
+        { signal, maxRetries: 0 },
+      ),
     );
     // null: the model refused, or the output was cut before it was complete.
     if (response.output_parsed === null) throw new Error("LLM_NO_STRUCTURED_OUTPUT");
@@ -62,24 +84,19 @@ export function createOpenAiPort(options: OpenAiPortOptions): LlmPort {
         try {
           return await extract(draft, signal);
         } catch (error) {
-          if (sendTemperature && refusesTemperature(error)) sendTemperature = false;
-          else if (!retried && isTransient(error)) retried = true;
+          if (!retried && isTransient(error)) retried = true;
           else throw error;
         }
       }
     },
-    // Plain text, one attempt. review() starts the calls of one review together, so the timeout of
-    // each ends at the same moment: one budget for all of them.
+    // Plain text, one attempt, each call with the time budget of its own.
     async explainDiff(input) {
-      const response = await client.responses.create(
-        {
-          model: options.model,
-          instructions: EXPLAIN_SYSTEM_PROMPT,
-          input: explainUserMessage(input),
-          store: false,
-          ...(sendTemperature ? { temperature: 0 } : {}),
-        },
-        { signal: AbortSignal.timeout(options.timeoutMs), maxRetries: 0 },
+      const signal = AbortSignal.timeout(options.timeoutMs);
+      const response = await send((sampling) =>
+        client.responses.create(
+          { model: options.model, instructions: EXPLAIN_SYSTEM_PROMPT, input: explainUserMessage(input), store: false, ...reasoning, ...sampling },
+          { signal, maxRetries: 0 },
+        ),
       );
       const text = response.output_text.trim();
       return text === "" || text === EXPLAIN_NO_ANSWER ? null : text;

@@ -1626,3 +1626,59 @@ with one card and a pager) and for a percentage while a review runs. What the re
 
 Checked in Chrome at desktop width and at 390px: the home screen, the wait, the pager, a tap on a
 quote in the draft, applying a correction. Not tested with users of the target group.
+
+## D-30 — Latency: explanations beside the extraction, and a configurable reasoning effort (2026-10-05)
+
+The owner asked for a faster answer without a change of structure. What was measured first
+(`gpt-5.6-luna`, one draft at a time, corpus loaded): the core pipeline takes 4 to 30 ms; the
+rest is the two model calls. A draft with a `DIFFERS` item (`H-050`) took 7.8 to 9.5 s: the
+extraction (4.6 s), then the explanation (3.2 to 4.8 s), one after the other. Inside one call most
+of the time was the model's reasoning before its first word: an explanation of 28 visible tokens
+took 2.6 to 4.3 s with 136 to 186 reasoning tokens, and 1.0 to 1.2 s with none.
+
+1. **Explanations are asked for while the extraction runs.** The quotes the regex extractor found
+   are decided at once, and the explanation of each `DIFFERS` item among them is asked for
+   without waiting for the model's extraction (`src/core/review.ts`, "Early explanations";
+   `docs/ARCHITECTURE.md`, "Orchestrator", step 6). Weighed: (a) keep the calls in sequence;
+   (b) return the regex result first and the model's later, which needs a streaming API and a
+   new client contract (`docs/BACKLOG.md`); (c) start early and keep the result identical. (c)
+   was chosen: the order of the pipeline as a result is unchanged, because the items are built
+   again from the merged quotes, and an early answer is used only for a final item with the very
+   same explanation input. Tested: an item the extraction changed does not carry the early note.
+2. **What it costs.** After a failed extraction the early requests were already sent, and their
+   answers are dropped (the rule of D-23 holds: no explanation unless the LLM read the draft).
+   An item the extraction changes costs one unused call. The matching runs twice (milliseconds).
+   The privacy notice says when the request is sent (`docs/PRIVACY.md`, `privacy.processed.3`).
+3. **The reasoning effort is a setting, `LLM_REASONING_EFFORT`, empty by default.** Which levels
+   exist depends on the model (this one refuses `minimal`), so the code names no default: empty
+   sends nothing and the model uses its own (`medium` here). The evaluation report names the
+   level it ran with.
+4. **The temperature fallback answers per call.** With calls side by side, two can be refused
+   the `temperature` parameter at once; each is made again without it (before, the explanation
+   call was never repeated: D-23 item 8). With effort `none` this model accepts temperature 0.
+
+**Measured** (`eval/results/2026-10-05-p2-e2bfaf5a3ad2.md`: both changes, effort `none`; against
+`2026-10-04-p2-e2bfaf5a3ad2-p15-run1.md`: neither, the model's default effort):
+
+| Held-out, `merged` | Before | After |
+|---|---|---|
+| Latency p50 / p95 | 2091 / 7689 ms | 1524 / 3100 ms |
+| False confirmations | 0 / 20 | 0 / 20 |
+| Status | 57 / 59 | 58 / 59 |
+| Extraction recall | 58 / 59 | 59 / 59 |
+| Cases right | 46 / 51 | 46 / 51 (44 and 47 in the two other passes) |
+| `DIFFERS` items with an accepted explanation | 16 / 17 | 14 / 17 |
+| Tokens out per draft | 236 | 96 |
+
+Tune, `merged`: p50 / p95 2215 / 6679 ms → 1627 / 2215 ms; cases right 33 / 34 both; accepted
+explanations 11 / 11 → 9 / 11. Release gate: PASS.
+
+**Limits.** One run of each, on two days, on a developer machine; the differences in accuracy are
+within the variation between two runs of the same code (3 of 65 items changed status between the
+three passes of this run). The two changes were not measured apart on the whole set: on single
+drafts the effort alone took an extraction from about 4.7 s to 2.3 s. With effort `none` fewer
+notes pass the validator (a rejected note is not shown; nothing else of an item depends on it).
+The regex latency of this run (17 / 97 ms) is higher than before because the linter ran on the
+same machine during it. The cold start (loading the corpus, 1 to 3 s once per server instance)
+is not changed. The deployment decides the setting: `LLM_REASONING_EFFORT=none` must be set on
+the host for the measured latency to hold there.

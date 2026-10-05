@@ -220,6 +220,29 @@ describe("explainDiff", () => {
     expect("temperature" in calls[2]!.body).toBe(false);
   });
 
+  test("calls that run side by side and are both refused the temperature are each made again without it", async () => {
+    const refused = apiError(400, "temperature");
+    const { client, calls } = fakeClient(refused, refused, EXTRACTION, NOTE);
+    const port = portOf(client);
+    const [extraction, note] = await Promise.all([port.extractQuotes(DRAFT), port.explainDiff(INPUT)]);
+    expect(extraction).toEqual(EXTRACTION);
+    expect(note).toBe(NOTE);
+    expect(calls.map((c) => "temperature" in c.body)).toEqual([true, true, false, false]);
+  });
+
+  test("the reasoning effort is sent with both calls when it is set, and not at all otherwise", async () => {
+    const set = fakeClient(EXTRACTION, NOTE);
+    const port = createOpenAiPort({ apiKey: "test", model: "test-model", timeoutMs: 1000, reasoningEffort: "none", client: set.client });
+    await port.extractQuotes(DRAFT);
+    await port.explainDiff(INPUT);
+    expect(set.calls.map((c) => c.body.reasoning)).toEqual([{ effort: "none" }, { effort: "none" }]);
+
+    const unset = fakeClient(EXTRACTION, NOTE);
+    await portOf(unset.client).extractQuotes(DRAFT);
+    await portOf(unset.client).explainDiff(INPUT);
+    expect(unset.calls.map((c) => "reasoning" in c.body)).toEqual([false, false]);
+  });
+
   test("nothing is logged, whatever happens", async () => {
     const spies = (["log", "info", "warn", "error", "debug"] as const).map((method) => vi.spyOn(console, method).mockImplementation(() => {}));
     await portOf(fakeClient(NOTE).client).explainDiff(INPUT);
@@ -241,6 +264,12 @@ describe("configuration", () => {
     expect(readLlmConfig({ ...env, LLM_TIMEOUT_MS: undefined })?.timeoutMs).toBe(15_000);
     for (const name of ["LLM_PROVIDER", "LLM_MODEL", "LLM_API_KEY"]) expect(readLlmConfig({ ...env, [name]: " " })).toBeUndefined();
     expect(readLlmConfig({})).toBeUndefined();
+  });
+
+  test("the reasoning effort is read when it names a known level, and left out otherwise", () => {
+    expect(readLlmConfig({ ...env, LLM_REASONING_EFFORT: " None " })?.reasoningEffort).toBe("none");
+    expect(readLlmConfig({ ...env, LLM_REASONING_EFFORT: "low" })?.reasoningEffort).toBe("low");
+    for (const value of ["", "fast", undefined]) expect(readLlmConfig({ ...env, LLM_REASONING_EFFORT: value })).not.toHaveProperty("reasoningEffort");
   });
 
   test("no configuration, or a provider without an adapter → no port", () => {

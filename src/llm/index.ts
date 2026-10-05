@@ -1,14 +1,18 @@
 // The LLM port's implementations (src/core/review.ts declares it), chosen by the environment
 // (.env.example). Server only. A new provider is one adapter file and one entry of PROVIDERS.
 import type { LlmPort } from "../core/review";
-import { createOpenAiPort } from "./openai";
+import { createOpenAiPort, type ReasoningEffort } from "./openai";
 
 export interface LlmConfig {
   provider: string;
   model: string;
   apiKey: string;
   timeoutMs: number;
+  // LLM_REASONING_EFFORT. Absent = the model's own default.
+  reasoningEffort?: ReasoningEffort;
 }
+
+const REASONING_EFFORTS: readonly string[] = ["none", "minimal", "low", "medium", "high", "xhigh", "max"] satisfies ReasoningEffort[];
 
 export const LLM_DEFAULT_TIMEOUT_MS = 15_000;
 
@@ -19,7 +23,7 @@ const PROVIDERS: Readonly<Record<string, (config: LlmConfig) => LlmPort>> = {
 type Env = Readonly<Record<string, string | undefined>>;
 
 // undefined unless LLM_PROVIDER, LLM_MODEL and LLM_API_KEY are all set. A missing or malformed
-// LLM_TIMEOUT_MS falls back to the default.
+// LLM_TIMEOUT_MS falls back to the default; a LLM_REASONING_EFFORT that is not a known level is left out.
 export function readLlmConfig(env: Env = process.env): LlmConfig | undefined {
   const provider = env.LLM_PROVIDER?.trim().toLowerCase() ?? "";
   const model = env.LLM_MODEL?.trim() ?? "";
@@ -27,7 +31,9 @@ export function readLlmConfig(env: Env = process.env): LlmConfig | undefined {
   if (provider === "" || model === "" || apiKey === "") return undefined;
   const timeout = env.LLM_TIMEOUT_MS?.trim() ?? "";
   const timeoutMs = /^\d{1,9}$/.test(timeout) && Number(timeout) > 0 ? Number(timeout) : LLM_DEFAULT_TIMEOUT_MS;
-  return { provider, model, apiKey, timeoutMs };
+  const effort = env.LLM_REASONING_EFFORT?.trim().toLowerCase() ?? "";
+  const reasoningEffort = REASONING_EFFORTS.includes(effort) ? (effort as ReasoningEffort) : undefined;
+  return { provider, model, apiKey, timeoutMs, ...(reasoningEffort ? { reasoningEffort } : {}) };
 }
 
 // undefined = no LLM takes part (nothing configured, or a provider no adapter exists for): the

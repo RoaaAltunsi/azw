@@ -476,13 +476,45 @@ describe("explanations (a mocked port, no network)", () => {
     expect(startedWhenAnswered).toEqual([2, 2]);
   });
 
-  test("no LLM, or an extraction that failed → no explanation is asked for", async () => {
-    let asked = 0;
-    const explainDiff = async () => ((asked += 1), NOTE);
+  test("no LLM, or an extraction that failed → no explanation is shown", async () => {
+    const explainDiff = async () => NOTE;
     const failed = await review(draft, { ...explainDeps, llm: { extractQuotes: () => Promise.reject(new Error("down")), explainDiff } });
     expect(failed.warnings).toEqual(["LLM_UNAVAILABLE_REGEX_ONLY"]);
     expect(failed).toEqual(await review(draft, explainDeps));
-    expect(asked).toBe(0);
+  });
+
+  // docs/DECISIONS.md D-30.
+  test("the explanations of the quotes the extractors found are asked for while the extraction runs, once each", async () => {
+    const events: string[] = [];
+    const result = await review(draft, {
+      ...explainDeps,
+      llm: {
+        extractQuotes: async () => {
+          await new Promise((resolve) => setTimeout(resolve, 5));
+          events.push("extraction answered");
+          return { items: [], isDraft: true };
+        },
+        explainDiff: async () => (events.push("explanation asked"), NOTE),
+      },
+    });
+    expect(events).toEqual(["explanation asked", "explanation asked", "extraction answered"]);
+    expect(result.items[1]!.explanation).toEqual({ text: NOTE, generated: true });
+  });
+
+  test("an early answer is not shown on an item the extraction changed", async () => {
+    const seen: string[] = [];
+    // The model weakens the claim of the third quote: the item is no longer the one explained early.
+    const llm: LlmPort = {
+      extractQuotes: async () => ({
+        items: [{ quote: "لم يلد ولم يولد", kind: "unclear_attribution", claimLevel: null, citedReference: null, attributionPhrase: null }],
+        isDraft: true,
+      }),
+      explainDiff: async (input) => (seen.push(input.reasonCode), input.reasonCode === "KIND_MISMATCH" ? "هذا النص آية، وقد نُسب في المسودة إلى الحديث." : NOTE),
+    };
+    const result = await review(draft, { ...explainDeps, llm });
+    expect(seen).toEqual(["WORDING_DIFF", "KIND_MISMATCH"]);
+    expect(result.items[2]).toMatchObject({ status: "NEEDS_SPECIALIST", reasonCode: "UNCLEAR_ATTRIBUTION" });
+    expect(result.items.map((i) => i.explanation?.text)).toEqual([undefined, NOTE, undefined, undefined, undefined, undefined]);
   });
 
   test.each<[string, LlmPort["explainDiff"]]>([
