@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Evidence } from "@/core/types";
 import { format, t } from "@/i18n/ar";
 import { DiffText } from "./DiffText";
@@ -66,12 +67,19 @@ function SourceLink({ entry }: { entry: Evidence }) {
   const { sourceUrl, sourceName } = entry.record;
   const label = format("card.source.link", { name: sourceName });
   if (!sourceUrl) return <p className="mt-1 text-xs text-muted">{label}</p>;
+  const externalLabel = sourceUrl.endsWith(".json") ? t("card.source.openJson") : t("card.source.openWebsite");
   return (
-    <p className="mt-1 text-xs">
-      <a href={sourceUrl} target="_blank" rel="noreferrer noopener" className="text-link inline-flex items-center gap-1.5">
-        {label}
-        <Icon name="external" size={12} />
-      </a>
-    </p>
+    <div className="mt-1 text-xs text-muted">
+      <p>{label}</p>
+      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+        <Link href="/sources" className="text-link">
+          {t("card.source.details")}
+        </Link>
+        <a href={sourceUrl} target="_blank" rel="noreferrer noopener" className="text-link inline-flex items-center gap-1.5">
+          {externalLabel}
+          <Icon name="external" size={12} />
+        </a>
+      </div>
+    </div>
   );
 }

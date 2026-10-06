@@ -3,6 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "vitest";
 import GlobalError from "@/app/global-error";
+import HowItWorksPage from "@/app/how-it-works/page";
 import { ATTRIBUTION_PATTERNS } from "@/core/extract";
 import { STATUSES, type ReviewResult } from "@/core/types";
 import { t } from "@/i18n/ar";
@@ -47,12 +48,36 @@ test("a card shows exactText between ﴿ ﴾, the citation, the reason and the s
   expect(textOf(html)).toContain("جملة السبب من الخدمة.");
   expect(textOf(html)).toContain("المرجع المذكور في المسودة: [البقرة: 153]");
   expect(html).toContain('href="https://quranpedia.net"');
+  expect(html).toContain('href="/sources"');
+  expect(textOf(html)).toContain(t("card.source.details"));
+  expect(textOf(html)).toContain(t("card.source.openWebsite"));
   expect(html).toContain(t("card.compare.show"));
   expect(html).toContain(t("card.copy"));
   expect(html).toContain("trace-line");
   // Nothing was generated, so nothing is labeled as generated; no grade, so none is shown.
   expect(html).not.toContain(t("explanation.generatedLabel"));
   expect(html).not.toContain("الحكم كما ورد");
+});
+
+test("a JSON source stays traceable without presenting the raw file as the readable source page", () => {
+  const sourceUrl = "https://example.org/source.json";
+  const html = card({
+    span: { start: 0, end: 3, text: "نقل" },
+    evidence: [evidence({ id: "bukhari:1", kind: "hadith", collection: "bukhari", sourceUrl })],
+  });
+  expect(html).toContain('href="/sources"');
+  expect(html).toContain(`href="${sourceUrl}"`);
+  expect(textOf(html)).toContain(t("card.source.openJson"));
+});
+
+test("how it works presents four result statuses and ERROR separately as a system state", () => {
+  const html = renderToStaticMarkup(createElement(HowItWorksPage));
+  expect(textOf(html)).toContain(t("how.statuses.title"));
+  expect(textOf(html)).toContain(t("how.systemStatus.label"));
+  const systemLabel = html.indexOf(t("how.systemStatus.label"));
+  expect(systemLabel).toBeGreaterThan(-1);
+  expect(html.indexOf('data-status="ERROR"')).toBeGreaterThan(systemLabel);
+  expect(html.slice(0, systemLabel).match(/class="status-card/g)).toHaveLength(4);
 });
 
 test("a difference is marked in both texts", () => {

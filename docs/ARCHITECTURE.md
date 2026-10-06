@@ -1398,7 +1398,8 @@ the state of a card itself (the chosen place, the open comparison) starts afresh
 
 A card (`ReviewCard`): the status pill (label + icon), the quote as written with the diff marks,
 the dashed trace line, the source block (`ScriptureBlock`: `exactText` only, the citation, a grade
-only when the record has one with its `by`, the source link when the record has a `sourceUrl`),
+only when the record has one with its `by`, a readable link to `/sources`, and the record's external
+source link when it has a `sourceUrl`; a raw JSON link is named as a data file before it is opened),
 `reasonAr`, `ExplanationBox` under «شرح مولّد آلياً» when an item carries an explanation (a
 `DIFFERS` item only: "Explanation"), then the buttons: the correction when there is one, «قارن
 النصين», «انسخ نص المصدر مع المرجع». The legend of the diff marks is folded («دلالة التظليل»). An
