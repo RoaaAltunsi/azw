@@ -5,8 +5,8 @@
       "collection": "quran",
       "approvedBy": "Project owner",
       "approvedAt": "2026-10-02",
-      "scope": "Quran collection approved for Azw's text matching. Does not cover search-spelling handling, display of the ۞/۩ signs, or surah alternate names — those decisions stay pending.",
-      "method": "The owner personally compared the 10 ayat listed in docs/REVIEW_SHEET.md with مصحف المدينة النبوية on 2026-10-02; all 10 matched.",
+      "scope": "Quran collection approved for Azw's text matching. Search spelling, display signs and alternate names are governed separately by docs/DECISIONS.md D-9, D-13 and D-15.",
+      "method": "The owner personally compared the 10 listed ayat with مصحف المدينة النبوية on 2026-10-02; all 10 matched. The later integrity check compared all 6236 normalized ayat with the Tanzil simple text (docs/SOURCES.md; docs/DECISIONS.md D-15).",
       "comparedRecords": [
         "quran:1:1",
         "quran:2:26",
@@ -20,7 +20,7 @@
         "quran:112:1"
       ],
       "openIssues": [
-        "Quranpedia manifest sha256 for mushafs-1.json.gz does not match the served file; unresolved, cause not established (docs/SOURCES.md 3.1)."
+        "Quranpedia's published gzip sha256 does not match the served gzip. This is a documented upstream packaging limit, not an unresolved content decision: the decompressed JSON is the integrity anchor (docs/SOURCES.md; D-15)."
       ]
     },
     {
@@ -28,7 +28,7 @@
       "approvedBy": "Project owner",
       "approvedAt": "2026-10-02",
       "scope": "Sahih al-Bukhari collection approved for Azw's text matching. Covers only records with no reported issue. Does not cover records with damaged text, split (decimal) entries, records whose text block the source repeats under several numbers, records whose text does not open with a formula of direct transmission (docs/DECISIONS.md D-5), or the records in data/review/held-records.json — those stay pending.",
-      "method": "Approved on the automated sample checks; the owner did not compare records with a printed edition by hand. Checks: raw file byte-identical to hadith-api commit df57907; 30 of 30 sampled records confirmed on Dorar by number and matn (docs/SOURCES.md section 4); 12 records compared word for word with Dorar's book text: 12 numbers agree, 8 no word difference, 3 spelling only, 1 real wording difference (bukhari:2075, held) — docs/HADITH_REVIEW_SAMPLE.md, docs/HADITH_FLAGGED_INVESTIGATION.md.",
+      "method": "Approved on automated sample checks; the owner did not compare every record with a printed edition. The raw file is byte-identical to hadith-api commit df57907; 30/30 sampled records matched Dorar by number and matn; 12 records were compared word for word: 8 identical, 3 spelling-only differences, and bukhari:2075 held. Evidence: data/review/hadith-review-sample.json, docs/SOURCES.md and docs/DECISIONS.md D-14.",
       "openIssues": [
         "The approval rests on a sample (30 + 12 records); the other records were not compared with a second text.",
         "The source repository does not state which printed edition the Arabic text was digitized from.",
@@ -40,7 +40,7 @@
       "approvedBy": "Project owner",
       "approvedAt": "2026-10-02",
       "scope": "Sahih Muslim collection approved for Azw's text matching. Covers only records with no reported issue. Does not cover records without a citation number, records with damaged text, records whose text block the source repeats under several numbers, records whose text does not open with a formula of direct transmission (docs/DECISIONS.md D-5), or the records in data/review/held-records.json — those stay pending.",
-      "method": "Approved on the automated sample checks; the owner did not compare records with a printed edition by hand. Checks: raw file byte-identical to hadith-api commit df57907; 30 of 30 sampled records confirmed on Dorar by number and matn (docs/SOURCES.md section 4); 12 records compared with Dorar: 12 numbers agree, 6 no word difference from the book text, 1 spelling only, 5 unresolved and held — docs/HADITH_REVIEW_SAMPLE.md, docs/HADITH_FLAGGED_INVESTIGATION.md.",
+      "method": "Approved on automated sample checks; the owner did not compare every record with a printed edition. The raw file is byte-identical to hadith-api commit df57907; 30/30 sampled records matched Dorar by number and matn; 12 records were compared word for word: 6 identical, 1 spelling-only difference, and 5 later confirmed in a second edition. Evidence: data/review/hadith-review-sample.json, docs/SOURCES.md and docs/DECISIONS.md D-14.",
       "openIssues": [
         "The approval rests on a sample (30 + 12 records); the other records were not compared with a second text.",
         "The 5 records held after the word-for-word sample were compared with a second edition on 2026-10-03 and released (see records): our text agrees with صحيح مسلم ط التركية in all 5; the differences came from one digital copy.",

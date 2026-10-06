@@ -40,7 +40,7 @@ const CORRUPT_CHARS = /[\uFFFC\uFFFD]/; // replacement characters = text damaged
 const reviewed: ReviewedFile = ReviewedFileSchema.parse(readJson(p(REVIEWED)));
 const approvedCollections = new Set(reviewed.collections.map((c) => c.collection));
 const approvedRecords = new Set(reviewed.records.map((r) => r.id));
-// Records held back after a sample check left a question open (docs/HADITH_FLAGGED_INVESTIGATION.md).
+// Records held back by the closed source decisions in docs/DECISIONS.md D-5 and D-14.
 const heldRecords = new Set(HeldFileSchema.parse(readJson(p(HELD))).records.map((r) => r.id));
 
 // forcedPending: a collection-level approval never covers these (missing citation number,

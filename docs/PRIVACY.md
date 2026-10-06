@@ -1,78 +1,73 @@
 # Azw — privacy notice
 
-What Azw does with a draft, as the code stands on 2026-10-05 (after the audit of P13, `docs/DECISIONS.md` D-24, and the early explanations of D-30). `AGENTS.md` §2 rule 8:
-do not store drafts, do not log draft content, publish a short privacy notice. The Arabic notice
-shown in the app (`/privacy`) must say what this file says, and no more.
+This notice describes the code in this repository. A hosting provider and OpenAI process network
+requests under their own terms; their infrastructure is outside Azw's code.
 
 ## What is processed
 
-- The draft you submit is sent to the Azw server (`POST /api/v1/review`), compared in memory with
-  the source texts, and the result is returned.
-- **When an LLM is configured on the server** (`LLM_PROVIDER`, `LLM_MODEL`, `LLM_API_KEY`), **the
-  whole draft is sent to the LLM provider** so that the model finds the quotes in it. That is the
-  only purpose, and nothing else is sent with it: no address, no identifier. The one provider an
-  adapter exists for is OpenAI (`src/llm/openai.ts`, the Responses API). The request asks the
-  provider not to store the response (`store: false`). What the provider keeps of what it
-  receives is governed by its own terms (<https://developers.openai.com/api/docs/guides/your-data>),
-  not by this code.
-- **For a quote that ends «مختلف في اللفظ أو المرجع» (`DIFFERS`)**, when an LLM is configured, a
-  second request goes to the same provider to write the short note shown under «شرح مولّد آلياً».
-  It holds: the quote, the source text it was compared with, the source's reference, the
-  reference the draft cites, the reason code, and the words that differ between the two texts.
-  Nothing else is sent with it, and it too asks the provider not to store the response
-  (`store: false`). No such request is made for any other status. For a quote the rule-based
-  extractor found, the request is sent while the model is still reading the draft (D-30); if that
-  reading then fails, the note is not shown, but the request was made. Everything in it is taken
-  from the draft, which went to the same provider in the first request, and from the source text.
-- When no LLM is configured, quotes are found by a rule-based extractor on the Azw server and the
-  draft does not leave it. `GET /api/v1/health` reports `llmConfigured`; a result that carries the
-  warning `LLM_UNAVAILABLE_REGEX_ONLY` was made without an LLM reading the draft to its end (none
-  configured, or the call failed or timed out; a failed call may still have sent the draft).
+1. The browser sends the submitted draft to Azw's server at `POST /api/v1/review`.
+2. The server compares it in memory with the local corpus.
+3. In the supported configuration, the complete draft is sent to OpenAI so the model can identify
+   quotation and claim spans. No account id, address or application identifier is placed in that
+   model message.
+4. For a `DIFFERS` item, Azw may send a second request containing only the draft span, compared
+   source text, source and draft references, deterministic reason code and differing words. This is
+   used to generate the note labelled «شرح مولّد آلياً».
 
-## What is not kept
+Explanation requests for regex-found differences may start while extraction is still running. If
+extraction later fails, the explanation is not shown, but that request may already have been sent.
 
-- **Azw does not store the draft**: no database, no file, no cache. It exists in the server's
-  memory for the time of the request.
-- **Azw does not log the draft**, in whole or in part, nor any quote taken from it, nor what the
-  LLM returns. The LLM adapter logs nothing.
-- **Responses are not cached**: every response carries `Cache-Control: no-store`, and the app's
-  service worker (when added) caches the app shell only.
-- No account, no cookie and no analytics exist in the app.
+The OpenAI adapter sends `store: false`. This asks the API not to store the response as application
+state; it does not override the provider's abuse-monitoring or legal retention terms. See
+<https://developers.openai.com/api/docs/guides/your-data>.
 
-## What the server does record
+If the model call fails or times out, the rule-based extractor continues and the result contains
+`LLM_UNAVAILABLE_REGEX_ONLY`. A failed call may still have transmitted some or all of the draft.
 
-One log line per request, holding only: a random request id, the HTTP status, an outcome code, the
-length of the draft in characters, timings, the number of items, the count of each status, and
-warning codes. When a request fails with a fault of the server, the line also holds a fixed word
-for where it failed (`failure`) and one detail: the class name of the error, the paths of the
-schema issues, or, when the corpus did not load, the loader's own message, which names corpus
-files. The log entry type has no field for the draft, for a quote or for what the LLM returns
-(`LogEntry` in `src/server/api-handlers.ts`), and tests check that no part of a draft, no
-generated text and no address appears in the log.
+## What Azw does not keep
 
-## Your network address
+- No database, file or cache stores the draft.
+- The draft exists in server memory only for the request.
+- Logs contain no draft text, extracted quotation or model output.
+- The LLM adapter logs no request or response body.
+- API responses use `Cache-Control: no-store`.
+- The browser uses component memory only: no account, cookie, analytics or `localStorage`.
+- The current build has no service worker, so it does not cache an app shell or API response.
 
-The rate limit keeps the client address in the server's memory, as a key, until its allowance has
-refilled (about a minute; at most 10,000 addresses). It is never logged, never written to disk and
-never returned. The hosting provider may keep its own access logs; those are outside this code.
+## Server logs
+
+One structured line per request may contain:
+
+- a random request id;
+- HTTP status and fixed outcome code;
+- draft length, duration and item count;
+- count of each status and warning codes;
+- on a server fault, an error class, schema paths or a corpus-loader message naming local files.
+
+The log type has no free-text field for user content. Tests cover successful requests, failed model
+calls, failed explanations and handler failures.
+
+## Network address and rate limit
+
+The in-memory rate limiter uses a client address as its key until the allowance refills, normally
+about one minute and subject to a 10,000-key cap. The address is not logged, returned or written to
+disk. A deployed hosting provider may retain its own access logs.
 
 ## Retention
 
-None on the Azw server: nothing about a draft outlives the request. How long the LLM provider
-keeps what is sent to it is set by its terms.
+Azw retains no draft data after the request finishes. OpenAI and the hosting provider apply their
+own retention policies to data they receive.
 
-## Where this is enforced
+## Enforcement
 
-| Claim | Code | Test |
-|---|---|---|
-| No draft or quote in the log | `src/server/api-handlers.ts` (`LogEntry`) | `src/server/api-handlers.test.ts`, "privacy: what is logged", "the LLM port" (also an explanation that fails, times out or is rejected) and "failures never look like a result" |
-| The search index keeps no query, and its error messages carry none | `src/core/corpus/corpus-index.ts` | `src/core/corpus/corpus-index.test.ts` (the error message; that nothing is kept is by reading the code) |
-| No response is cached | `src/server/api-handlers.ts` (`json`) | `src/server/api-handlers.test.ts`, happy path |
-| The address is a rate-limit key only | `src/server/rate-limit.ts`, `clientKey` | `src/server/api-handlers.test.ts`, "privacy: what is logged" |
-| The draft goes to the provider in the user message only, with `store: false`; the adapter logs nothing | `src/llm/openai.ts` | `src/llm/openai.test.ts` (a fake client) |
-| An explanation request holds the six fields above and nothing else, with `store: false`; it is made for `DIFFERS` items only, and its note is shown only when the extraction succeeded | `src/core/explain/index.ts`, `src/core/review.ts`, `src/llm/openai.ts` | `src/core/review.test.ts`, "explanations"; `src/core/injection.test.ts`; `src/llm/openai.test.ts`, "explainDiff" |
-| No key and no server code reaches the browser | `src/llm/index.ts`, `src/server/api-config.ts` (the only readers of the environment) | `src/components/client-boundary.test.ts` |
+| Claim | Implementation and tests |
+|---|---|
+| No content in logs | `src/server/api-handlers.ts` and its privacy tests |
+| No response caching | server response helper and API handler tests |
+| Address used only for rate limiting | `src/server/rate-limit.ts`, `clientKey`, API tests |
+| Draft sent in a server-only request with `store: false` | `src/llm/openai.ts` and fake-client tests |
+| Explanation has bounded fields and statuses | `src/core/explain`, `src/core/review` and injection tests |
+| Secrets and server modules do not enter the client | `src/components/client-boundary.test.ts` |
 
-Limits of this notice: it describes the application code. It was not checked against a deployed
-host's own logging (P8). What the LLM provider does with a request was not tested and cannot be
-from this code.
+This notice must stay synchronized with the Arabic `/privacy` page whenever a provider, logger,
+analytics tool, cache or storage system is added.

@@ -2,7 +2,7 @@
   "note": "Everyday spellings of words that the Quran source text writes in a mushaf spelling. Each pair applies ONLY in the listed ayat (e.g. «لعنت» in 7:38 is a verb and is not listed). Forms are written without diacritics. sourceForm is a word of exactText in every listed ayah (checked by scripts/verify-corpus.ts); everydayForm is editorial, approved by the project owner, and is used only to find the ayah — it is never shown as source text.",
   "approvedBy": "Project owner",
   "approvedAt": "2026-10-03",
-  "reviewSheet": "docs/QURAN_SPELLING_REVIEW.md",
+  "reviewSheet": "docs/DECISIONS.md (D-9 and D-13)",
   "variants": [
     {
       "group": "open-ta",

@@ -1,5 +1,5 @@
 {
-  "note": "Records kept outside any collection-level approval. scripts/build-corpus.ts never marks these reviewed through a collection approval. The source text is not changed. Both entries are decided (docs/DECISIONS.md D-5, D-14): they stay pending for as long as this source text is used. Evidence: docs/HADITH_FLAGGED_INVESTIGATION.md.",
+  "note": "Records kept outside collection-level approval. scripts/build-corpus.ts never marks them reviewed through collection approval, and their source text is unchanged. Both remain pending for as long as this source text is used; evidence is recorded in docs/DECISIONS.md D-5 and D-14 and data/review/hadith-review-sample.json.",
   "records": [
     {
       "id": "bukhari:2819",
