@@ -183,7 +183,8 @@ test("results: the summary, the warnings in their wording, a highlight that link
   );
   expect(textOf(html)).toContain("1 نقول: 0 مطابق · 0 مختلف · 0 يحتاج مراجعة · 1 لم يُتحقق منه");
   // The sources named are those of the result's own coverage, and no other.
-  expect(textOf(html)).toContain("رُوجعت النقول في: القرآن الكريم · إصدار البيانات: test");
+  expect(textOf(html)).toContain("رُوجعت النقول في: القرآن الكريم");
+  expect(textOf(html)).not.toContain("إصدار البيانات");
   expect(html).not.toMatch(/صحيح البخاري|صحيح مسلم/);
   expect(html).toContain(t("warning.LLM_UNAVAILABLE_REGEX_ONLY"));
   expect(html).toContain(t("warning.ITEM_LIMIT_REACHED"));

@@ -183,14 +183,13 @@ function ScopeNote({ health }: { health: HealthState }) {
   );
 }
 
-// Under the draft box: the data version, and whether the server has no LLM keys (LLM_PROVIDER,
-// LLM_MODEL, LLM_API_KEY), as GET /api/v1/health reports it.
+// Under the draft box: whether the server has no LLM keys (LLM_PROVIDER, LLM_MODEL, LLM_API_KEY),
+// as GET /api/v1/health reports it.
 function DataLine({ health }: { health: HealthState }) {
   if (health.status !== "ready") return null;
-  const { corpusVersion, llmConfigured } = health.health;
+  const { llmConfigured } = health.health;
   return (
     <div className="mt-3 space-y-1 px-1 text-xs leading-6 text-muted">
-      <p>{format("sources.version", { version: corpusVersion })}</p>
       {!llmConfigured && (
         <p className="flex items-start gap-1.5">
           <Icon name="info" size={14} className="mt-1" />

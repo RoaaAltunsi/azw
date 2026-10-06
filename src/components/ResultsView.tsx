@@ -66,7 +66,7 @@ export function ResultsView({ result, draft, headingRef, onBack }: ResultsViewPr
         {/* What this review searched, from the result itself (AGENTS.md §6, "Coverage must be true"). */}
         {result.coverage.length > 0 && (
           <p className="mt-3 text-sm leading-6 text-muted">
-            {format("results.searched", { coverage: coverageNames(result.coverage), version: result.corpusVersion })}
+            {format("results.searched", { coverage: coverageNames(result.coverage) })}
           </p>
         )}
       </header>

@@ -125,7 +125,7 @@ export const ar = {
   // Results.
   "results.title": "نتيجة المراجعة",
   // {coverage} is the result's own `coverage`: what this review searched.
-  "results.searched": "رُوجعت النقول في: {coverage} · إصدار البيانات: {version}",
+  "results.searched": "رُوجعت النقول في: {coverage}",
   "results.summary": "{count} نقول: {parts}",
   "results.summary.MATCH": "{n} مطابق",
   "results.summary.DIFFERS": "{n} مختلف",

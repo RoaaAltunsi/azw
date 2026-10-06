@@ -37,7 +37,6 @@ export function reportText(result: ReviewResult, date: Date): string {
   const header = [
     t("report.title"),
     format("report.date", { date: isoDay(date) }),
-    format("sources.version", { version: result.corpusVersion }),
     format("report.coverage", { coverage: coverageNames(result.coverage) }),
     ...result.warnings.map((code) => format("report.warning", { text: warningText(code) })),
   ];

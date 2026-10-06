@@ -1,6 +1,6 @@
 "use client";
 
-import { format, t, type MessageKey } from "@/i18n/ar";
+import { t, type MessageKey } from "@/i18n/ar";
 import { Icon } from "./Icon";
 import { Notice } from "./Notice";
 import { InfoSection } from "./SiteChrome";
@@ -45,12 +45,9 @@ export function SourcesRegister() {
       </Notice>
     );
   }
-  const { coverage, corpusVersion } = health.health;
+  const { coverage } = health.health;
   return (
     <>
-      <p className="mt-4 inline-block rounded-full border border-line bg-tint px-3 py-1 text-xs font-medium text-muted">
-        {format("sources.version", { version: corpusVersion })}
-      </p>
       {searchedSources(coverage).map((source) => (
         <InfoSection key={source.id} title={t(`sources.${source.id}.title`)}>
           <dl className="mt-3 divide-y divide-line text-base leading-8 text-ink">

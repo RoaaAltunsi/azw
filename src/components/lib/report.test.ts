@@ -59,7 +59,6 @@ test("the report of a result: every status, one field per line, the warnings and
     [
       "تقرير مراجعة النقول من «عَزْو»",
       "تاريخ التقرير: 2026-10-04",
-      "إصدار البيانات: 2026-10-03.1",
       "المصادر المغطاة: القرآن الكريم، صحيح البخاري، صحيح مسلم",
       `تنبيه: ${t("warning.ITEM_LIMIT_REACHED")}`,
       "تنبيه: تنبيه من الخدمة: SOMETHING_NEW",
@@ -106,7 +105,6 @@ test("a result without warnings has none in its header; the footer is the fixed 
   expect(text.split("\n")).toEqual([
     "تقرير مراجعة النقول من «عَزْو»",
     "تاريخ التقرير: 2026-01-05",
-    "إصدار البيانات: 2026-10-03.1",
     "المصادر المغطاة: القرآن الكريم، صحيح البخاري، صحيح مسلم",
     "",
     FOOTER,
